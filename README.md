@@ -17,7 +17,7 @@
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 
 **Daily Dose of TMKOC** is a modern **GitOps-driven video application** and YouTube playlist manager. 
 
@@ -29,17 +29,17 @@ Instead of paying for backend servers or risking third-party rate limits, this p
 
 ---
 
-## ✨ Features
+## Features
 
-- **🎮 Custom Video Player:** Interactive player modal with seek scrubbing, volume/fullscreen, playback speed control (0.75x to 2x), and Next/Prev episode buttons.
-- **🎨 Modern Glassmorphism UI:** Clean light/dark mode switcher, featured hero carousel, and era category filter pills (`Classic`, `Golden`, `Modern`, `Recent`).
-- **⚡ 100% Serverless & Free:** Hosted entirely on GitHub Pages CDN with $0 operational cost.
-- **🤖 Automated Daily Sync Bot:** Runs every night at 18:00 UTC (11:30 PM IST) to search for new daily episodes.
-- **📊 4,500+ Episode Database:** Pre-indexed dataset of all Taarak Mehta Ka Ooltah Chashmah episodes with zero missing data.
+- ** Custom Video Player:** Interactive player modal with seek scrubbing, volume/fullscreen, playback speed control (0.75x to 2x), and Next/Prev episode buttons.
+- ** Modern Glassmorphism UI:** Clean light/dark mode switcher, featured hero carousel, and era category filter pills (`Classic`, `Golden`, `Modern`, `Recent`).
+- ** 100% Serverless & Free:** Hosted entirely on GitHub Pages CDN with $0 operational cost.
+- ** Automated Daily Sync Bot:** Runs every night at 18:00 UTC (11:30 PM IST) to search for new daily episodes.
+- ** 4,500+ Episode Database:** Pre-indexed dataset of all Taarak Mehta Ka Ooltah Chashmah episodes with zero missing data.
 
 ---
 
-## 📐 Architecture Flow
+## Architecture Flow
 
 ```mermaid
 sequenceDiagram
@@ -59,7 +59,7 @@ sequenceDiagram
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 tmkoc-youtube-playlist-bot/
@@ -83,7 +83,7 @@ tmkoc-youtube-playlist-bot/
 
 ---
 
-## 🛠️ Setup & Deployment
+## Setup & Deployment
 
 ### 1. Clone Repository
 ```bash
@@ -106,5 +106,5 @@ For automated YouTube Playlist updates, configure the following secrets under **
 
 ---
 
-## 📄 License
+## License
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details. Video content rights belong exclusively to Sony SAB / Sony PAL / Sony LIV.
