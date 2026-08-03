@@ -9,7 +9,7 @@
     "endEp": 135,
     "totalEpisodes": 16,
     "category": "Classic",
-    "coverEp": 125
+    "coverEp": 120
   },
   {
     "id": "arc_gpl_1",
@@ -21,7 +21,7 @@
     "endEp": 280,
     "totalEpisodes": 21,
     "category": "Classic",
-    "coverEp": 270
+    "coverEp": 260
   },
   {
     "id": "arc_bhootni",
@@ -33,7 +33,7 @@
     "endEp": 435,
     "totalEpisodes": 26,
     "category": "Classic",
-    "coverEp": 415
+    "coverEp": 410
   },
   {
     "id": "arc_hiccups",
@@ -45,7 +45,7 @@
     "endEp": 465,
     "totalEpisodes": 16,
     "category": "Classic",
-    "coverEp": 455
+    "coverEp": 450
   },
   {
     "id": "arc_gpl_2",
@@ -57,7 +57,7 @@
     "endEp": 625,
     "totalEpisodes": 26,
     "category": "Golden",
-    "coverEp": 610
+    "coverEp": 600
   },
   {
     "id": "arc_gulabo",
@@ -69,7 +69,7 @@
     "endEp": 930,
     "totalEpisodes": 31,
     "category": "Golden",
-    "coverEp": 915
+    "coverEp": 900
   },
   {
     "id": "arc_pakistan",
@@ -81,23 +81,11 @@
     "endEp": 1445,
     "totalEpisodes": 26,
     "category": "Golden",
-    "coverEp": 1430
-  },
-  {
-    "id": "arc_gpl_3",
-    "sortOrder": 8,
-    "title": "Gokuldham Premier League (GPL Season 3)",
-    "tagline": "Ultimate Cricket Showdown",
-    "description": "The third edition of Gokuldham Premier League featuring professional stadium production and thrilling matches.",
-    "startEp": 1650,
-    "endEp": 1675,
-    "totalEpisodes": 26,
-    "category": "Modern",
-    "coverEp": 1660
+    "coverEp": 1420
   },
   {
     "id": "arc_bulbul",
-    "sortOrder": 9,
+    "sortOrder": 8,
     "title": "Popatlal & Bulbul Marriage Arc",
     "tagline": "Popatlal's Emotional Wedding Story",
     "description": "Popatlal gets ready to marry Bulbul, but discovers a secret about her lover Rahul, leading to a heartwarming sacrifice.",
@@ -105,11 +93,11 @@
     "endEp": 1805,
     "totalEpisodes": 26,
     "category": "Modern",
-    "coverEp": 1790
+    "coverEp": 1780
   },
   {
     "id": "arc_khushi",
-    "sortOrder": 10,
+    "sortOrder": 9,
     "title": "Khushi Baby Adoption Arc",
     "tagline": "Gokuldham Adopts an Abandoned Baby",
     "description": "An abandoned baby girl named Khushi is found by Gokuldham residents, bringing immense joy and emotional bonding to the society.",
@@ -117,11 +105,11 @@
     "endEp": 2125,
     "totalEpisodes": 26,
     "category": "Modern",
-    "coverEp": 2110
+    "coverEp": 2100
   },
   {
     "id": "arc_london",
-    "sortOrder": 11,
+    "sortOrder": 10,
     "title": "Jethalal In London Adventure",
     "tagline": "Gokuldham Goes International",
     "description": "Jethalal wins a trip to London, England, leading to hilarious culture shocks, sightseeing, and lost passports.",
@@ -129,42 +117,6 @@
     "endEp": 2370,
     "totalEpisodes": 21,
     "category": "Modern",
-    "coverEp": 2360
-  },
-  {
-    "id": "arc_renovation",
-    "sortOrder": 12,
-    "title": "Gokuldham Society Renovation Arc",
-    "tagline": "New Paint, Modern Look & Furniture Drama",
-    "description": "Gokuldham Society undergoes complete architectural renovation and repainting, sparking disputes among members.",
-    "startEp": 2890,
-    "endEp": 2915,
-    "totalEpisodes": 26,
-    "category": "Modern",
-    "coverEp": 2900
-  },
-  {
-    "id": "arc_kala_kauwa",
-    "sortOrder": 13,
-    "title": "Mission KALA KAUWA (COVID Vaccine Sting)",
-    "tagline": "Popatlal's Undercover Sting Operation",
-    "description": "Popatlal and Dr. Hathi perform a dangerous undercover sting operation at a luxury resort to expose black-marketeers.",
-    "startEp": 3180,
-    "endEp": 3210,
-    "totalEpisodes": 31,
-    "category": "Recent",
-    "coverEp": 3195
-  },
-  {
-    "id": "arc_spiderman",
-    "sortOrder": 14,
-    "title": "Spider-Man In Gokuldham (18th Anniversary)",
-    "tagline": "18 Years Milestone Celebration",
-    "description": "Spider-Man visits Gokuldham Society to celebrate 18 glorious years of Taarak Mehta Ka Ooltah Chashmah with all residents.",
-    "startEp": 4775,
-    "endEp": 4778,
-    "totalEpisodes": 4,
-    "category": "Recent",
-    "coverEp": 4778
+    "coverEp": 2350
   }
 ]
