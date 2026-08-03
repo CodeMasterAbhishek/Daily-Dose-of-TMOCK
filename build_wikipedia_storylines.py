@@ -740,7 +740,7 @@ def parse_wiki():
                 "sortOrder": idx,
                 "title": title,
                 "tagline": f"Official Wikipedia Ground-Truth Arc (Ep {start_ep} - {end_ep})",
-                "description": desc,
+                "description": "",
                 "startEp": start_ep,
                 "endEp": end_ep,
                 "totalEpisodes": total_eps,
