@@ -735,19 +735,20 @@ def parse_wiki():
             total_eps = end_ep - start_ep + 1
             category = "Classic" if start_ep <= 500 else ("Golden" if start_ep <= 1500 else ("Modern" if start_ep <= 3000 else "Recent"))
 
-            storylines.append({
-                "id": f"arc_{start_ep}_{title.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('&', 'and')[:25]}",
-                "sortOrder": idx,
-                "title": title,
-                "tagline": f"Official Wikipedia Ground-Truth Arc (Ep {start_ep} - {end_ep})",
-                "description": "",
-                "startEp": start_ep,
-                "endEp": end_ep,
-                "totalEpisodes": total_eps,
-                "category": category,
-                "coverEp": start_ep
-            })
-            idx += 1
+            if total_eps >= 3:
+                storylines.append({
+                    "id": f"arc_{start_ep}_{title.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('&', 'and')[:25]}",
+                    "sortOrder": idx,
+                    "title": title,
+                    "tagline": f"Official Wikipedia Ground-Truth Arc (Ep {start_ep} - {end_ep})",
+                    "description": "",
+                    "startEp": start_ep,
+                    "endEp": end_ep,
+                    "totalEpisodes": total_eps,
+                    "category": category,
+                    "coverEp": start_ep
+                })
+                idx += 1
             i += 3
         else:
             i += 1

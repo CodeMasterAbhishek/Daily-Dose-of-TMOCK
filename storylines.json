@@ -1,19 +1,7 @@
 [
   {
-    "id": "arc_1_introduction",
-    "sortOrder": 1,
-    "title": "Introduction",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1 - 1)",
-    "description": "",
-    "startEp": 1,
-    "endEp": 1,
-    "totalEpisodes": 1,
-    "category": "Classic",
-    "coverEp": 1
-  },
-  {
     "id": "arc_2_mischievous_tapu",
-    "sortOrder": 2,
+    "sortOrder": 1,
     "title": "Mischievous Tapu",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2 - 5)",
     "description": "",
@@ -24,116 +12,8 @@
     "coverEp": 2
   },
   {
-    "id": "arc_6_champaklal's_arrival",
-    "sortOrder": 3,
-    "title": "Champaklal's Arrival",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 6 - 7)",
-    "description": "",
-    "startEp": 6,
-    "endEp": 7,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 6
-  },
-  {
-    "id": "arc_8_heavy_rains",
-    "sortOrder": 4,
-    "title": "Heavy Rains",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 8 - 9)",
-    "description": "",
-    "startEp": 8,
-    "endEp": 9,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 8
-  },
-  {
-    "id": "arc_10_champaklal's_phone",
-    "sortOrder": 5,
-    "title": "Champaklal's Phone",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 10 - 11)",
-    "description": "",
-    "startEp": 10,
-    "endEp": 11,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 10
-  },
-  {
-    "id": "arc_12_samuhik_rakshabandhan",
-    "sortOrder": 6,
-    "title": "Samuhik Rakshabandhan",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 12 - 13)",
-    "description": "",
-    "startEp": 12,
-    "endEp": 13,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 12
-  },
-  {
-    "id": "arc_14_jethalal_kidnapped",
-    "sortOrder": 7,
-    "title": "Jethalal Kidnapped",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 14 - 15)",
-    "description": "",
-    "startEp": 14,
-    "endEp": 15,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 14
-  },
-  {
-    "id": "arc_16_janamashtami_2008",
-    "sortOrder": 8,
-    "title": "Janamashtami (2008)",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 16 - 17)",
-    "description": "",
-    "startEp": 16,
-    "endEp": 17,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 16
-  },
-  {
-    "id": "arc_18_champaklal_as_tapu's_fath",
-    "sortOrder": 9,
-    "title": "Champaklal as Tapu's Father",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 18 - 18)",
-    "description": "",
-    "startEp": 18,
-    "endEp": 18,
-    "totalEpisodes": 1,
-    "category": "Classic",
-    "coverEp": 18
-  },
-  {
-    "id": "arc_19_chingur_baba's_help",
-    "sortOrder": 10,
-    "title": "Chingur Baba's help",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 19 - 20)",
-    "description": "",
-    "startEp": 19,
-    "endEp": 20,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 19
-  },
-  {
-    "id": "arc_21_kevra_teej",
-    "sortOrder": 11,
-    "title": "Kevra Teej",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 21 - 22)",
-    "description": "",
-    "startEp": 21,
-    "endEp": 22,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 21
-  },
-  {
     "id": "arc_23_ganesh_utsav_2008",
-    "sortOrder": 12,
+    "sortOrder": 2,
     "title": "Ganesh Utsav (2008)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 23 - 27)",
     "description": "",
@@ -144,20 +24,8 @@
     "coverEp": 23
   },
   {
-    "id": "arc_28_hasya_kavi_sammelan",
-    "sortOrder": 13,
-    "title": "Hasya Kavi Sammelan",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 28 - 29)",
-    "description": "",
-    "startEp": 28,
-    "endEp": 29,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 28
-  },
-  {
     "id": "arc_30_helpless_husbands",
-    "sortOrder": 14,
+    "sortOrder": 3,
     "title": "Helpless Husbands",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 30 - 34)",
     "description": "",
@@ -169,7 +37,7 @@
   },
   {
     "id": "arc_35_tapu_sena_and_television",
-    "sortOrder": 15,
+    "sortOrder": 4,
     "title": "Tapu Sena & Television",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 35 - 38)",
     "description": "",
@@ -181,7 +49,7 @@
   },
   {
     "id": "arc_39_navratri_2008",
-    "sortOrder": 16,
+    "sortOrder": 5,
     "title": "Navratri (2008)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 39 - 44)",
     "description": "",
@@ -193,7 +61,7 @@
   },
   {
     "id": "arc_45_kidney_for_shaikh",
-    "sortOrder": 17,
+    "sortOrder": 6,
     "title": "Kidney for Shaikh",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 45 - 49)",
     "description": "",
@@ -205,7 +73,7 @@
   },
   {
     "id": "arc_50_diwali_2008",
-    "sortOrder": 18,
+    "sortOrder": 7,
     "title": "Diwali (2008)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 50 - 54)",
     "description": "",
@@ -217,7 +85,7 @@
   },
   {
     "id": "arc_55_sundar's_scheme",
-    "sortOrder": 19,
+    "sortOrder": 8,
     "title": "Sundar's Scheme",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 55 - 61)",
     "description": "",
@@ -228,32 +96,8 @@
     "coverEp": 55
   },
   {
-    "id": "arc_62_havan_to_end_tv_strike",
-    "sortOrder": 20,
-    "title": "Havan to end TV strike",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 62 - 63)",
-    "description": "",
-    "startEp": 62,
-    "endEp": 63,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 62
-  },
-  {
-    "id": "arc_64_tapu_sena_strike_in_schoo",
-    "sortOrder": 21,
-    "title": "Tapu sena strike in school",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 64 - 65)",
-    "description": "",
-    "startEp": 64,
-    "endEp": 65,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 64
-  },
-  {
     "id": "arc_66_jethalal's_affair_with_sw",
-    "sortOrder": 22,
+    "sortOrder": 9,
     "title": "Jethalal's affair with Sweety",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 66 - 69)",
     "description": "",
@@ -265,7 +109,7 @@
   },
   {
     "id": "arc_70_tapu's_wedding",
-    "sortOrder": 23,
+    "sortOrder": 10,
     "title": "Tapu's Wedding",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 70 - 83)",
     "description": "",
@@ -277,7 +121,7 @@
   },
   {
     "id": "arc_84_drunk_sodhi_on_terrace",
-    "sortOrder": 24,
+    "sortOrder": 11,
     "title": "Drunk Sodhi on Terrace",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 84 - 86)",
     "description": "",
@@ -288,68 +132,8 @@
     "coverEp": 84
   },
   {
-    "id": "arc_87_lohri_eve",
-    "sortOrder": 25,
-    "title": "Lohri Eve",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 87 - 87)",
-    "description": "",
-    "startEp": 87,
-    "endEp": 87,
-    "totalEpisodes": 1,
-    "category": "Classic",
-    "coverEp": 87
-  },
-  {
-    "id": "arc_88_makar_sankranti",
-    "sortOrder": 26,
-    "title": "Makar Sankranti",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 88 - 89)",
-    "description": "",
-    "startEp": 88,
-    "endEp": 89,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 88
-  },
-  {
-    "id": "arc_90_dr._hathi_stuck_in_ricksh",
-    "sortOrder": 27,
-    "title": "Dr. Hathi stuck in Rickshaw",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 90 - 91)",
-    "description": "",
-    "startEp": 90,
-    "endEp": 91,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 90
-  },
-  {
-    "id": "arc_92_republic_day_plans",
-    "sortOrder": 28,
-    "title": "Republic Day plans",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 92 - 93)",
-    "description": "",
-    "startEp": 92,
-    "endEp": 93,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 92
-  },
-  {
-    "id": "arc_94_cultural_dance_program",
-    "sortOrder": 29,
-    "title": "Cultural Dance Program",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 94 - 95)",
-    "description": "",
-    "startEp": 94,
-    "endEp": 95,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 94
-  },
-  {
     "id": "arc_96_jethalal_fitness",
-    "sortOrder": 30,
+    "sortOrder": 12,
     "title": "Jethalal Fitness",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 96 - 100)",
     "description": "",
@@ -361,7 +145,7 @@
   },
   {
     "id": "arc_100_donations_leads_to_jail",
-    "sortOrder": 31,
+    "sortOrder": 13,
     "title": "Donations leads to Jail",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 100 - 106)",
     "description": "",
@@ -373,7 +157,7 @@
   },
   {
     "id": "arc_107_lovely_housemaid",
-    "sortOrder": 32,
+    "sortOrder": 14,
     "title": "Lovely Housemaid",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 107 - 114)",
     "description": "",
@@ -385,7 +169,7 @@
   },
   {
     "id": "arc_115_bhide_swallows_a_whistle",
-    "sortOrder": 33,
+    "sortOrder": 15,
     "title": "Bhide swallows a whistle",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 115 - 117)",
     "description": "",
@@ -397,7 +181,7 @@
   },
   {
     "id": "arc_118_holi_with_duplicate_shahr",
-    "sortOrder": 34,
+    "sortOrder": 16,
     "title": "Holi with Duplicate Shahrukh and Sachin",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 118 - 122)",
     "description": "",
@@ -409,7 +193,7 @@
   },
   {
     "id": "arc_122_chaggan,_maggan_and_25000",
-    "sortOrder": 35,
+    "sortOrder": 17,
     "title": "Chaggan, Maggan and 25000 rupee",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 122 - 125)",
     "description": "",
@@ -420,20 +204,8 @@
     "coverEp": 122
   },
   {
-    "id": "arc_125_vinay_pathak_in_society",
-    "sortOrder": 36,
-    "title": "Vinay Pathak in Society",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 125 - 125)",
-    "description": "",
-    "startEp": 125,
-    "endEp": 125,
-    "totalEpisodes": 1,
-    "category": "Classic",
-    "coverEp": 125
-  },
-  {
     "id": "arc_126_tapu_sena_exams_scam",
-    "sortOrder": 37,
+    "sortOrder": 18,
     "title": "Tapu Sena exams scam",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 126 - 129)",
     "description": "",
@@ -445,7 +217,7 @@
   },
   {
     "id": "arc_130_iyer_and_babita_fight",
-    "sortOrder": 38,
+    "sortOrder": 19,
     "title": "Iyer and Babita fight",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 130 - 132)",
     "description": "",
@@ -456,20 +228,8 @@
     "coverEp": 130
   },
   {
-    "id": "arc_133_mahavir_jayanti",
-    "sortOrder": 39,
-    "title": "Mahavir Jayanti",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 133 - 134)",
-    "description": "",
-    "startEp": 133,
-    "endEp": 134,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 133
-  },
-  {
     "id": "arc_135_dental_camp_in_gokuldham_",
-    "sortOrder": 40,
+    "sortOrder": 20,
     "title": "Dental Camp in Gokuldham & Jethalal Toothache",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 135 - 138)",
     "description": "",
@@ -481,7 +241,7 @@
   },
   {
     "id": "arc_139_meenakshi_detergent",
-    "sortOrder": 41,
+    "sortOrder": 21,
     "title": "Meenakshi Detergent",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 139 - 142)",
     "description": "",
@@ -493,7 +253,7 @@
   },
   {
     "id": "arc_143_tiku_ji_ki_wadi_trip",
-    "sortOrder": 42,
+    "sortOrder": 22,
     "title": "Tiku Ji ki Wadi Trip",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 143 - 147)",
     "description": "",
@@ -505,7 +265,7 @@
   },
   {
     "id": "arc_148_daya_and_madhavi_fight_in",
-    "sortOrder": 43,
+    "sortOrder": 23,
     "title": "Daya and Madhavi Fight in Kitty Party",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 148 - 152)",
     "description": "",
@@ -517,7 +277,7 @@
   },
   {
     "id": "arc_153_thieves",
-    "sortOrder": 44,
+    "sortOrder": 24,
     "title": "Thieves",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 153 - 163)",
     "description": "",
@@ -528,20 +288,8 @@
     "coverEp": 153
   },
   {
-    "id": "arc_164_tobacco_free_mumbai",
-    "sortOrder": 45,
-    "title": "Tobacco Free Mumbai",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 164 - 164)",
-    "description": "",
-    "startEp": 164,
-    "endEp": 164,
-    "totalEpisodes": 1,
-    "category": "Classic",
-    "coverEp": 164
-  },
-  {
     "id": "arc_165_patrakar_popatlal",
-    "sortOrder": 46,
+    "sortOrder": 25,
     "title": "Patrakar Popatlal",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 165 - 168)",
     "description": "",
@@ -553,7 +301,7 @@
   },
   {
     "id": "arc_169_daya's_maun_vrat",
-    "sortOrder": 47,
+    "sortOrder": 26,
     "title": "Daya's Maun Vrat",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 169 - 173)",
     "description": "",
@@ -565,7 +313,7 @@
   },
   {
     "id": "arc_174_gpl_1",
-    "sortOrder": 48,
+    "sortOrder": 27,
     "title": "GPL 1",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 174 - 184)",
     "description": "",
@@ -577,7 +325,7 @@
   },
   {
     "id": "arc_185_jethalal_gets_annoyed_by_",
-    "sortOrder": 49,
+    "sortOrder": 28,
     "title": "Jethalal Gets Annoyed by a Kid",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 185 - 187)",
     "description": "",
@@ -588,20 +336,8 @@
     "coverEp": 185
   },
   {
-    "id": "arc_188_dr_hathi_in_tempo",
-    "sortOrder": 50,
-    "title": "Dr Hathi in tempo",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 188 - 188)",
-    "description": "",
-    "startEp": 188,
-    "endEp": 188,
-    "totalEpisodes": 1,
-    "category": "Classic",
-    "coverEp": 188
-  },
-  {
     "id": "arc_189_babita_birthday",
-    "sortOrder": 51,
+    "sortOrder": 29,
     "title": "Babita birthday",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 189 - 195)",
     "description": "",
@@ -613,7 +349,7 @@
   },
   {
     "id": "arc_205_jethalal_london_trip_and_",
-    "sortOrder": 52,
+    "sortOrder": 30,
     "title": "Jethalal London Trip and Kerry in India",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 205 - 244)",
     "description": "",
@@ -625,7 +361,7 @@
   },
   {
     "id": "arc_259_tapu_sena_audition",
-    "sortOrder": 53,
+    "sortOrder": 31,
     "title": "Tapu Sena Audition",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 259 - 272)",
     "description": "",
@@ -637,7 +373,7 @@
   },
   {
     "id": "arc_325_holi_2010",
-    "sortOrder": 54,
+    "sortOrder": 32,
     "title": "Holi (2010)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 325 - 331)",
     "description": "",
@@ -649,7 +385,7 @@
   },
   {
     "id": "arc_355_saree_sale_at_bhatiawadi",
-    "sortOrder": 55,
+    "sortOrder": 33,
     "title": "Saree sale at Bhatiawadi",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 355 - 364)",
     "description": "",
@@ -661,7 +397,7 @@
   },
   {
     "id": "arc_367_childhood_games",
-    "sortOrder": 56,
+    "sortOrder": 34,
     "title": "Childhood Games",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 367 - 371)",
     "description": "",
@@ -673,7 +409,7 @@
   },
   {
     "id": "arc_390_gpl_2",
-    "sortOrder": 57,
+    "sortOrder": 35,
     "title": "GPL 2",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 390 - 402)",
     "description": "",
@@ -685,7 +421,7 @@
   },
   {
     "id": "arc_403_sodhi_meets_irfan_pathan",
-    "sortOrder": 58,
+    "sortOrder": 36,
     "title": "Sodhi meets Irfan Pathan",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 403 - 409)",
     "description": "",
@@ -697,7 +433,7 @@
   },
   {
     "id": "arc_409_shampoo_massage",
-    "sortOrder": 59,
+    "sortOrder": 37,
     "title": "Shampoo Massage",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 409 - 412)",
     "description": "",
@@ -709,7 +445,7 @@
   },
   {
     "id": "arc_413_ghost_in_gokuldham",
-    "sortOrder": 60,
+    "sortOrder": 38,
     "title": "Ghost In Gokuldham",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 413 - 425)",
     "description": "",
@@ -721,7 +457,7 @@
   },
   {
     "id": "arc_426_popatlal_and_koyal",
-    "sortOrder": 61,
+    "sortOrder": 39,
     "title": "Popatlal and Koyal",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 426 - 434)",
     "description": "",
@@ -732,20 +468,8 @@
     "coverEp": 426
   },
   {
-    "id": "arc_435_eid_celebration",
-    "sortOrder": 62,
-    "title": "Eid Celebration",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 435 - 436)",
-    "description": "",
-    "startEp": 435,
-    "endEp": 436,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 435
-  },
-  {
     "id": "arc_437_dahi_handi_2010",
-    "sortOrder": 63,
+    "sortOrder": 40,
     "title": "Dahi Handi (2010)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 437 - 444)",
     "description": "",
@@ -757,7 +481,7 @@
   },
   {
     "id": "arc_445_ganesh_utsav_2010",
-    "sortOrder": 64,
+    "sortOrder": 41,
     "title": "Ganesh Utsav (2010)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 445 - 452)",
     "description": "",
@@ -769,7 +493,7 @@
   },
   {
     "id": "arc_461_babita_and_iyer's_marriag",
-    "sortOrder": 65,
+    "sortOrder": 42,
     "title": "Babita & Iyer's marriage anniversary",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 461 - 471)",
     "description": "",
@@ -781,7 +505,7 @@
   },
   {
     "id": "arc_474_chandiramani_flat_auction",
-    "sortOrder": 66,
+    "sortOrder": 43,
     "title": "Chandiramani Flat Auction",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 474 - 481)",
     "description": "",
@@ -792,20 +516,8 @@
     "coverEp": 474
   },
   {
-    "id": "arc_482_goli_misses_his_father",
-    "sortOrder": 67,
-    "title": "Goli Misses His Father",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 482 - 483)",
-    "description": "",
-    "startEp": 482,
-    "endEp": 483,
-    "totalEpisodes": 2,
-    "category": "Classic",
-    "coverEp": 482
-  },
-  {
     "id": "arc_488_daya_doesn't_respond_from",
-    "sortOrder": 68,
+    "sortOrder": 44,
     "title": "Daya doesn't respond from locked home",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 488 - 491)",
     "description": "",
@@ -817,7 +529,7 @@
   },
   {
     "id": "arc_492_magic_show_in_society",
-    "sortOrder": 69,
+    "sortOrder": 45,
     "title": "Magic Show in Society",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 492 - 498)",
     "description": "",
@@ -829,7 +541,7 @@
   },
   {
     "id": "arc_501_ladies_get_credit_cards",
-    "sortOrder": 70,
+    "sortOrder": 46,
     "title": "Ladies get credit cards",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 501 - 506)",
     "description": "",
@@ -841,7 +553,7 @@
   },
   {
     "id": "arc_507_paint_cans_delivered_to_j",
-    "sortOrder": 71,
+    "sortOrder": 47,
     "title": "Paint cans delivered to Jethalal",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 507 - 510)",
     "description": "",
@@ -853,7 +565,7 @@
   },
   {
     "id": "arc_537_tapu_goes_bald",
-    "sortOrder": 72,
+    "sortOrder": 48,
     "title": "Tapu goes bald",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 537 - 541)",
     "description": "",
@@ -865,7 +577,7 @@
   },
   {
     "id": "arc_541_baijanti's_wrong_number",
-    "sortOrder": 73,
+    "sortOrder": 49,
     "title": "Baijanti's wrong number",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 541 - 550)",
     "description": "",
@@ -877,7 +589,7 @@
   },
   {
     "id": "arc_551_mahashivratri",
-    "sortOrder": 74,
+    "sortOrder": 50,
     "title": "Mahashivratri",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 551 - 558)",
     "description": "",
@@ -889,7 +601,7 @@
   },
   {
     "id": "arc_564_sundar's_30_lakh_scam",
-    "sortOrder": 75,
+    "sortOrder": 51,
     "title": "Sundar's 30 lakh scam",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 564 - 572)",
     "description": "",
@@ -901,7 +613,7 @@
   },
   {
     "id": "arc_578_bhide's_1_crore_email_fra",
-    "sortOrder": 76,
+    "sortOrder": 52,
     "title": "Bhide's 1 Crore Email Fraud",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 578 - 587)",
     "description": "",
@@ -913,7 +625,7 @@
   },
   {
     "id": "arc_588_jetha's_dadaji's_photo",
-    "sortOrder": 77,
+    "sortOrder": 53,
     "title": "Jetha's Dadaji's Photo",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 588 - 596)",
     "description": "",
@@ -925,7 +637,7 @@
   },
   {
     "id": "arc_597_sodhi_swallows_glass",
-    "sortOrder": 78,
+    "sortOrder": 54,
     "title": "Sodhi Swallows Glass",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 597 - 604)",
     "description": "",
@@ -937,7 +649,7 @@
   },
   {
     "id": "arc_605_bhide_sells_mangoes",
-    "sortOrder": 79,
+    "sortOrder": 55,
     "title": "Bhide Sells Mangoes",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 605 - 614)",
     "description": "",
@@ -949,7 +661,7 @@
   },
   {
     "id": "arc_615_tapu_sena_hunger_strike",
-    "sortOrder": 80,
+    "sortOrder": 56,
     "title": "Tapu Sena Hunger Strike",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 615 - 620)",
     "description": "",
@@ -960,20 +672,8 @@
     "coverEp": 615
   },
   {
-    "id": "arc_621_ready",
-    "sortOrder": 81,
-    "title": "Ready",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 621 - 622)",
-    "description": "",
-    "startEp": 621,
-    "endEp": 622,
-    "totalEpisodes": 2,
-    "category": "Golden",
-    "coverEp": 621
-  },
-  {
     "id": "arc_623_gokuldham_khel_mahotsav",
-    "sortOrder": 82,
+    "sortOrder": 57,
     "title": "Gokuldham Khel Mahotsav",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 623 - 637)",
     "description": "",
@@ -985,7 +685,7 @@
   },
   {
     "id": "arc_638_chaddi_gang_part_1",
-    "sortOrder": 83,
+    "sortOrder": 58,
     "title": "Chaddi Gang Part 1",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 638 - 646)",
     "description": "",
@@ -997,7 +697,7 @@
   },
   {
     "id": "arc_647_popatlal_and_his_umbrella",
-    "sortOrder": 84,
+    "sortOrder": 59,
     "title": "Popatlal and his umbrella",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 647 - 653)",
     "description": "",
@@ -1009,7 +709,7 @@
   },
   {
     "id": "arc_653_extra_class",
-    "sortOrder": 85,
+    "sortOrder": 60,
     "title": "Extra class",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 653 - 658)",
     "description": "",
@@ -1021,7 +721,7 @@
   },
   {
     "id": "arc_659_chaddi_gang_part_2",
-    "sortOrder": 86,
+    "sortOrder": 61,
     "title": "Chaddi Gang Part 2",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 659 - 677)",
     "description": "",
@@ -1032,20 +732,8 @@
     "coverEp": 659
   },
   {
-    "id": "arc_678_janmashtamani_2011",
-    "sortOrder": 87,
-    "title": "Janmashtamani (2011)",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 678 - 678)",
-    "description": "",
-    "startEp": 678,
-    "endEp": 678,
-    "totalEpisodes": 1,
-    "category": "Golden",
-    "coverEp": 678
-  },
-  {
     "id": "arc_679_dahi_handi_2011",
-    "sortOrder": 88,
+    "sortOrder": 62,
     "title": "Dahi handi (2011)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 679 - 681)",
     "description": "",
@@ -1057,7 +745,7 @@
   },
   {
     "id": "arc_686_ganesh_utsav_2011",
-    "sortOrder": 89,
+    "sortOrder": 63,
     "title": "Ganesh Utsav (2011)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 686 - 695)",
     "description": "",
@@ -1069,7 +757,7 @@
   },
   {
     "id": "arc_701_the_80,000-horse_statue",
-    "sortOrder": 90,
+    "sortOrder": 64,
     "title": "The 80,000-horse statue",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 701 - 706)",
     "description": "",
@@ -1081,7 +769,7 @@
   },
   {
     "id": "arc_707_navratri_2011",
-    "sortOrder": 91,
+    "sortOrder": 65,
     "title": "Navratri (2011)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 707 - 710)",
     "description": "",
@@ -1093,7 +781,7 @@
   },
   {
     "id": "arc_711_dusherra_2011",
-    "sortOrder": 92,
+    "sortOrder": 66,
     "title": "Dusherra (2011)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 711 - 715)",
     "description": "",
@@ -1105,7 +793,7 @@
   },
   {
     "id": "arc_719_iyer's_interview_in_the_n",
-    "sortOrder": 93,
+    "sortOrder": 67,
     "title": "Iyer's interview in the newspaper",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 719 - 722)",
     "description": "",
@@ -1117,7 +805,7 @@
   },
   {
     "id": "arc_723_babita_and_iyer_buy_a_fri",
-    "sortOrder": 94,
+    "sortOrder": 68,
     "title": "Babita and Iyer buy a fridge",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 723 - 725)",
     "description": "",
@@ -1129,7 +817,7 @@
   },
   {
     "id": "arc_726_diwali_2011",
-    "sortOrder": 95,
+    "sortOrder": 69,
     "title": "Diwali (2011)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 726 - 728)",
     "description": "",
@@ -1141,7 +829,7 @@
   },
   {
     "id": "arc_729_lottery_tickets",
-    "sortOrder": 96,
+    "sortOrder": 70,
     "title": "Lottery tickets",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 729 - 732)",
     "description": "",
@@ -1153,7 +841,7 @@
   },
   {
     "id": "arc_785_bhide's_new_pair_of_glass",
-    "sortOrder": 97,
+    "sortOrder": 71,
     "title": "Bhide's new pair of glasses",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 785 - 789)",
     "description": "",
@@ -1165,7 +853,7 @@
   },
   {
     "id": "arc_790_jethalal_in_pakistan",
-    "sortOrder": 98,
+    "sortOrder": 72,
     "title": "Jethalal In Pakistan",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 790 - 810)",
     "description": "",
@@ -1177,7 +865,7 @@
   },
   {
     "id": "arc_811_popatlal,_se\u00f1orita_and_ka",
-    "sortOrder": 99,
+    "sortOrder": 73,
     "title": "Popatlal, Se\u00f1orita & Kalavati",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 811 - 818)",
     "description": "",
@@ -1189,7 +877,7 @@
   },
   {
     "id": "arc_825_society_renovation_by_sun",
-    "sortOrder": 100,
+    "sortOrder": 74,
     "title": "Society Renovation by Sundarlal",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 825 - 839)",
     "description": "",
@@ -1201,7 +889,7 @@
   },
   {
     "id": "arc_840_disco_dance_competition",
-    "sortOrder": 101,
+    "sortOrder": 75,
     "title": "Disco Dance Competition",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 840 - 847)",
     "description": "",
@@ -1213,7 +901,7 @@
   },
   {
     "id": "arc_848_abdul's_new_shop",
-    "sortOrder": 102,
+    "sortOrder": 76,
     "title": "Abdul's New Shop",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 848 - 851)",
     "description": "",
@@ -1225,7 +913,7 @@
   },
   {
     "id": "arc_852_girvi_gehne",
-    "sortOrder": 103,
+    "sortOrder": 77,
     "title": "Girvi Gehne",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 852 - 856)",
     "description": "",
@@ -1237,7 +925,7 @@
   },
   {
     "id": "arc_857_gandhi_maidaan",
-    "sortOrder": 104,
+    "sortOrder": 78,
     "title": "Gandhi Maidaan",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 857 - 867)",
     "description": "",
@@ -1249,7 +937,7 @@
   },
   {
     "id": "arc_868_iyer_forgets_his_briefcas",
-    "sortOrder": 105,
+    "sortOrder": 79,
     "title": "Iyer forgets his briefcase",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 868 - 870)",
     "description": "",
@@ -1260,20 +948,8 @@
     "coverEp": 868
   },
   {
-    "id": "arc_871_mother's_day",
-    "sortOrder": 106,
-    "title": "Mother's Day",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 871 - 872)",
-    "description": "",
-    "startEp": 871,
-    "endEp": 872,
-    "totalEpisodes": 2,
-    "category": "Golden",
-    "coverEp": 871
-  },
-  {
     "id": "arc_873_lord_ganesh_sculpture",
-    "sortOrder": 107,
+    "sortOrder": 80,
     "title": "Lord Ganesh Sculpture",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 873 - 878)",
     "description": "",
@@ -1285,7 +961,7 @@
   },
   {
     "id": "arc_881_jethalal_gets_electric_sh",
-    "sortOrder": 108,
+    "sortOrder": 81,
     "title": "Jethalal Gets Electric Shock",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 881 - 886)",
     "description": "",
@@ -1297,7 +973,7 @@
   },
   {
     "id": "arc_887_society_bhangaar",
-    "sortOrder": 109,
+    "sortOrder": 82,
     "title": "Society Bhangaar",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 887 - 891)",
     "description": "",
@@ -1309,7 +985,7 @@
   },
   {
     "id": "arc_891_ferrari_ki_sawaari",
-    "sortOrder": 110,
+    "sortOrder": 83,
     "title": "Ferrari Ki Sawaari",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 891 - 896)",
     "description": "",
@@ -1321,7 +997,7 @@
   },
   {
     "id": "arc_897_jethalal_fights_with_ever",
-    "sortOrder": 111,
+    "sortOrder": 84,
     "title": "Jethalal fights with everyone",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 897 - 901)",
     "description": "",
@@ -1333,7 +1009,7 @@
   },
   {
     "id": "arc_905_bol_bachchan_press_confer",
-    "sortOrder": 112,
+    "sortOrder": 85,
     "title": "Bol Bachchan press conference",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 905 - 911)",
     "description": "",
@@ -1345,7 +1021,7 @@
   },
   {
     "id": "arc_912_bhide's_moustache",
-    "sortOrder": 113,
+    "sortOrder": 86,
     "title": "Bhide's moustache",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 912 - 914)",
     "description": "",
@@ -1357,7 +1033,7 @@
   },
   {
     "id": "arc_915_jethalal_gives_bribe",
-    "sortOrder": 114,
+    "sortOrder": 87,
     "title": "Jethalal gives bribe",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 915 - 922)",
     "description": "",
@@ -1369,7 +1045,7 @@
   },
   {
     "id": "arc_923_choco_moco_chocolate",
-    "sortOrder": 115,
+    "sortOrder": 88,
     "title": "Choco Moco Chocolate",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 923 - 928)",
     "description": "",
@@ -1381,7 +1057,7 @@
   },
   {
     "id": "arc_929_raksha-bandhan_2012",
-    "sortOrder": 116,
+    "sortOrder": 89,
     "title": "Raksha-bandhan (2012)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 929 - 932)",
     "description": "",
@@ -1393,7 +1069,7 @@
   },
   {
     "id": "arc_933_dahi_handi_2012",
-    "sortOrder": 117,
+    "sortOrder": 90,
     "title": "Dahi Handi (2012)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 933 - 941)",
     "description": "",
@@ -1405,7 +1081,7 @@
   },
   {
     "id": "arc_942_eid_2012",
-    "sortOrder": 118,
+    "sortOrder": 91,
     "title": "Eid (2012)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 942 - 945)",
     "description": "",
@@ -1417,7 +1093,7 @@
   },
   {
     "id": "arc_946_jethalal_and_passport",
-    "sortOrder": 119,
+    "sortOrder": 92,
     "title": "Jethalal and Passport",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 946 - 951)",
     "description": "",
@@ -1429,7 +1105,7 @@
   },
   {
     "id": "arc_952_barfi",
-    "sortOrder": 120,
+    "sortOrder": 93,
     "title": "Barfi",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 952 - 963)",
     "description": "",
@@ -1441,7 +1117,7 @@
   },
   {
     "id": "arc_968_ganesh_utsav_2012",
-    "sortOrder": 121,
+    "sortOrder": 94,
     "title": "Ganesh Utsav (2012)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 968 - 980)",
     "description": "",
@@ -1453,7 +1129,7 @@
   },
   {
     "id": "arc_983_sundar_brings_chanya-chol",
-    "sortOrder": 122,
+    "sortOrder": 95,
     "title": "Sundar brings Chanya-Choli",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 983 - 1000)",
     "description": "",
@@ -1465,7 +1141,7 @@
   },
   {
     "id": "arc_1001_1000_episodes_celebration",
-    "sortOrder": 123,
+    "sortOrder": 96,
     "title": "1000 Episodes Celebration",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1001 - 1009)",
     "description": "",
@@ -1477,7 +1153,7 @@
   },
   {
     "id": "arc_1010_blind_people_donation",
-    "sortOrder": 124,
+    "sortOrder": 97,
     "title": "Blind people donation",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1010 - 1018)",
     "description": "",
@@ -1489,7 +1165,7 @@
   },
   {
     "id": "arc_1019_jewellery_shopping",
-    "sortOrder": 125,
+    "sortOrder": 98,
     "title": "Jewellery Shopping",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1019 - 1024)",
     "description": "",
@@ -1501,7 +1177,7 @@
   },
   {
     "id": "arc_1025_gulabo",
-    "sortOrder": 126,
+    "sortOrder": 99,
     "title": "Gulabo",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1025 - 1056)",
     "description": "",
@@ -1513,7 +1189,7 @@
   },
   {
     "id": "arc_1057_republic_day_2013",
-    "sortOrder": 127,
+    "sortOrder": 100,
     "title": "Republic Day (2013)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1057 - 1060)",
     "description": "",
@@ -1525,7 +1201,7 @@
   },
   {
     "id": "arc_1061_tapu_sena's_new_smartphon",
-    "sortOrder": 128,
+    "sortOrder": 101,
     "title": "Tapu Sena's new smartphones",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1061 - 1080)",
     "description": "",
@@ -1537,7 +1213,7 @@
   },
   {
     "id": "arc_1081_bharti",
-    "sortOrder": 129,
+    "sortOrder": 102,
     "title": "Bharti",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1081 - 1088)",
     "description": "",
@@ -1549,7 +1225,7 @@
   },
   {
     "id": "arc_1089_sheru",
-    "sortOrder": 130,
+    "sortOrder": 103,
     "title": "Sheru",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1089 - 1112)",
     "description": "",
@@ -1561,7 +1237,7 @@
   },
   {
     "id": "arc_1113_gogi_at_the_gada's",
-    "sortOrder": 131,
+    "sortOrder": 104,
     "title": "Gogi at the Gada's",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1113 - 1119)",
     "description": "",
@@ -1573,7 +1249,7 @@
   },
   {
     "id": "arc_1120_sangram_singh's_mango_orc",
-    "sortOrder": 132,
+    "sortOrder": 105,
     "title": "Sangram Singh's Mango Orchard",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1120 - 1131)",
     "description": "",
@@ -1585,7 +1261,7 @@
   },
   {
     "id": "arc_1132_babita's_phone_number",
-    "sortOrder": 133,
+    "sortOrder": 106,
     "title": "Babita's phone number",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1132 - 1137)",
     "description": "",
@@ -1597,7 +1273,7 @@
   },
   {
     "id": "arc_1145_trucks_in_gokuldham",
-    "sortOrder": 134,
+    "sortOrder": 107,
     "title": "Trucks in Gokuldham",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1145 - 1153)",
     "description": "",
@@ -1609,7 +1285,7 @@
   },
   {
     "id": "arc_1154_khote_classes",
-    "sortOrder": 135,
+    "sortOrder": 108,
     "title": "Khote Classes",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1154 - 1174)",
     "description": "",
@@ -1621,7 +1297,7 @@
   },
   {
     "id": "arc_1175_taarak's_affair_with_kavi",
-    "sortOrder": 136,
+    "sortOrder": 109,
     "title": "Taarak's affair with Kavita",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1175 - 1185)",
     "description": "",
@@ -1633,7 +1309,7 @@
   },
   {
     "id": "arc_1187_gokuldham_society_is_sold",
-    "sortOrder": 137,
+    "sortOrder": 110,
     "title": "Gokuldham Society is Sold?",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1187 - 1194)",
     "description": "",
@@ -1645,7 +1321,7 @@
   },
   {
     "id": "arc_1195_tapu_and_champaklal_in_pa",
-    "sortOrder": 138,
+    "sortOrder": 111,
     "title": "Tapu and Champaklal in Paris",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1195 - 1202)",
     "description": "",
@@ -1657,7 +1333,7 @@
   },
   {
     "id": "arc_1203_independence_day_2013",
-    "sortOrder": 139,
+    "sortOrder": 112,
     "title": "Independence Day (2013)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1203 - 1206)",
     "description": "",
@@ -1669,7 +1345,7 @@
   },
   {
     "id": "arc_1207_raksha_bandhan_in_ahmedab",
-    "sortOrder": 140,
+    "sortOrder": 113,
     "title": "Raksha Bandhan in Ahmedabad",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1207 - 1212)",
     "description": "",
@@ -1681,7 +1357,7 @@
   },
   {
     "id": "arc_1213_dahihandi_2013",
-    "sortOrder": 141,
+    "sortOrder": 114,
     "title": "Dahihandi (2013)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1213 - 1218)",
     "description": "",
@@ -1693,7 +1369,7 @@
   },
   {
     "id": "arc_1227_ganpati_utsav_2013",
-    "sortOrder": 142,
+    "sortOrder": 115,
     "title": "Ganpati Utsav (2013)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1227 - 1234)",
     "description": "",
@@ -1705,7 +1381,7 @@
   },
   {
     "id": "arc_1219_jethalal_is_stalked",
-    "sortOrder": 143,
+    "sortOrder": 116,
     "title": "Jethalal is stalked",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1219 - 1225)",
     "description": "",
@@ -1717,7 +1393,7 @@
   },
   {
     "id": "arc_1251_25000_rupees_envelope",
-    "sortOrder": 144,
+    "sortOrder": 117,
     "title": "25000 rupees envelope",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1251 - 1254)",
     "description": "",
@@ -1729,7 +1405,7 @@
   },
   {
     "id": "arc_1254_champaklal's_hiccups",
-    "sortOrder": 145,
+    "sortOrder": 118,
     "title": "Champaklal's Hiccups",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1254 - 1258)",
     "description": "",
@@ -1741,7 +1417,7 @@
   },
   {
     "id": "arc_1259_bhide's_antique_radio",
-    "sortOrder": 146,
+    "sortOrder": 119,
     "title": "Bhide's antique radio",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1259 - 1264)",
     "description": "",
@@ -1753,7 +1429,7 @@
   },
   {
     "id": "arc_1265_sachin_tendulkar_retireme",
-    "sortOrder": 147,
+    "sortOrder": 120,
     "title": "Sachin Tendulkar retirement",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1265 - 1269)",
     "description": "",
@@ -1765,7 +1441,7 @@
   },
   {
     "id": "arc_1270_necklace_fraud",
-    "sortOrder": 148,
+    "sortOrder": 121,
     "title": "Necklace Fraud",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1270 - 1278)",
     "description": "",
@@ -1777,7 +1453,7 @@
   },
   {
     "id": "arc_1279_onions_at_gada_electronic",
-    "sortOrder": 149,
+    "sortOrder": 122,
     "title": "Onions at Gada Electronics",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1279 - 1284)",
     "description": "",
@@ -1789,7 +1465,7 @@
   },
   {
     "id": "arc_1285_popatlal_and_bulbul",
-    "sortOrder": 150,
+    "sortOrder": 123,
     "title": "Popatlal and Bulbul",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1285 - 1308)",
     "description": "",
@@ -1801,7 +1477,7 @@
   },
   {
     "id": "arc_1310_jalsa_party_2014",
-    "sortOrder": 151,
+    "sortOrder": 124,
     "title": "Jalsa Party 2014",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1310 - 1318)",
     "description": "",
@@ -1813,7 +1489,7 @@
   },
   {
     "id": "arc_1319_bagha_messed_everything_u",
-    "sortOrder": 152,
+    "sortOrder": 125,
     "title": "Bagha messed everything up",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1319 - 1326)",
     "description": "",
@@ -1825,7 +1501,7 @@
   },
   {
     "id": "arc_1327_fitness_camp",
-    "sortOrder": 153,
+    "sortOrder": 126,
     "title": "Fitness Camp",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1327 - 1341)",
     "description": "",
@@ -1837,7 +1513,7 @@
   },
   {
     "id": "arc_1342_anjali_demands_a_surprise",
-    "sortOrder": 154,
+    "sortOrder": 127,
     "title": "Anjali demands a surprise gift",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1342 - 1346)",
     "description": "",
@@ -1849,7 +1525,7 @@
   },
   {
     "id": "arc_1347_tapu_sena_extra_classes",
-    "sortOrder": 155,
+    "sortOrder": 128,
     "title": "Tapu Sena extra classes",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1347 - 1353)",
     "description": "",
@@ -1861,7 +1537,7 @@
   },
   {
     "id": "arc_1354_bhide-madhavi_anniversary",
-    "sortOrder": 156,
+    "sortOrder": 129,
     "title": "Bhide-Madhavi anniversary",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1354 - 1361)",
     "description": "",
@@ -1873,7 +1549,7 @@
   },
   {
     "id": "arc_1362_holi_2014",
-    "sortOrder": 157,
+    "sortOrder": 130,
     "title": "Holi (2014)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1362 - 1364)",
     "description": "",
@@ -1885,7 +1561,7 @@
   },
   {
     "id": "arc_1365_youngistaan",
-    "sortOrder": 158,
+    "sortOrder": 131,
     "title": "Youngistaan",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1365 - 1369)",
     "description": "",
@@ -1897,7 +1573,7 @@
   },
   {
     "id": "arc_1370_sodhi_is_missing",
-    "sortOrder": 159,
+    "sortOrder": 132,
     "title": "Sodhi is Missing",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1370 - 1378)",
     "description": "",
@@ -1908,20 +1584,8 @@
     "coverEp": 1370
   },
   {
-    "id": "arc_1379_varun_dhawan_in_gokuldham",
-    "sortOrder": 160,
-    "title": "Varun Dhawan in Gokuldham",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1379 - 1380)",
-    "description": "",
-    "startEp": 1379,
-    "endEp": 1380,
-    "totalEpisodes": 2,
-    "category": "Golden",
-    "coverEp": 1379
-  },
-  {
     "id": "arc_1382_bhoothnath_returns",
-    "sortOrder": 161,
+    "sortOrder": 133,
     "title": "Bhoothnath Returns",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1382 - 1387)",
     "description": "",
@@ -1933,7 +1597,7 @@
   },
   {
     "id": "arc_1408_adventure_park_surprise",
-    "sortOrder": 162,
+    "sortOrder": 134,
     "title": "Adventure Park Surprise",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1408 - 1419)",
     "description": "",
@@ -1945,7 +1609,7 @@
   },
   {
     "id": "arc_1420_iyyer's_promotion_party",
-    "sortOrder": 163,
+    "sortOrder": 135,
     "title": "Iyyer's Promotion Party",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1420 - 1425)",
     "description": "",
@@ -1957,7 +1621,7 @@
   },
   {
     "id": "arc_1426_gpl_3",
-    "sortOrder": 164,
+    "sortOrder": 136,
     "title": "GPL 3",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1426 - 1445)",
     "description": "",
@@ -1969,7 +1633,7 @@
   },
   {
     "id": "arc_1447_10_crore_ruby",
-    "sortOrder": 165,
+    "sortOrder": 137,
     "title": "10 Crore Ruby",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1447 - 1465)",
     "description": "",
@@ -1981,7 +1645,7 @@
   },
   {
     "id": "arc_1465_hongkong-disneyland_trip",
-    "sortOrder": 166,
+    "sortOrder": 138,
     "title": "Hongkong-Disneyland trip",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1465 - 1478)",
     "description": "",
@@ -1993,7 +1657,7 @@
   },
   {
     "id": "arc_1489_ganesh_utsav_2014",
-    "sortOrder": 167,
+    "sortOrder": 139,
     "title": "Ganesh Utsav (2014)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1489 - 1499)",
     "description": "",
@@ -2005,7 +1669,7 @@
   },
   {
     "id": "arc_1500_bhide's_surprise_treat_15",
-    "sortOrder": 168,
+    "sortOrder": 140,
     "title": "Bhide's surprise treat (1500 Episodes Celebration)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1500 - 1507)",
     "description": "",
@@ -2017,7 +1681,7 @@
   },
   {
     "id": "arc_1518_swachh_bharat_abhiyaan",
-    "sortOrder": 169,
+    "sortOrder": 141,
     "title": "Swachh Bharat Abhiyaan",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1518 - 1524)",
     "description": "",
@@ -2029,7 +1693,7 @@
   },
   {
     "id": "arc_1525_diwali_2014",
-    "sortOrder": 170,
+    "sortOrder": 142,
     "title": "Diwali (2014)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1525 - 1532)",
     "description": "",
@@ -2041,7 +1705,7 @@
   },
   {
     "id": "arc_1533_popatlal_purchases_a_new_",
-    "sortOrder": 171,
+    "sortOrder": 143,
     "title": "Popatlal purchases a new phone",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1533 - 1541)",
     "description": "",
@@ -2053,7 +1717,7 @@
   },
   {
     "id": "arc_1546_daya's_mother",
-    "sortOrder": 172,
+    "sortOrder": 144,
     "title": "Daya's Mother",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1546 - 1557)",
     "description": "",
@@ -2065,7 +1729,7 @@
   },
   {
     "id": "arc_1566_kathiawadi_food",
-    "sortOrder": 173,
+    "sortOrder": 145,
     "title": "Kathiawadi food",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1566 - 1572)",
     "description": "",
@@ -2077,7 +1741,7 @@
   },
   {
     "id": "arc_1573_champaklal_is_drunk?/new_",
-    "sortOrder": 174,
+    "sortOrder": 146,
     "title": "Champaklal is drunk?/New Year (2015)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1573 - 1585)",
     "description": "",
@@ -2089,7 +1753,7 @@
   },
   {
     "id": "arc_1589_bhide's_sakharam",
-    "sortOrder": 175,
+    "sortOrder": 147,
     "title": "Bhide's Sakharam",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1589 - 1595)",
     "description": "",
@@ -2101,7 +1765,7 @@
   },
   {
     "id": "arc_1599_winter_party",
-    "sortOrder": 176,
+    "sortOrder": 148,
     "title": "Winter Party",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1599 - 1609)",
     "description": "",
@@ -2112,20 +1776,8 @@
     "coverEp": 1599
   },
   {
-    "id": "arc_1611_hey_bro",
-    "sortOrder": 177,
-    "title": "Hey Bro",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1611 - 1611)",
-    "description": "",
-    "startEp": 1611,
-    "endEp": 1611,
-    "totalEpisodes": 1,
-    "category": "Modern",
-    "coverEp": 1611
-  },
-  {
     "id": "arc_1624_bawri_brings_luck_to_gada",
-    "sortOrder": 178,
+    "sortOrder": 149,
     "title": "Bawri brings luck to Gada Electronics",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1624 - 1629)",
     "description": "",
@@ -2137,7 +1789,7 @@
   },
   {
     "id": "arc_1640_daya_brings_a_baby_girl_t",
-    "sortOrder": 179,
+    "sortOrder": 150,
     "title": "Daya brings a baby girl to Gokuldham",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1640 - 1663)",
     "description": "",
@@ -2149,7 +1801,7 @@
   },
   {
     "id": "arc_1686_tapu_sena's_ssc_result_an",
-    "sortOrder": 180,
+    "sortOrder": 151,
     "title": "Tapu Sena's SSC result and college admission",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1686 - 1723)",
     "description": "",
@@ -2161,7 +1813,7 @@
   },
   {
     "id": "arc_1758_interior_renovation",
-    "sortOrder": 181,
+    "sortOrder": 152,
     "title": "Interior renovation",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1758 - 1808)",
     "description": "",
@@ -2173,7 +1825,7 @@
   },
   {
     "id": "arc_1822_conspiracy_against_tapu",
-    "sortOrder": 182,
+    "sortOrder": 153,
     "title": "Conspiracy against Tapu",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1822 - 1824)",
     "description": "",
@@ -2185,7 +1837,7 @@
   },
   {
     "id": "arc_1824_prof._nalini's_rishta_wit",
-    "sortOrder": 183,
+    "sortOrder": 154,
     "title": "Prof. Nalini's Rishta with Popatlal",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1824 - 1826)",
     "description": "",
@@ -2197,7 +1849,7 @@
   },
   {
     "id": "arc_1827_promotion_of_dilwale",
-    "sortOrder": 184,
+    "sortOrder": 155,
     "title": "Promotion of Dilwale",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1827 - 1829)",
     "description": "",
@@ -2209,7 +1861,7 @@
   },
   {
     "id": "arc_1831_babita's_image_on_the_tob",
-    "sortOrder": 185,
+    "sortOrder": 156,
     "title": "Babita's image on the Tobacco hoarding",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1831 - 1842)",
     "description": "",
@@ -2221,7 +1873,7 @@
   },
   {
     "id": "arc_1868_the_gold_biscuit_briefcas",
-    "sortOrder": 186,
+    "sortOrder": 157,
     "title": "The gold biscuit briefcase",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1868 - 1888)",
     "description": "",
@@ -2233,7 +1885,7 @@
   },
   {
     "id": "arc_1909_iyer-babita_divorce",
-    "sortOrder": 187,
+    "sortOrder": 158,
     "title": "Iyer-Babita Divorce",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 1909 - 1934)",
     "description": "",
@@ -2245,7 +1897,7 @@
   },
   {
     "id": "arc_2007_10_crore_saree",
-    "sortOrder": 188,
+    "sortOrder": 159,
     "title": "10 crore saree",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2007 - 2022)",
     "description": "",
@@ -2257,7 +1909,7 @@
   },
   {
     "id": "arc_2023_ganesh_utsav_2016",
-    "sortOrder": 189,
+    "sortOrder": 160,
     "title": "Ganesh Utsav (2016)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2023 - 2030)",
     "description": "",
@@ -2269,7 +1921,7 @@
   },
   {
     "id": "arc_2095_ghanchakkar_in_shop",
-    "sortOrder": 190,
+    "sortOrder": 161,
     "title": "Ghanchakkar In Shop",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2095 - 2102)",
     "description": "",
@@ -2281,7 +1933,7 @@
   },
   {
     "id": "arc_2235_goa_trip",
-    "sortOrder": 191,
+    "sortOrder": 162,
     "title": "Goa trip",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2235 - 2246)",
     "description": "",
@@ -2292,20 +1944,8 @@
     "coverEp": 2235
   },
   {
-    "id": "arc_2247_mubarakan_team_in_gokuldh",
-    "sortOrder": 192,
-    "title": "Mubarakan team in Gokuldham",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2247 - 2247)",
-    "description": "",
-    "startEp": 2247,
-    "endEp": 2247,
-    "totalEpisodes": 1,
-    "category": "Modern",
-    "coverEp": 2247
-  },
-  {
     "id": "arc_2283_ganesh_utsav_2017",
-    "sortOrder": 193,
+    "sortOrder": 163,
     "title": "Ganesh Utsav (2017)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2283 - 2290)",
     "description": "",
@@ -2317,7 +1957,7 @@
   },
   {
     "id": "arc_2384_pinku's_parents",
-    "sortOrder": 194,
+    "sortOrder": 164,
     "title": "Pinku's Parents",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2384 - 2415)",
     "description": "",
@@ -2329,7 +1969,7 @@
   },
   {
     "id": "arc_2493_se\u00f1orika_island",
-    "sortOrder": 195,
+    "sortOrder": 165,
     "title": "Se\u00f1orika Island",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2493 - 2511)",
     "description": "",
@@ -2341,7 +1981,7 @@
   },
   {
     "id": "arc_2605_gada_electronics_on_sale",
-    "sortOrder": 196,
+    "sortOrder": 166,
     "title": "Gada Electronics on sale",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2605 - 2632)",
     "description": "",
@@ -2353,7 +1993,7 @@
   },
   {
     "id": "arc_2644_statue_of_unity_trip",
-    "sortOrder": 197,
+    "sortOrder": 167,
     "title": "Statue of Unity trip",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2644 - 2649)",
     "description": "",
@@ -2365,7 +2005,7 @@
   },
   {
     "id": "arc_2693_singapore_trip",
-    "sortOrder": 198,
+    "sortOrder": 168,
     "title": "Singapore trip",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2693 - 2708)",
     "description": "",
@@ -2377,7 +2017,7 @@
   },
   {
     "id": "arc_2812_ganesh_utsav_2019",
-    "sortOrder": 199,
+    "sortOrder": 169,
     "title": "Ganesh Utsav (2019)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2812 - 2824)",
     "description": "",
@@ -2389,7 +2029,7 @@
   },
   {
     "id": "arc_2982_ganesh_utsav_2020",
-    "sortOrder": 200,
+    "sortOrder": 170,
     "title": "Ganesh Utsav (2020)",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 2982 - 2996)",
     "description": "",
@@ -2401,7 +2041,7 @@
   },
   {
     "id": "arc_3004_abdul_has_corona?",
-    "sortOrder": 201,
+    "sortOrder": 171,
     "title": "Abdul has corona?",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3004 - 3008)",
     "description": "",
@@ -2412,32 +2052,8 @@
     "coverEp": 3004
   },
   {
-    "id": "arc_3009_romantic_song",
-    "sortOrder": 202,
-    "title": "Romantic song",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3009 - 3009)",
-    "description": "",
-    "startEp": 3009,
-    "endEp": 3009,
-    "totalEpisodes": 1,
-    "category": "Recent",
-    "coverEp": 3009
-  },
-  {
-    "id": "arc_3010_musical_memory_of_s._p._b",
-    "sortOrder": 203,
-    "title": "Musical memory of S. P. Balasubrahmanyam",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3010 - 3010)",
-    "description": "",
-    "startEp": 3010,
-    "endEp": 3010,
-    "totalEpisodes": 1,
-    "category": "Recent",
-    "coverEp": 3010
-  },
-  {
     "id": "arc_3014_life_in_lockdown",
-    "sortOrder": 204,
+    "sortOrder": 172,
     "title": "Life in lockdown",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3014 - 3017)",
     "description": "",
@@ -2449,7 +2065,7 @@
   },
   {
     "id": "arc_3020_navratri_2020",
-    "sortOrder": 205,
+    "sortOrder": 173,
     "title": "Navratri 2020",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3020 - 3026)",
     "description": "",
@@ -2460,32 +2076,8 @@
     "coverEp": 3020
   },
   {
-    "id": "arc_3029_online_meeting",
-    "sortOrder": 206,
-    "title": "Online meeting",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3029 - 3030)",
-    "description": "",
-    "startEp": 3029,
-    "endEp": 3030,
-    "totalEpisodes": 2,
-    "category": "Recent",
-    "coverEp": 3029
-  },
-  {
-    "id": "arc_3032_jethalal_fights_corona",
-    "sortOrder": 207,
-    "title": "Jethalal fights corona",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3032 - 3033)",
-    "description": "",
-    "startEp": 3032,
-    "endEp": 3033,
-    "totalEpisodes": 2,
-    "category": "Recent",
-    "coverEp": 3032
-  },
-  {
     "id": "arc_3035_popatlal_loses_job",
-    "sortOrder": 208,
+    "sortOrder": 174,
     "title": "Popatlal loses job",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3035 - 3050)",
     "description": "",
@@ -2497,7 +2089,7 @@
   },
   {
     "id": "arc_3051_tapu_sena's_pizza_party",
-    "sortOrder": 209,
+    "sortOrder": 175,
     "title": "Tapu Sena's Pizza Party",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3051 - 3062)",
     "description": "",
@@ -2509,7 +2101,7 @@
   },
   {
     "id": "arc_3063_new_year_party_2021",
-    "sortOrder": 210,
+    "sortOrder": 176,
     "title": "New Year Party 2021",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3063 - 3071)",
     "description": "",
@@ -2521,7 +2113,7 @@
   },
   {
     "id": "arc_3074_popatlal's_shaadi",
-    "sortOrder": 211,
+    "sortOrder": 177,
     "title": "Popatlal's shaadi",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3074 - 3083)",
     "description": "",
@@ -2533,7 +2125,7 @@
   },
   {
     "id": "arc_3140_popatlal_and_pooja",
-    "sortOrder": 212,
+    "sortOrder": 178,
     "title": "Popatlal And Pooja",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3140 - 3147)",
     "description": "",
@@ -2545,7 +2137,7 @@
   },
   {
     "id": "arc_3158_popatlal_on_mission_kala_",
-    "sortOrder": 213,
+    "sortOrder": 179,
     "title": "Popatlal on Mission Kala Kauva",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3158 - 3193)",
     "description": "",
@@ -2557,7 +2149,7 @@
   },
   {
     "id": "arc_3194_gokuldham_in_rang_tarang_",
-    "sortOrder": 214,
+    "sortOrder": 180,
     "title": "Gokuldham in Rang Tarang Resort",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3194 - 3221)",
     "description": "",
@@ -2569,7 +2161,7 @@
   },
   {
     "id": "arc_3268_bhide's_cheque",
-    "sortOrder": 215,
+    "sortOrder": 181,
     "title": "Bhide's cheque",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3268 - 3277)",
     "description": "",
@@ -2581,7 +2173,7 @@
   },
   {
     "id": "arc_3316_madhavi's_burnt_saree",
-    "sortOrder": 216,
+    "sortOrder": 182,
     "title": "Madhavi's burnt saree",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3316 - 3322)",
     "description": "",
@@ -2593,7 +2185,7 @@
   },
   {
     "id": "arc_3323_gokuldham_in_kaun_banega_",
-    "sortOrder": 217,
+    "sortOrder": 183,
     "title": "Gokuldham in Kaun Banega Crorepati",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3323 - 3326)",
     "description": "",
@@ -2605,7 +2197,7 @@
   },
   {
     "id": "arc_3327_marriage_proposals_for_po",
-    "sortOrder": 218,
+    "sortOrder": 184,
     "title": "Marriage Proposals for Popatlal",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3327 - 3332)",
     "description": "",
@@ -2617,7 +2209,7 @@
   },
   {
     "id": "arc_3334_popatlal_sherwani_curse",
-    "sortOrder": 219,
+    "sortOrder": 185,
     "title": "Popatlal Sherwani Curse",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3334 - 3337)",
     "description": "",
@@ -2629,7 +2221,7 @@
   },
   {
     "id": "arc_3338_karela_bhoot_in_taarak",
-    "sortOrder": 220,
+    "sortOrder": 186,
     "title": "Karela Bhoot in Taarak",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3338 - 3360)",
     "description": "",
@@ -2641,7 +2233,7 @@
   },
   {
     "id": "arc_3361_network_problem",
-    "sortOrder": 221,
+    "sortOrder": 187,
     "title": "Network problem",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3361 - 3368)",
     "description": "",
@@ -2652,20 +2244,8 @@
     "coverEp": 3361
   },
   {
-    "id": "arc_3368_tapu_and_sonu_as_couple",
-    "sortOrder": 222,
-    "title": "Tapu and Sonu as Couple",
-    "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3368 - 3368)",
-    "description": "",
-    "startEp": 3368,
-    "endEp": 3368,
-    "totalEpisodes": 1,
-    "category": "Recent",
-    "coverEp": 3368
-  },
-  {
     "id": "arc_3369_the_second_deal",
-    "sortOrder": 223,
+    "sortOrder": 188,
     "title": "The Second Deal",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3369 - 3373)",
     "description": "",
@@ -2677,7 +2257,7 @@
   },
   {
     "id": "arc_3373_party_sharty",
-    "sortOrder": 224,
+    "sortOrder": 189,
     "title": "Party Sharty",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3373 - 3384)",
     "description": "",
@@ -2689,7 +2269,7 @@
   },
   {
     "id": "arc_3385_popatlal_vs_bhide",
-    "sortOrder": 225,
+    "sortOrder": 190,
     "title": "Popatlal vs Bhide",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3385 - 3387)",
     "description": "",
@@ -2701,7 +2281,7 @@
   },
   {
     "id": "arc_3388_cat_in_gokuldham",
-    "sortOrder": 226,
+    "sortOrder": 191,
     "title": "Cat in Gokuldham",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3388 - 3410)",
     "description": "",
@@ -2713,7 +2293,7 @@
   },
   {
     "id": "arc_3411_champaklal's_party_sharty",
-    "sortOrder": 227,
+    "sortOrder": 192,
     "title": "Champaklal's party sharty",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3411 - 3432)",
     "description": "",
@@ -2725,7 +2305,7 @@
   },
   {
     "id": "arc_3433_bhide's_sargam_orchestra",
-    "sortOrder": 228,
+    "sortOrder": 193,
     "title": "Bhide's Sargam Orchestra",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3433 - 3441)",
     "description": "",
@@ -2737,7 +2317,7 @@
   },
   {
     "id": "arc_3442_lemon_price_hike_of_2022",
-    "sortOrder": 229,
+    "sortOrder": 194,
     "title": "Lemon Price Hike of 2022",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3442 - 3450)",
     "description": "",
@@ -2749,7 +2329,7 @@
   },
   {
     "id": "arc_3451_confusion",
-    "sortOrder": 230,
+    "sortOrder": 195,
     "title": "Confusion",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3451 - 3454)",
     "description": "",
@@ -2761,7 +2341,7 @@
   },
   {
     "id": "arc_3455_a_prospective_bride_for_p",
-    "sortOrder": 231,
+    "sortOrder": 196,
     "title": "A prospective bride for Popatlal",
     "tagline": "Official Wikipedia Ground-Truth Arc (Ep 3455 - 3470)",
     "description": "",
