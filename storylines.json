@@ -41,11 +41,11 @@
     "title": "Tapu Ki Shaadi (Child Marriage Dream)",
     "tagline": "Bapuji's Shocking Marriage Proposal for Tapu",
     "description": "Bapuji insists on getting young Tapu married, bringing Jethalal's brother-in-law Sundar from Ahmedabad to handle wedding preparations.",
-    "startEp": 74,
+    "startEp": 73,
     "endEp": 81,
-    "totalEpisodes": 8,
+    "totalEpisodes": 9,
     "category": "Classic",
-    "coverEp": 74
+    "coverEp": 73
   },
   {
     "id": "arc_gpl_1",
@@ -72,20 +72,8 @@
     "coverEp": 410
   },
   {
-    "id": "arc_hiccups",
-    "sortOrder": 7,
-    "title": "Champaklal's Unstoppable Hiccups",
-    "tagline": "Bapuji's Medical Emergency",
-    "description": "Bapuji suffers from non-stop hiccups that won't go away, prompting the entire Gokuldham society to try hilarious remedies.",
-    "startEp": 450,
-    "endEp": 465,
-    "totalEpisodes": 16,
-    "category": "Classic",
-    "coverEp": 450
-  },
-  {
     "id": "arc_gpl_2",
-    "sortOrder": 8,
+    "sortOrder": 7,
     "title": "Gokuldham Premier League (GPL Season 2)",
     "tagline": "Jabardast Jetha vs Daya Ke Daredevils",
     "description": "The grand second season of GPL with celebrity guests, team auctions, and intense cricket matches.",
@@ -97,7 +85,7 @@
   },
   {
     "id": "arc_garba_night",
-    "sortOrder": 9,
+    "sortOrder": 8,
     "title": "Gokuldham Society Garba Night Special",
     "tagline": "Madhavi & Sonu Garba Excitement",
     "description": "The Mahila Mandal gets Gokuldham Society ready for a grand Garba Night celebration with traditional costumes and dancing.",
@@ -109,7 +97,7 @@
   },
   {
     "id": "arc_gulabo",
-    "sortOrder": 10,
+    "sortOrder": 9,
     "title": "Gulabo Marriage Lawsuit in Kutch",
     "tagline": "Jethalal's Secret Marriage Courtroom Case",
     "description": "A woman named Gulabo arrives in Gokuldham claiming she is Jethalal's lawfully wedded wife from a film shooting in Kutch.",
