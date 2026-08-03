@@ -69,7 +69,6 @@ async function init() {
         allStorylines = await fetchStorylines();
         
         registerMasterArticles(allArticles);
-        renderHeroContainer(allArticles, 'hero-container');
         renderPage();
     } catch (error) {
         console.error("Initialization failed:", error);
