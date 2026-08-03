@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Dose of TMKOC | Taarak Mehta Ka Ooltah Chashmah</title>
+    
+    <!-- Meta Tags for SEO & Social -->
+    <meta name="description" content="Your daily dose of TMKOC episodes across all seasons from Episode 1 to latest. The most important episodes of Gokuldham Society, with zero noise.">
+    <meta property="og:title" content="Daily Dose of TMKOC">
+    <meta property="og:description" content="The absolute top episodes across all seasons of Taarak Mehta Ka Ooltah Chashmah today.">
+    <meta property="og:type" content="website">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header>
+        <div class="container header-content" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+            
+            <!-- Left Group: Logo ("Daily Dose of TMKOC") -->
+            <a href="#" class="logo" style="display: flex; align-items: center; gap: 6px; font-size: 1.35rem; font-family: var(--font-sans); font-weight: 800; flex-shrink: 0;">
+                Daily Dose of <small class="logo-sub" style="font-size: 10px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px; margin-left: 2px;">TMKOC</small>
+            </a>
+            
+            <!-- Middle Group: Search Circle (FIRST), All Episodes (SECOND), Trending (THIRD), Storylines (FOURTH) -->
+            <section class="filters" aria-label="Category filters" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                <!-- Expandable Circle Search Bar (FIRST) -->
+                <form id="search-form" class="expandable-search-form">
+                    <button type="button" id="search-trigger-btn" class="search-circle-btn" aria-label="Toggle Search" title="Search episodes (Press /)">
+                        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                    <input type="text" id="search-input" placeholder="Search episode # (e.g. 450, 1500)..." aria-label="Search episode number">
+                    <button type="button" id="search-close-btn" class="search-close-btn" title="Close Search">✕</button>
+                </form>
+
+                <button class="chip active" data-category="all">All Episodes</button>
+                <button class="chip" data-category="trending">Trending</button>
+                <button class="chip" data-category="storylines">Storylines</button>
+            </section>
+
+            <!-- Right Group: Fan Stats + Theme Toggle -->
+            <nav style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                <button id="fan-stats-btn" class="chip active" style="padding: 6px 14px; font-size: 12px; border-radius: 9999px; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="View Fan Stats & Leaderboard">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"></path></svg>
+                    Fan Stats
+                </button>
+                <button id="theme-toggle" class="btn-icon" aria-label="Toggle Dark Mode">
+                    <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" style="margin-top: 1.5rem;">
+
+        <!-- Hero Section -->
+        <section id="hero-container" aria-label="Featured episode" style="margin-bottom: var(--space-2xl);">
+        </section>
+
+        <!-- Dynamic Content Area (Grid) -->
+        <section id="news-container" class="news-grid" aria-live="polite">
+        </section>
+        
+        <!-- Inject perfect grid of skeletons instantly before main JS loads -->
+        <script>
+            function renderSkeletons() {
+                var container = document.getElementById('news-container');
+                if (!container || (container.innerHTML.trim() !== '' && !container.innerHTML.includes('skeleton-text'))) return;
+                
+                var width = window.innerWidth || document.documentElement.clientWidth || 1024;
+                var height = window.innerHeight || document.documentElement.clientHeight || 768;
+                
+                var columns = width > 768 ? Math.max(1, Math.floor((width * 0.95) / 340)) : 1;
+                var rows = Math.max(2, Math.ceil(height / 400));
+                var total = columns * rows;
+                
+                var skeletonHTML = '<article class="card"><div class="card-img-wrap skeleton"></div><div class="card-content"><div class="skeleton skeleton-text short"></div><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text"></div></div></article>';
+                container.innerHTML = skeletonHTML.repeat(total);
+            }
+            renderSkeletons();
+            window.addEventListener('resize', renderSkeletons);
+            document.addEventListener('DOMContentLoaded', renderSkeletons);
+        </script>
+
+        <!-- Infinite Scroll Sentinel -->
+        <section id="pagination" style="text-align: center; margin-top: 3rem; margin-bottom: 1rem; display: none;">
+            <div style="opacity: 0.6; font-size: 0.9rem;">Loading more episodes...</div>
+        </section>
+    </main>
+
+    <!-- Professional Theme-Aware Fan Dashboard Modal -->
+    <div id="fan-modal-backdrop" class="tmkoc-modal-backdrop">
+        <div class="tmkoc-modal-dialog" style="max-width: 750px; background-color: var(--bg-primary); border: 1px solid var(--border-color);">
+            <div class="tmkoc-modal-header" style="background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+                <div class="tmkoc-modal-title-wrap">
+                    <span class="tmkoc-modal-badge" style="background: var(--text-primary); color: var(--bg-primary);">DASHBOARD</span>
+                    <h3 class="tmkoc-modal-title" style="color: var(--text-primary);">TMKOC Fan Stats & Superfan Leaderboard</h3>
+                </div>
+                <button class="tmkoc-modal-close" onclick="closeFanModal()">✕</button>
+            </div>
+            
+            <div style="padding: 24px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; max-height: 80vh;">
+                <!-- User Handle Box -->
+                <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-secondary); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-primary); opacity: 0.7;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <input type="text" id="user-handle-input" placeholder="Enter your Fan Handle (e.g. @Abhishek)" style="flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; outline: none;">
+                    <button onclick="saveUserHandle()" class="chip active" style="padding: 10px 18px; border: none; cursor: pointer; font-weight: 700;">Save Handle</button>
+                </div>
+
+                <!-- Stats Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px;">
+                    <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 11px; opacity: 0.7; font-weight: 700; text-transform: uppercase; color: var(--text-primary);">Episodes Watched</div>
+                        <div id="stat-episodes-count" style="font-size: 26px; font-weight: 900; color: var(--text-primary); margin-top: 4px;">0</div>
+                        <div style="font-size: 10px; opacity: 0.6; margin-top: 2px; color: var(--text-primary);">(>= 90% Completed)</div>
+                    </div>
+                    <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 11px; opacity: 0.7; font-weight: 700; text-transform: uppercase; color: var(--text-primary);">Exact Watch Time</div>
+                        <div id="stat-watch-hours" style="font-size: 26px; font-weight: 900; color: var(--text-primary); margin-top: 4px;">0h 0m</div>
+                        <div style="font-size: 10px; opacity: 0.6; margin-top: 2px; color: var(--text-primary);">(Active Playback Only)</div>
+                    </div>
+                    <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center;">
+                        <div style="font-size: 11px; opacity: 0.7; font-weight: 700; text-transform: uppercase; color: var(--text-primary);">Fan Level Tier</div>
+                        <div id="stat-fan-level" style="font-size: 14px; font-weight: 800; color: var(--text-primary); margin-top: 8px;">Gokuldham Resident</div>
+                    </div>
+                </div>
+
+                <!-- Theme-Matching Visual Share Card -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 800; color: var(--text-primary); letter-spacing: 0.5px;">SOCIAL SHARE CARD</span>
+                        <button onclick="copyShareCardText()" class="chip active" style="padding: 6px 14px; font-size: 11px; cursor: pointer; border: none; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy Share Card
+                        </button>
+                    </div>
+
+                    <!-- Visual Card Element (Theme-Matching) -->
+                    <div id="spotify-card-elem" class="spotify-share-card" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                        <div class="spotify-card-header">
+                            <div class="spotify-card-brand" style="color: var(--text-primary); font-weight: 800;">Daily Dose of <small style="font-size: 9px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 700;">TMKOC</small></div>
+                            <div id="card-user-badge" class="spotify-user-badge" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);">@TMKOCSuperfan</div>
+                        </div>
+
+                        <div class="spotify-card-body">
+                            <div class="spotify-art-box" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            </div>
+                            <div class="spotify-stats-info">
+                                <div id="card-tier-badge" class="spotify-tier-title" style="color: var(--text-primary);">Gokuldham Resident</div>
+                                <div id="card-main-stat" class="spotify-main-stat" style="color: var(--text-primary);">0 Episodes Watched</div>
+                                <div id="card-sub-stat" class="spotify-sub-stat" style="color: var(--text-primary); opacity: 0.7;">0 Hours 0 Mins Exact Watch Time</div>
+                            </div>
+                        </div>
+
+                        <div class="spotify-card-footer" style="border-top: 1px solid var(--border-color); color: var(--text-primary); opacity: 0.7;">
+                            <span>CodeMasterAbhishek.github.io/tmkoc-youtube-playlist-bot/</span>
+                            <span>#TMKOC #DailyDose</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Community Leaderboard Section -->
+                <div>
+                    <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px; color: var(--text-primary);">Global Superfan Leaderboard</h4>
+                    <div id="leaderboard-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span id="year"></span> Daily Dose of TMKOC.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
