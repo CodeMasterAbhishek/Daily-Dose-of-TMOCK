@@ -136,19 +136,77 @@ def get_youtube_service():
         return None
 
 
+def extract_video_id(url):
+    if not url:
+        return ''
+    match = re.search(r'(?:v=|\/embed\/|\/shorts\/|youtu\.be\/|^)([a-zA-Z0-9_-]{11})(?:[&?]|$)', url)
+    return match.group(1) if match else ''
+
+
+def add_video_to_playlist(youtube_service, playlist_id, video_id):
+    if not (youtube_service and playlist_id and video_id):
+        return False
+    try:
+        request = youtube_service.playlistItems().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "playlistId": playlist_id,
+                    "resourceId": {
+                        "kind": "youtube#video",
+                        "videoId": video_id
+                    }
+                }
+            }
+        )
+        request.execute()
+        return True
+    except Exception as e:
+        print(f"[WARNING] Could not add video {video_id} to playlist: {e}")
+        return False
+
+
+def populate_daily_batch(youtube_service, playlist_id, state):
+    current_pop = state.get("playlist_populated_up_to", 0)
+    target_pop = min(4778, current_pop + 200)
+
+    if current_pop >= 4778:
+        print("[BATCH POPULATOR] All 4,778 episodes have been populated into playlist state.")
+        return
+
+    print(f"[BATCH POPULATOR] Populating batch for episodes {current_pop + 1} to {target_pop}...")
+
+    ep_map = {}
+    if os.path.exists(CSV_FILE):
+        with open(CSV_FILE, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            next(reader, None)
+            for row in reader:
+                if len(row) >= 3 and row[0].isdigit():
+                    ep_num = int(row[0])
+                    vid_url = row[2]
+                    vid_id = extract_video_id(vid_url)
+                    if vid_id:
+                        ep_map[ep_num] = vid_id
+
+    added_count = 0
+    for ep in range(current_pop + 1, target_pop + 1):
+        vid_id = ep_map.get(ep)
+        if vid_id and youtube_service and playlist_id:
+            success = add_video_to_playlist(youtube_service, playlist_id, vid_id)
+            if success:
+                added_count += 1
+            time.sleep(0.3)
+
+    state["playlist_populated_up_to"] = target_pop
+    print(f"[BATCH POPULATOR SUCCESS] Processed episodes {current_pop + 1} to {target_pop}. Updated playlist_populated_up_to = {target_pop}")
+
+
 def main():
     print("=======================================================")
     print("  TMKOC Daily Auto-Sync & Batch Populator Bot")
     print("=======================================================")
 
-    # 1. Run Past Episodes Batch Populator (190 videos per day)
-    try:
-        import populate_daily_batch
-        populate_daily_batch.main()
-    except Exception as e:
-        print(f"[WARNING] Batch populator error: {e}")
-
-    # 2. Check for New Daily Episodes (e.g. Ep 4501, 4502...)
     if not os.path.exists(STATE_FILE):
         print(f"Error: {STATE_FILE} not found!")
         sys.exit(1)
@@ -156,11 +214,18 @@ def main():
     with open(STATE_FILE, "r", encoding="utf-8") as f:
         state = json.load(f)
 
-    last_ep = state.get("last_episode", 4500)
-    print(f"\nChecking for Brand New Daily Episodes (after Ep {last_ep})...")
-
     youtube_service = get_youtube_service()
     playlist_id = os.environ.get("YOUTUBE_PLAYLIST_ID")
+
+    # 1. Run Past Episodes Batch Populator (+200 episodes per day)
+    try:
+        populate_daily_batch(youtube_service, playlist_id, state)
+    except Exception as e:
+        print(f"[WARNING] Batch populator error: {e}")
+
+    # 2. Check for Brand New Daily Episodes
+    last_ep = state.get("last_episode", 4778)
+    print(f"\nChecking for Brand New Daily Episodes (after Ep {last_ep})...")
 
     episodes_added = 0
     next_ep = last_ep + 1
@@ -173,20 +238,13 @@ def main():
             vid_id, title, url = result
             print(f"[FOUND BRAND NEW EPISODE] Ep {next_ep}: {title} ({url})")
 
-            # Append to CSV
             with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow([next_ep, title, url, "Found"])
 
-            # Add to YouTube Playlist if API client present
             if youtube_service and playlist_id:
-                try:
-                    import populate_daily_batch
-                    populate_daily_batch.add_video_to_playlist(youtube_service, playlist_id, vid_id)
-                except Exception as e:
-                    print(f"[WARNING] Could not add new episode to playlist: {e}")
+                add_video_to_playlist(youtube_service, playlist_id, vid_id)
 
-            # Update state
             last_ep = next_ep
             episodes_added += 1
             next_ep += 1
@@ -198,7 +256,7 @@ def main():
     today_str = time.strftime("%Y-%m-%d")
     state["last_episode"] = last_ep
     state["last_updated"] = today_str
-    state["total_found"] = state.get("total_found", 4500) + episodes_added
+    state["total_found"] = state.get("total_found", 4778) + episodes_added
 
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
@@ -206,6 +264,7 @@ def main():
     print("\n=======================================================")
     print(f" Sync Complete! {episodes_added} new episode(s) detected today.")
     print(f" Latest Episode in DB: Ep {last_ep}")
+    print(f" Batch Populated Up To: Ep {state.get('playlist_populated_up_to', 0)}")
     print("=======================================================\n")
 
 
