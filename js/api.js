@@ -24,6 +24,30 @@ function getAirDateForEp(epNum) {
     return epDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function extractRealEpNumber(title, csvEpNum) {
+    if (!title) return csvEpNum;
+    const match = title.match(/(?:full\s+)?(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d{1,4})/i);
+    if (match) {
+        const parsed = parseInt(match[1], 10);
+        if (parsed > 0 && parsed <= 4999) {
+            return parsed;
+        }
+    }
+    return csvEpNum;
+}
+
+function extractRealDate(title, epNum) {
+    if (!title) return getAirDateForEp(epNum);
+    const dateMatch = title.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9}),?\s+(20\d{2})\b/);
+    if (dateMatch) {
+        const day = dateMatch[1].padStart(2, '0');
+        const month = dateMatch[2].substring(0, 3);
+        const year = dateMatch[3];
+        return `${day} ${month} ${year}`;
+    }
+    return getAirDateForEp(epNum);
+}
+
 export async function fetchNewsData() {
     try {
         const response = await fetch(`episodes.csv?t=${new Date().getTime()}`);
@@ -54,21 +78,21 @@ export async function fetchNewsData() {
             }
 
             if (epNum > 0) {
+                const realEpNum = extractRealEpNumber(title, epNum);
                 const videoId = extractVideoId(url);
-                const category = getCategoryForEp(epNum);
-                const airDate = getAirDateForEp(epNum);
+                const category = getCategoryForEp(realEpNum);
+                const airDate = extractRealDate(title, realEpNum);
                 const image = videoId 
                     ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
                     : 'https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode';
 
-                // Standard full episode runtime (21m 45s)
-                const durationText = epNum === 4778 ? '09:48' : '21:45';
+                const durationText = realEpNum === 4778 ? '09:48' : '21:45';
 
                 articles.push({
-                    id: `ep_${epNum}`,
-                    epNumber: epNum,
-                    title: title || `Episode ${epNum} - Taarak Mehta Ka Ooltah Chashmah`,
-                    description: `Watch full single episode ${epNum} of Gokuldham Society adventures.`,
+                    id: `ep_${realEpNum}`,
+                    epNumber: realEpNum,
+                    title: title || `Episode ${realEpNum} - Taarak Mehta Ka Ooltah Chashmah`,
+                    description: `Watch full single episode ${realEpNum} of Gokuldham Society adventures.`,
                     category: category,
                     source: 'SONY SAB',
                     url: url,
@@ -76,7 +100,7 @@ export async function fetchNewsData() {
                     image: image,
                     airDate: airDate,
                     durationText: durationText,
-                    publishedAt: new Date(Date.now() - (4778 - epNum) * 86400000).toISOString()
+                    publishedAt: new Date(Date.now() - (4778 - realEpNum) * 86400000).toISOString()
                 });
             }
         }

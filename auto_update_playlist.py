@@ -54,6 +54,13 @@ def is_single_episode(title: str, description: str, channel: str, ep_num: int) -
     if any(k in combined_text for k in ['compilation', 'best of', 'full movie', 'mega episode']):
         return False
 
+    # Check if a different episode number is explicitly in title/description
+    ep_extract = re.search(r'(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d+)', title_lower)
+    if ep_extract:
+        found_ep = int(ep_extract.group(1))
+        if found_ep != ep_num:
+            return False  # Reject if title mentions Ep 4683 when searching for 5083
+
     ep_patterns = [
         rf'(?:full\s+)?(?:ep|episode|ep\.|episodes|ep\s*#|एपिसोड)\s*[-:]?\s*0*{ep_num}\b',
         rf'[-:]?\s*0*{ep_num}\s*[-|]\s*(?:taarak|tarak|तारक)\b',
@@ -61,21 +68,11 @@ def is_single_episode(title: str, description: str, channel: str, ep_num: int) -
 
     for pat in ep_patterns:
         if re.search(pat, combined_text):
-            ep_extract = re.search(r'(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d+)', combined_text)
-            if ep_extract:
-                if int(ep_extract.group(1)) == ep_num:
-                    return True
-                else:
-                    return False
             return True
 
     if any(k in combined_text for k in ['taarak', 'tarak', 'तारक', 'tmkoc']):
-        num_match = re.search(rf'\b0*{ep_num}\b', combined_text)
+        num_match = re.search(rf'\b0*{ep_num}\b', title_lower)
         if num_match:
-            return True
-
-    if any(ch in channel_lower for ch in OFFICIAL_CHANNELS):
-        if any(k in title_lower for k in ['taarak', 'tarak', 'तारक', 'tmkoc']):
             return True
 
     return False
