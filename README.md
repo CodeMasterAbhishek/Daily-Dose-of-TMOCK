@@ -149,7 +149,11 @@ python update_website.py
 
 ---
 
-## 📄 License
+## 📄 License & Legal Disclaimer
 
-This project is open-source and licensed under the <a href="LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a>. 
-*Note: All video content, characters, and trademarks belong exclusively to Sony SAB, Sony PAL, Sony LIV, and Neela Tele Films.*
+The code for this project is open-source and licensed under the <a href="LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a>. 
+
+**⚠️ COPYRIGHT DISCLAIMER:**  
+The creator of this repository does **NOT** own, host, or distribute any of the video content. All videos are embedded directly from YouTube via the official YouTube IFrame API. 
+
+All video content, characters, and trademarks for *Taarak Mehta Ka Ooltah Chashmah* belong entirely and exclusively to **Sony Pictures Networks India Pvt. Ltd. (Sony SAB, Sony PAL, Sony LIV)** and **Neela Tele Films**. This is a non-commercial, fan-made organizational tool.
