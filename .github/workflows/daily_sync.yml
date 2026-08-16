@@ -1,9 +1,9 @@
-name: Daily TMKOC Playlist Auto-Sync
+name: Daily TMKOC Episode Sync
 
 on:
   schedule:
-    # Runs daily at 18:00 UTC (11:30 PM IST after new TMKOC episodes release)
-    - cron: '0 18 * * *'
+    # Runs every 30 minutes to aggressively catch re-uploaded episodes and dead links
+    - cron: '*/30 * * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI anytime
 
 jobs:
@@ -27,13 +27,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Auto-Sync Script
-        env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          YOUTUBE_PLAYLIST_ID: ${{ secrets.YOUTUBE_PLAYLIST_ID }}
         run: |
-          python auto_update_playlist.py
+          python update_website.py
 
       - name: Commit and Push Changes
         run: |

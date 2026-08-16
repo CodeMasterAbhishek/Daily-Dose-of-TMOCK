@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard } from './ui.js';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache } from './ui.js';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -65,6 +65,7 @@ async function init() {
     if (activeChip) activeChip.classList.add('active');
 
     try {
+        await initializeIpCache();
         allArticles = await fetchNewsData();
         allStorylines = await fetchStorylines();
         

@@ -9,7 +9,6 @@ function extractVideoId(url) {
 }
 
 function getCategoryForEp(epNum) {
-    if (epNum >= 4450) return 'Trending';
     if (epNum <= 500) return 'Classic';
     if (epNum <= 1500) return 'Golden';
     if (epNum <= 3000) return 'Modern';
@@ -19,7 +18,7 @@ function getCategoryForEp(epNum) {
 function getAirDateForEp(epNum) {
     // Generate realistic air date based on episode number
     const startDate = new Date(2008, 6, 28); // July 28, 2008 (Ep 1 premiere)
-    const daysOffset = Math.floor(epNum * 1.38);
+    const daysOffset = Math.floor(epNum * 1.378);
     const epDate = new Date(startDate.getTime() + daysOffset * 86400000);
     return epDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -50,7 +49,8 @@ function extractRealDate(title, epNum) {
 
 export async function fetchNewsData() {
     try {
-        const response = await fetch(`episodes.csv?t=${new Date().getTime()}`);
+        const cacheBuster = Math.floor(Date.now() / 3600000);
+        const response = await fetch(`episodes.csv?t=${cacheBuster}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -62,31 +62,42 @@ export async function fetchNewsData() {
             const line = lines[i].trim();
             if (!line) continue;
 
-            const match = line.match(/^(\d+),"?([^",]+|"[^"]+")?"?,([^,]+),?([^,]+)?$/);
-            let epNum = 0, title = '', url = '', status = 'Found';
-
-            if (match) {
-                epNum = parseInt(match[1]);
-                title = (match[2] || '').replace(/^"|"$/g, '');
-                url = match[3] || '';
-                status = match[4] || 'Found';
-            } else {
-                const parts = line.split(',');
-                epNum = parseInt(parts[0]);
-                url = parts[2] || '';
-                title = parts[1] || '';
+            const parts = [];
+            let current = '';
+            let inQuotes = false;
+            for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    parts.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
             }
+            parts.push(current);
+            
+            const epNum = parseInt(parts[0] || '0');
+            const title = (parts[1] || '').trim();
+            const url = (parts[2] || '').trim();
+            const status = (parts[3] || 'Found').trim();
+            const csvDate = (parts[4] || '').trim();
+            const csvDuration = (parts[5] || '').trim();
 
             if (epNum > 0) {
                 const realEpNum = extractRealEpNumber(title, epNum);
                 const videoId = extractVideoId(url);
                 const category = getCategoryForEp(realEpNum);
-                const airDate = extractRealDate(title, realEpNum);
+                const airDate = csvDate ? csvDate : extractRealDate(title, realEpNum);
                 const image = videoId 
                     ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
                     : 'https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode';
 
-                const durationText = realEpNum === 4778 ? '09:48' : '21:45';
+                const durationText = csvDuration ? csvDuration : (realEpNum === 4778 ? '09:48' : '21:45');
+
+                const parsedDate = new Date(airDate);
+                const pubDateStr = isNaN(parsedDate) ? new Date().toISOString() : parsedDate.toISOString();
 
                 articles.push({
                     id: `ep_${realEpNum}`,
@@ -100,7 +111,7 @@ export async function fetchNewsData() {
                     image: image,
                     airDate: airDate,
                     durationText: durationText,
-                    publishedAt: new Date(Date.now() - (4778 - realEpNum) * 86400000).toISOString()
+                    publishedAt: pubDateStr
                 });
             }
         }
@@ -115,9 +126,12 @@ export async function fetchNewsData() {
 
 export async function fetchStorylines() {
     try {
-        const response = await fetch(`storylines.json?t=${new Date().getTime()}`);
+        const cacheBuster = Math.floor(Date.now() / 3600000);
+        const response = await fetch(`storylines.json?t=${cacheBuster}`);
         if (!response.ok) return [];
-        return await response.json();
+        const data = await response.json();
+        // Sort in decreasing order (newest storylines first)
+        return data.sort((a, b) => b.startEp - a.startEp);
     } catch (e) {
         console.error("Could not fetch storylines dataset:", e);
         return [];

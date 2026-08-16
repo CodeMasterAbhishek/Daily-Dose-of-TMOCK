@@ -763,4 +763,28 @@ a:hover, a:visited, a:focus, a:active {
   display: none;
 }
 
+/* Geo-Block and Unavailable Ep Styles */
+.tmkoc-geo-warning {
+    display: none;
+    background: #fff3cd;
+    border: 1px solid #ffe69c;
+    color: #664d03;
+    padding: 12px;
+    margin: 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-align: center;
+    line-height: 1.4;
+}
+
+[data-theme="dark"] .tmkoc-geo-warning {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
+}
+
+.ep-unavailable .card-img {
+    filter: grayscale(100%) opacity(0.6);
+}
+
 

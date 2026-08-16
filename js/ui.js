@@ -14,6 +14,193 @@ const STORAGE_HANDLE = 'tmkoc_user_handle';
 
 let activeWatchTrackerTimer = null;
 let currentActiveEpId = null;
+window.userIsIndia = false;
+let ytPlayer = null;
+
+// Load YouTube IFrame API dynamically
+const ytScript = document.createElement('script');
+ytScript.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+if(firstScriptTag) {
+    firstScriptTag.parentNode.insertBefore(ytScript, firstScriptTag);
+} else {
+    document.head.appendChild(ytScript);
+}
+
+// --- Background Geo-block Checker ---
+let bgCheckerQueue = [];
+let bgCheckerProcessing = false;
+let checkObserver = null;
+let bgCheckerTimeout = null;
+const verifiedVideos = new Set();
+
+// Remove initBgChecker completely as we create players on the fly
+window.onYouTubeIframeAPIReady = function() {
+    // API is ready. Trigger the queue if items are waiting.
+    if (bgCheckerQueue.length > 0) processBgCheckerQueue();
+};
+
+function processBgCheckerQueue() {
+    if (bgCheckerProcessing || bgCheckerQueue.length === 0 || !window.YT || !window.YT.Player) return;
+    
+    bgCheckerProcessing = true;
+    const article = bgCheckerQueue[0];
+    
+    // Create temporary wrapper div (1x1) to prevent browser throttling of the iframe
+    const wrapperDiv = document.createElement('div');
+    wrapperDiv.id = 'bg-checker-wrapper';
+    wrapperDiv.style.position = 'fixed';
+    wrapperDiv.style.bottom = '0';
+    wrapperDiv.style.right = '0';
+    wrapperDiv.style.width = '1px';
+    wrapperDiv.style.height = '1px';
+    wrapperDiv.style.overflow = 'hidden';
+    wrapperDiv.style.zIndex = '-9999';
+    wrapperDiv.style.pointerEvents = 'none';
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.id = 'bg-checker-temp';
+    wrapperDiv.appendChild(tempDiv);
+    document.body.appendChild(wrapperDiv);
+
+    let tempPlayer = null;
+    let handled = false;
+
+    function cleanupAndNext(isUnavailable) {
+        if (handled) return;
+        handled = true;
+        if (bgCheckerTimeout) clearTimeout(bgCheckerTimeout);
+        try { if (tempPlayer) tempPlayer.destroy(); } catch(e) {}
+        try { 
+            const el = document.getElementById('bg-checker-wrapper');
+            if (el) document.body.removeChild(el); 
+        } catch(e) {}
+        
+        handleCheckerResult(article, isUnavailable);
+    }
+
+    try {
+        tempPlayer = new window.YT.Player('bg-checker-temp', {
+            height: '200',
+            width: '200',
+            videoId: article.videoId,
+            playerVars: { 'playsinline': 1, 'controls': 0, 'disablekb': 1, 'rel': 0, 'mute': 1, 'autoplay': 1 },
+            events: {
+                'onReady': function() {
+                    // Grace period: if no error fires in 1.5s after ready, assume it's available
+                    setTimeout(() => cleanupAndNext(false), 1500);
+                },
+                'onStateChange': function(event) {
+                    if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
+                        cleanupAndNext(false);
+                    }
+                },
+                'onError': function(event) {
+                    // Code 100, 101, 150
+                    cleanupAndNext(true);
+                }
+            }
+        });
+        
+        // Failsafe timeout in case YT hangs completely
+        if (bgCheckerTimeout) clearTimeout(bgCheckerTimeout);
+        bgCheckerTimeout = setTimeout(() => cleanupAndNext(false), 6000);
+        
+    } catch(e) {
+        cleanupAndNext(false);
+    }
+}
+
+export async function initializeIpCache() {
+    try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        const currentIp = data.ip;
+        
+        const lastIp = localStorage.getItem("tmkoc_last_ip");
+        if (lastIp && lastIp !== currentIp) {
+            // IP changed (VPN toggled). Invalidate the geo cache.
+            localStorage.removeItem("tmkoc_checker_cache");
+        }
+        localStorage.setItem("tmkoc_last_ip", currentIp);
+    } catch (e) {}
+}
+
+function getCheckerCache() {
+    try {
+        const cache = JSON.parse(localStorage.getItem("tmkoc_checker_cache") || "{}");
+        const now = Date.now();
+        for (const key in cache) {
+            if (now - cache[key].timestamp > 3600000) {
+                delete cache[key];
+            }
+        }
+        localStorage.setItem("tmkoc_checker_cache", JSON.stringify(cache));
+        return cache;
+    } catch(e) {
+        return {};
+    }
+}
+
+function setCheckerCache(videoId, isUnavailable) {
+    try {
+        const cache = getCheckerCache();
+        cache[videoId] = {
+            isUnavailable: isUnavailable,
+            timestamp: Date.now()
+        };
+        localStorage.setItem("tmkoc_checker_cache", JSON.stringify(cache));
+    } catch(e) {}
+}
+
+function handleCheckerResult(article, isUnavailable) {
+    try {
+        verifiedVideos.add(article.id);
+        setCheckerCache(article.videoId, isUnavailable);
+        
+        const card = document.querySelector(`.card[data-id="${article.id}"]`);
+        if (card) {
+            if (isUnavailable) card.classList.add('ep-unavailable');
+            else card.classList.remove('ep-unavailable');
+        }
+    } catch(e) {}
+    
+    bgCheckerQueue.shift();
+    bgCheckerProcessing = false;
+    setTimeout(processBgCheckerQueue, 250);
+}
+
+
+
+function initIntersectionObserver() {
+    if (checkObserver) return;
+    checkObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const card = entry.target;
+                const id = card.getAttribute('data-id');
+                const article = allArticlesMap[id];
+                if (article && article.videoId) {
+                    if (!verifiedVideos.has(article.id)) {
+                        const cache = getCheckerCache();
+                        if (cache[article.videoId]) {
+                            verifiedVideos.add(article.id);
+                            if (cache[article.videoId].isUnavailable) {
+                                card.classList.add('ep-unavailable');
+                            }
+                        } else {
+                            if (!bgCheckerQueue.some(a => a.id === article.id)) {
+                                bgCheckerQueue.push(article);
+                                processBgCheckerQueue();
+                            }
+                        }
+                    }
+                }
+                checkObserver.unobserve(card);
+            }
+        });
+    }, { rootMargin: '200px' });
+}
 
 function getCompletedWatchedList() {
     try {
@@ -130,13 +317,19 @@ function createCardHTML(article) {
     if (completed.includes(article.id)) {
         readClass = 'read-article watched-article';
     }
+    
+    let unavailableClass = '';
+    const cache = getCheckerCache();
+    if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
+        unavailableClass = 'ep-unavailable';
+    }
 
     const timestamps = getTimestamps();
     const savedTimeSec = timestamps[article.id] || 0;
     const progressPercent = savedTimeSec ? Math.min(100, Math.round((savedTimeSec / 1260) * 100)) : 0;
     
     return `
-        <article class="card ${readClass}" data-id="${article.id}" data-category="${article.category.toLowerCase()}">
+        <article class="card ${readClass} ${unavailableClass}" data-id="${article.id}" data-category="${article.category.toLowerCase()}">
             <a href="javascript:void(0)" class="card-img-wrap" onclick="playEpisode('${article.id}')">
                 <img src="${imageUrl}" alt="${article.title}" loading="lazy" class="card-img" onerror="this.src='https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode'">
                 <span class="card-duration-badge">${article.durationText || '21:45'}</span>
@@ -160,21 +353,23 @@ export function renderArticles(articles, containerId, append = false) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    if (!append) {
-        container.innerHTML = '';
-    }
+    if (!append) container.innerHTML = '';
 
     if (articles.length === 0 && !append) {
         container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; opacity: 0.6;">No episodes found matching your search.</div>';
         return;
     }
 
+    initIntersectionObserver();
+
     const fragment = document.createDocumentFragment();
     const tempDiv = document.createElement('div');
 
     articles.forEach(article => {
         tempDiv.innerHTML = createCardHTML(article);
-        fragment.appendChild(tempDiv.firstElementChild);
+        const cardElem = tempDiv.firstElementChild;
+        fragment.appendChild(cardElem);
+        if (checkObserver) checkObserver.observe(cardElem);
     });
 
     container.appendChild(fragment);
@@ -304,8 +499,9 @@ function openCleanPlayer(article) {
                     </div>
                     <button class="tmkoc-modal-close" onclick="closeCleanPlayer()">✕</button>
                 </div>
+                <div id="clean-modal-warning" class="tmkoc-geo-warning"></div>
                 <div class="tmkoc-video-viewport">
-                    <iframe id="clean-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div id="clean-iframe-container"></div>
                 </div>
                 <div class="tmkoc-modal-footer">
                     <button class="tmkoc-nav-btn" onclick="navCleanEp(-1)">◀ Previous Ep</button>
@@ -314,6 +510,12 @@ function openCleanPlayer(article) {
             </div>
         `;
         document.body.appendChild(backdrop);
+
+    }
+
+    const modalWarning = document.getElementById('clean-modal-warning');
+    if (modalWarning) {
+        modalWarning.style.display = 'none'; // Ensure it's hidden by default, ytPlayer onError will show it if needed
     }
 
     document.getElementById('clean-title').textContent = article.title;
@@ -321,13 +523,62 @@ function openCleanPlayer(article) {
 
     const timestamps = getTimestamps();
     const resumeSeconds = timestamps[article.id] || 0;
-    const startParam = resumeSeconds > 5 ? `&start=${resumeSeconds}` : '';
 
-    const iframe = document.getElementById('clean-iframe');
-    if (article.videoId) {
-        iframe.src = `https://www.youtube.com/embed/${article.videoId}?autoplay=1&rel=0&controls=1${startParam}`;
+    const viewport = document.querySelector('.tmkoc-video-viewport');
+    
+    if (window.YT && window.YT.Player) {
+        if (ytPlayer) {
+            ytPlayer.destroy();
+        }
+        viewport.innerHTML = '<div id="clean-iframe-container"></div>';
+        
+        const videoIdToPlay = article.videoId || '';
+        if (videoIdToPlay) {
+            ytPlayer = new window.YT.Player('clean-iframe-container', {
+                videoId: videoIdToPlay,
+                playerVars: { 
+                    'autoplay': 1, 
+                    'rel': 0, 
+                    'controls': 1,
+                    'start': resumeSeconds
+                },
+                events: {
+                    'onError': function(event) {
+                        if (modalWarning) {
+                            modalWarning.style.display = 'block';
+                            modalWarning.innerHTML = `⚠️ <strong>Video Unavailable:</strong> YouTube refused to play this video. It may be geo-blocked, made private, or Sony disabled embedding. <a href="https://www.youtube.com/results?search_query=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" target="_blank" style="color: #d97706; text-decoration: underline;">Search for Ep ${article.epNumber} on YouTube</a>. (Code: ${event.data})`;
+                        }
+                        try {
+                            verifiedVideos.add(article.id);
+                            const card = document.querySelector(`.card[data-id="${article.id}"]`);
+                            if (card && !card.classList.contains('ep-unavailable')) {
+                                card.classList.add('ep-unavailable');
+                            }
+                        } catch(e) {}
+                    },
+                    'onStateChange': function(event) {
+                        if (event.data === window.YT.PlayerState.PLAYING) {
+                            currentActiveEpId = article.id;
+                            try {
+                                verifiedVideos.add(article.id);
+                                const card = document.querySelector(`.card[data-id="${article.id}"]`);
+                                if (card) card.classList.remove('ep-unavailable');
+                            } catch(e) {}
+                        }
+                    }
+                }
+            });
+        } else {
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+        }
     } else {
-        iframe.src = `https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}`;
+        // Fallback if YT API fails to load
+        const startParam = resumeSeconds > 5 ? `&start=${resumeSeconds}` : '';
+        if (article.videoId) {
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${article.videoId}?autoplay=1&rel=0&controls=1${startParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+        } else {
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+        }
     }
 
     backdrop.style.display = 'flex';
@@ -339,6 +590,10 @@ function openCleanPlayer(article) {
 window.closeCleanPlayer = function() {
     const backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (backdrop) backdrop.style.display = 'none';
+    if (ytPlayer) {
+        try { ytPlayer.destroy(); } catch(e) {}
+        ytPlayer = null;
+    }
     const iframe = document.getElementById('clean-iframe');
     if (iframe) iframe.src = '';
     document.body.style.overflow = 'auto';
@@ -475,7 +730,7 @@ window.copyShareCardText = function() {
     const hours = Math.floor(totalSecs / 3600);
     const level = getFanLevel(count);
 
-    const shareText = `I've watched ${count} episodes (${hours} Hours) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/tmkoc-youtube-playlist-bot/`;
+    const shareText = `I've watched ${count} episodes (${hours} Hours) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMKOC/`;
 
     navigator.clipboard.writeText(shareText).then(() => {
         alert('Copied Social Share Card text to clipboard!');
