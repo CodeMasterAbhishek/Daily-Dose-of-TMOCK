@@ -21,28 +21,58 @@
 
 **Daily Dose of TMKOC** is a serverless web application built to organize and stream all 4,500+ episodes of the iconic Indian sitcom *Taarak Mehta Ka Ooltah Chashmah*. 
 
-Instead of relying on expensive backend servers, databases, or the restricted YouTube Data API, this project runs **100% for free** using GitHub Actions and GitHub Pages. A custom Python automation script natively scrapes YouTube for newly uploaded episodes daily, updates a flat-file CSV database, and deploys the new data live.
+With thousands of episodes spanning over a decade, official YouTube playlists often become fragmented, incomplete, or difficult to navigate for specific storylines. Relying on traditional backend servers and databases to track this massive catalogue would incur constant hosting costs. 
+
+This project solves these issues by acting as a highly optimized, specialized streaming frontend. It utilizes a **100% free, serverless architecture** where GitHub serves as both the automation backend (via Actions) and the database/CDN (via Pages and static files). A custom Python scraper natively fetches new episodes daily, updates a flat-file database, and triggers live deployments instantly.
 
 ---
 
-## 🛠️ How It's Built
+## 🛠️ Built With
 
-- **Frontend:** Built completely with pure HTML5, Vanilla CSS, and Vanilla JavaScript. No heavy frontend frameworks to ensure maximum performance and lightweight footprint.
-- **Backend/Automation:** A Python script (`update_website.py`) powered by `scrapetube` and `requests`. It runs daily via GitHub Actions to fetch the latest episodes without consuming any YouTube API quotas.
-- **Database (Zero-cost DB):** Episode metadata is stored in static files (`episodes.csv`, `state.json`, `storylines.json`). This architecture leverages GitHub's CDN to serve data lightning fast across the globe.
+The project embraces a lightweight, no-framework philosophy, leaning heavily on native web technologies and robust Python libraries. Every technology is linked to its official documentation below:
+
+*   **Frontend:**
+    *   <a href="https://developer.mozilla.org/en-US/docs/Web/HTML" target="_blank" rel="noopener noreferrer">HTML5</a> for semantic structure.
+    *   <a href="https://developer.mozilla.org/en-US/docs/Web/CSS" target="_blank" rel="noopener noreferrer">Vanilla CSS</a> for styling (avoiding heavy UI frameworks).
+    *   <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank" rel="noopener noreferrer">Vanilla JavaScript</a> for DOM manipulation and logic.
+    *   <a href="https://developers.google.com/youtube/iframe_api_reference" target="_blank" rel="noopener noreferrer">YouTube IFrame Player API</a> for building the custom video player interface.
+*   **Backend & Automation:**
+    *   <a href="https://www.python.org/doc/" target="_blank" rel="noopener noreferrer">Python</a> as the core scripting language.
+    *   <a href="https://github.com/dermasmid/scrapetube" target="_blank" rel="noopener noreferrer">scrapetube</a> for scraping YouTube channel data natively (bypassing strict YouTube Data API quotas).
+    *   <a href="https://requests.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer">Requests</a> for handling automated HTTP calls.
+*   **Infrastructure & APIs:**
+    *   <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener noreferrer">GitHub Actions</a> for the scheduled daily cron job orchestrator.
+    *   <a href="https://pages.github.com/" target="_blank" rel="noopener noreferrer">GitHub Pages</a> for free, globally distributed static hosting.
+    *   <a href="https://www.ipify.org/" target="_blank" rel="noopener noreferrer">ipify API</a> for retrieving the user's public IP address to manage smart geo-caching.
 
 ---
 
-## ✨ Features
+## 🏗️ Architecture & Detailed Explanation
 
-- **Custom Video Player:** A bespoke player built on top of the YouTube IFrame API. Features include:
-  - Custom scrubbing and progress bar.
-  - Volume controls and fullscreen mode.
-  - Playback speed adjustment (0.75x to 2x).
-  - Seamless Next/Previous episode navigation.
+### 1. The "Zero-Cost" Database Layer
+Instead of using a traditional relational database (like PostgreSQL) or a NoSQL solution (like MongoDB), the entire episode catalogue is stored in a simple, static `episodes.csv` file. 
+*   **Why?** A flat file can be served instantaneously by GitHub's CDN. 
+*   When a user loads the app, the frontend asynchronously fetches the `.csv` file, parses it into JSON objects locally in the browser, and renders the interface. This completely eliminates database querying latency and hosting costs.
+
+### 2. Automated Data Ingestion
+Official YouTube APIs have strict quotas and limitations. To solve this, the backend utilizes `update_website.py`, which is triggered every day by a <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener noreferrer">GitHub Action</a>.
+*   The script uses `scrapetube` to emulate native web scraping, collecting metadata for new uploads directly from the Sony SAB channel.
+*   It implements robust logic to filter out promos, teasers, and multi-episode compilations, ensuring only authentic, full-length episodes are added.
+*   New episodes are appended to `episodes.csv`, the state is tracked in `state.json`, and the GitHub Action commits the changes directly back to the repository.
+
+### 3. The Client Application
+The web client consists of highly modular Vanilla JS:
+*   `api.js`: Handles data fetching, parsing the CSV, and interacting with `storylines.json` (which groups multi-episode arcs for binge-watching).
+*   `ui.js`: Manages DOM rendering, UI transitions, and the lifecycle of the custom video player.
+*   **Smart Geo-Caching**: Because some videos are region-blocked on YouTube, the app employs the <a href="https://www.ipify.org/" target="_blank" rel="noopener noreferrer">ipify API</a> to detect the user's IP. It heavily caches working episodes into the browser's `localStorage`. If a user connects to a VPN or changes networks, the app detects the IP change and intelligently flushes the cache to reload video availability without excessive API calls.
+
+---
+
+## ✨ Core Features
+
+- **Custom Video Player:** A bespoke player built on top of the <a href="https://developers.google.com/youtube/iframe_api_reference" target="_blank" rel="noopener noreferrer">YouTube IFrame API</a>. Features include custom scrubbing, volume controls, playback speed adjustments (0.75x to 2x), and seamless Next/Previous navigation.
 - **Curated "Storylines":** Dedicated section leveraging `storylines.json` to organize multi-episode arcs for binge-watching specific plots.
 - **Modern UI/UX:** Responsive interface featuring a Light/Dark mode switcher, smooth transitions, and a featured episode carousel.
-- **Smart Geo-Caching:** Uses `localStorage` alongside the `ipify` API to cache region-specific video availability. If a user connects to a VPN or changes locations, the app automatically detects the new IP and refreshes the cache for instant access to unlocked videos.
 - **$0 Running Costs:** Completely hosted and automated on GitHub's ecosystem.
 
 ---
