@@ -236,6 +236,10 @@ def reverse_global_scan(rows):
                         print(f"  [REVERSE UPGRADE] Ep {ep_num}: {title} ({duration_str})")
                         rows[row_idx] = [ep_num, title, url, "Found", date_str if date_str else row[4], duration_str]
                         upgraded_count += 1
+                        if 'upgraded_details' not in globals():
+                            global upgraded_details
+                            upgraded_details = []
+                        upgraded_details.append(f"Ep {ep_num} ({old_mins}m -> {new_mins}m)")
                         
                         # Update map so we don't downgrade it if an older duplicate is further down the results
                         ep_map[ep_num] = (row_idx, rows[row_idx])
@@ -250,6 +254,10 @@ def main():
     print("=======================================================")
     print("  TMKOC Website & DB Auto-Updater (Zero Quota Mode)")
     print("=======================================================")
+
+    global upgraded_details
+    upgraded_details = []
+    added_details = []
 
     if not os.path.exists(STATE_FILE):
         print(f"Error: {STATE_FILE} not found!")
@@ -313,6 +321,7 @@ def main():
                         print(f"  [UPGRADED] Ep {ep_num}: {new_title} ({new_duration_str})")
                         rows[i] = [ep_num, new_title, new_url, "Found", new_date_str if new_date_str else row[4], new_duration_str]
                         upgraded_count += 1
+                        upgraded_details.append(f"Ep {ep_num} ({current_mins}m -> {new_mins}m)")
                     else:
                         print(f"  [KEPT] Existing version is optimal.")
 
@@ -340,6 +349,7 @@ def main():
                 else:
                     writer.writerow([next_ep, title, url, "Found", "", duration_str])
 
+            added_details.append(f"Ep {next_ep}")
             last_ep = next_ep
             episodes_added += 1
             next_ep += 1
@@ -354,6 +364,27 @@ def main():
 
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
+
+    if added_details or upgraded_details:
+        log_entry = f"### Auto-Sync Run: {datetime.datetime.now().strftime('%d %b %Y %H:%M')}\n"
+        if added_details:
+            log_entry += f"- **New Episodes Found:** {', '.join(added_details)}\n"
+        if upgraded_details:
+            log_entry += f"- **Episodes Upgraded:** {', '.join(upgraded_details)}\n"
+        log_entry += "\n"
+        
+        log_content = ""
+        if os.path.exists("UPDATE_LOG.md"):
+            with open("UPDATE_LOG.md", "r", encoding="utf-8") as f:
+                log_content = f.read()
+                
+        entries = log_content.split("### Auto-Sync Run:")
+        new_content = log_entry
+        for e in entries[1:20]: # Keep last ~20 runs (about 5 days)
+            new_content += "### Auto-Sync Run:" + e
+            
+        with open("UPDATE_LOG.md", "w", encoding="utf-8") as f:
+            f.write(new_content)
 
     print("\n=======================================================")
     print(f" Website Update Complete! {episodes_added} new episode(s) added, {upgraded_count} promo(s) upgraded.")
