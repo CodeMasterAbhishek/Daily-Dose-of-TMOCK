@@ -46,14 +46,14 @@
 
 [data-theme="dark"] {
   /* Colors - Dark Theme (OLED Black, Glowing Accents) */
-  --bg-primary: #09090B;
-  --bg-secondary: #18181B;
+  --bg-primary: #000000;
+  --bg-secondary: #0A0A0A;
   --text-primary: #FAFAFA;
   --text-secondary: #A1A1AA;
   --accent: #FFFFFF;
   --accent-hover: #D4D4D8;
   --border-color: rgba(255, 255, 255, 0.1);
-  --glass-bg: rgba(9, 9, 11, 0.85);
+  --glass-bg: rgba(0, 0, 0, 0.85);
   --glass-border: rgba(255, 255, 255, 0.08);
   
   /* Deep shadows for dark mode */

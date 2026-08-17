@@ -487,6 +487,7 @@ function openCleanPlayer(article) {
 
     let backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (!backdrop) {
+        const autoplayState = localStorage.getItem('autoplayNext') !== 'false' ? 'checked' : '';
         backdrop = document.createElement('div');
         backdrop.id = 'tmkoc-clean-backdrop';
         backdrop.className = 'tmkoc-modal-backdrop';
@@ -503,8 +504,14 @@ function openCleanPlayer(article) {
                 <div class="tmkoc-video-viewport">
                     <div id="clean-iframe-container"></div>
                 </div>
-                <div class="tmkoc-modal-footer">
+                <div class="tmkoc-modal-footer" style="justify-content: space-between; align-items: center; display: flex;">
                     <button class="tmkoc-nav-btn" onclick="navCleanEp(-1)">◀ Previous Ep</button>
+                    <div style="display: flex; align-items: center;">
+                        <label style="color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none;">
+                            <input type="checkbox" id="autoplay-toggle" ${autoplayState} onchange="toggleAutoplay(this.checked)" style="accent-color: var(--text-primary); width: 16px; height: 16px; cursor: pointer;">
+                            Autoplay Next
+                        </label>
+                    </div>
                     <button class="tmkoc-nav-btn" onclick="navCleanEp(1)">Next Ep ▶</button>
                 </div>
             </div>
@@ -540,7 +547,11 @@ function openCleanPlayer(article) {
                     'autoplay': 1, 
                     'rel': 0, 
                     'controls': 1,
-                    'start': resumeSeconds
+                    'start': resumeSeconds,
+                    'modestbranding': 1,
+                    'iv_load_policy': 3,
+                    'color': 'white',
+                    'playsinline': 1
                 },
                 events: {
                     'onError': function(event) {
@@ -564,20 +575,24 @@ function openCleanPlayer(article) {
                                 const card = document.querySelector(`.card[data-id="${article.id}"]`);
                                 if (card) card.classList.remove('ep-unavailable');
                             } catch(e) {}
+                        } else if (event.data === window.YT.PlayerState.ENDED) {
+                            if (localStorage.getItem('autoplayNext') !== 'false') {
+                                window.navCleanEp(1);
+                            }
                         }
                     }
                 }
             });
         } else {
-            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         }
     } else {
         // Fallback if YT API fails to load
         const startParam = resumeSeconds > 5 ? `&start=${resumeSeconds}` : '';
         if (article.videoId) {
-            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${article.videoId}?autoplay=1&rel=0&controls=1${startParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${article.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${startParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         } else {
-            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         }
     }
 
@@ -598,6 +613,10 @@ window.closeCleanPlayer = function() {
     if (iframe) iframe.src = '';
     document.body.style.overflow = 'auto';
     stopActiveWatchTracker();
+};
+
+window.toggleAutoplay = function(checked) {
+    localStorage.setItem('autoplayNext', checked);
 };
 
 window.navCleanEp = function(dir) {
@@ -713,6 +732,11 @@ function renderLeaderboardList(userHandle, userCount, userHours, userLevel) {
 
     leaderboardEl.innerHTML = html;
 }
+
+window.closeFanModal = function() {
+    const backdrop = document.getElementById('fan-modal-backdrop');
+    if (backdrop) backdrop.style.display = 'none';
+};
 
 window.saveUserHandle = function() {
     const input = document.getElementById('user-handle-input');
