@@ -221,15 +221,14 @@ def reverse_global_scan(rows):
                     duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
                     new_mins = get_minutes(duration_str)
                     
-                    if new_mins < 15:
-                        continue # Skip promos or shorts
+                    if new_mins < 5:
+                        continue # Skip tiny promos under 5 mins
                         
                     old_mins = get_minutes(row[5])
                     
-                    # Accept it ONLY if it's a full episode AND we currently have a promo.
-                    # DO NOT blindly overwrite existing full episodes (which are likely stable/public)
-                    # with whatever Sony just uploaded (which is likely geo-blocked).
-                    if new_mins >= 18 and old_mins < 18:
+                    # Cascade upgrade: Accept if it's significantly longer than what we currently have.
+                    # This allows 1-min promos to upgrade to 10-min parts, and 10-min parts to upgrade to 20-min full episodes!
+                    if new_mins > old_mins + 2:
                         url = f"https://www.youtube.com/watch?v={vid_id}"
                         time_text = vid.get('publishedTimeText', {}).get('simpleText', '')
                         date_str = parse_relative_date(time_text)
