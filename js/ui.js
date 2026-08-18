@@ -769,7 +769,7 @@ window.copyShareCardText = function() {
     const hours = Math.floor(totalSecs / 3600);
     const level = getFanLevel(count);
 
-    const shareText = `I've watched ${count} episodes (${hours} Hours) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMKOC/`;
+    const shareText = `I've watched ${count} episodes (${hours} Hours) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/`;
 
     navigator.clipboard.writeText(shareText).then(() => {
         alert('Copied Social Share Card text to clipboard!');

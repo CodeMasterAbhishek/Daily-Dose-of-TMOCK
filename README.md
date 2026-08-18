@@ -2,17 +2,17 @@
   <h1>Daily Dose of Taarak Mehta Ka Ooltah Chashmah. 🚂</h1>
   <p>A fast, serverless web application that aggregates all episodes of Taarak Mehta Ka Ooltah Chashmah, powered entirely by GitHub Pages and Actions.</p>
 
-  <a href="https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMKOC/actions/workflows/daily_sync.yml" target="_blank" rel="noopener noreferrer">
-    <img src="https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMKOC/actions/workflows/daily_sync.yml/badge.svg" alt="Daily Sync Status">
+  <a href="https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMOCK/actions/workflows/daily_sync.yml" target="_blank" rel="noopener noreferrer">
+    <img src="https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMOCK/actions/workflows/daily_sync.yml/badge.svg" alt="Daily Sync Status">
   </a>
-  <a href="https://CodeMasterAbhishek.github.io/Daily-Dose-of-TMKOC/" target="_blank" rel="noopener noreferrer">
+  <a href="https://CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/badge/Platform-GitHub%20Pages-success.svg" alt="GitHub Pages">
   </a>
   <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
   </a>
 
-  <h3><a href="https://CodeMasterAbhishek.github.io/Daily-Dose-of-TMKOC/" target="_blank" rel="noopener noreferrer">View Live Website</a></h3>
+  <h3><a href="https://CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/" target="_blank" rel="noopener noreferrer">View Live Website</a></h3>
 </div>
 
 ---
@@ -106,7 +106,7 @@ sequenceDiagram
 Here is an overview of the codebase:
 
 ```text
-Daily-Dose-of-TMKOC/
+Daily-Dose-of-TMOCK/
 ├── .github/workflows/
 │   └── daily_sync.yml          # GitHub Action for the automated cron job
 ├── css/
@@ -134,8 +134,8 @@ Want to deploy your own instance?
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMKOC.git
-cd Daily-Dose-of-TMKOC
+git clone https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMOCK.git
+cd Daily-Dose-of-TMOCK
 ```
 
 ### 2. Run Automation Locally (Optional)
