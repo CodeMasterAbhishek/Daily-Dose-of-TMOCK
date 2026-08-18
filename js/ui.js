@@ -743,6 +743,16 @@ window.closeFanModal = function() {
     if (backdrop) backdrop.style.display = 'none';
 };
 
+window.toggleFullScreen = function() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.warn(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+};
+
 window.saveUserHandle = function() {
     const input = document.getElementById('user-handle-input');
     if (input && input.value.trim()) {
