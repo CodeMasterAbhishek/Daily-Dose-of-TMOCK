@@ -653,7 +653,7 @@ export function updateFanDashboard() {
     const levelEl = document.getElementById('stat-fan-level');
 
     if (countEl) countEl.textContent = watchedCount;
-    if (hoursEl) hoursEl.textContent = `${watchHours}h ${watchMins}m`;
+    if (hoursEl) hoursEl.innerHTML = `${watchHours}<span style="font-size:16px; font-weight:700; margin-left:2px; margin-right:6px;">h</span>${watchMins}<span style="font-size:16px; font-weight:700; margin-left:2px;">m</span>`;
     if (levelEl) {
         levelEl.textContent = level.title;
         levelEl.style.color = level.color;
@@ -698,32 +698,37 @@ function renderLeaderboardList(userHandle, userCount, userHours, userLevel) {
     const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
     let html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 8px 12px; border-radius: 8px; font-size: 11px; color: var(--text-primary); opacity: 0.8; margin-bottom: 8px; border: 1px solid var(--border-color);">
-            <span>Last Sync: Daily at 18:00 UTC (11:30 PM IST)</span>
-            <span>${nowStr}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.2); padding: 10px 14px; border-radius: 10px; font-size: 11px; color: var(--text-primary); opacity: 0.8; margin-bottom: 12px; border: 1px solid var(--border-color);">
+            <span style="font-weight: 600;">Last Sync: Daily at 18:00 UTC (11:30 PM IST)</span>
+            <span style="font-weight: 800;">${nowStr}</span>
         </div>
     `;
 
     if (realEntries.length === 0) {
         html += `
-            <div style="padding: 20px; text-align: center; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-primary); opacity: 0.7;">
-                No watched episodes logged yet. Start watching episodes to claim your spot on the Global Leaderboard!
+            <div style="padding: 30px 20px; text-align: center; background: var(--bg-primary); border-radius: 12px; border: 1px dashed var(--border-color); font-size: 13px; color: var(--text-primary); opacity: 0.7;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.5;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><br>
+                No watched episodes logged yet.<br>Start watching episodes to claim your spot on the Global Leaderboard!
             </div>
         `;
     } else {
         realEntries.forEach((item, idx) => {
             html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--text-primary); background: var(--bg-secondary);">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="font-weight: 800; font-size: 14px; min-width: 30px; color: var(--text-primary);">#1</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-primary); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); position: relative; overflow: hidden;">
+                    <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(to bottom, #f59e0b, #fbbf24);"></div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 900; font-size: 18px; min-width: 30px; background: linear-gradient(135deg, #f59e0b, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">#1</span>
                         <div>
-                            <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">${item.handle} <span style="font-size: 10px; background: var(--text-primary); color: var(--bg-primary); padding: 1px 6px; border-radius: 4px; font-weight: 700;">YOU</span></div>
-                            <div style="font-size: 11px; opacity: 0.7; color: var(--text-primary);">${item.level}</div>
+                            <div style="font-weight: 800; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                                ${item.handle} 
+                                <span style="font-size: 9px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">YOU</span>
+                            </div>
+                            <div style="font-size: 11px; font-weight: 600; opacity: 0.7; color: var(--text-primary); margin-top: 2px;">${item.level}</div>
                         </div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-weight: 800; font-size: 13px; color: var(--text-primary);">${item.count} Eps</div>
-                        <div style="font-size: 11px; opacity: 0.7; color: var(--text-primary);">${item.hours} hrs</div>
+                        <div style="font-weight: 900; font-size: 14px; color: var(--text-primary);">${item.count} Eps</div>
+                        <div style="font-size: 11px; font-weight: 600; opacity: 0.7; color: var(--text-primary); margin-top: 2px;">${item.hours} hrs</div>
                     </div>
                 </div>
             `;
