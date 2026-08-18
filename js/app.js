@@ -149,7 +149,15 @@ window.addEventListener('selectStorylineArc', (e) => {
 if (fanStatsBtn) {
     fanStatsBtn.addEventListener('click', () => {
         updateFanDashboard();
-        if (fanModalBackdrop) fanModalBackdrop.style.display = 'flex';
+        
+        const episodesView = document.getElementById('episodes-view');
+        const dashboardView = document.getElementById('fan-dashboard-view');
+        if (episodesView) episodesView.style.display = 'none';
+        if (dashboardView) dashboardView.style.display = 'block';
+        
+        const filterChips = document.querySelectorAll('.chip');
+        filterChips.forEach(c => c.classList.remove('active'));
+        fanStatsBtn.classList.add('active');
     });
 }
 
@@ -210,6 +218,13 @@ if (searchInput) {
 const filterChips = document.querySelectorAll('.chip');
 filterChips.forEach(chip => {
     chip.addEventListener('click', (e) => {
+        if (chip.id === 'fan-stats-btn') return;
+        
+        const episodesView = document.getElementById('episodes-view');
+        const dashboardView = document.getElementById('fan-dashboard-view');
+        if (episodesView) episodesView.style.display = 'block';
+        if (dashboardView) dashboardView.style.display = 'none';
+
         filterChips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
 
