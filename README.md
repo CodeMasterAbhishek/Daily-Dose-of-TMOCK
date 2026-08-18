@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>Daily Dose of Taarak Mehta Ka Ooltah Chashmah. 🚂</h1>
+  <h1>Daily Dose of TMOCK. 🚂</h1>
   <p>A fast, serverless web application that aggregates all episodes of Taarak Mehta Ka Ooltah Chashmah, powered entirely by GitHub Pages and Actions.</p>
 
   <a href="https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMKOC/actions/workflows/daily_sync.yml" target="_blank" rel="noopener noreferrer">
