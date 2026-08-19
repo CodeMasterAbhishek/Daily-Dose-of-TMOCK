@@ -169,6 +169,8 @@ def find_episode(ep_num: int, require_full: bool = False):
                         continue
                         
                     mins = get_minutes(duration_str)
+                    if mins > 45:
+                        continue
                     if mins > best_duration:
                         best_duration = mins
                         best_match = (vid_id, title, url, date_str, duration_str)
@@ -221,8 +223,8 @@ def reverse_global_scan(rows):
                     duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
                     new_mins = get_minutes(duration_str)
                     
-                    if new_mins < 5:
-                        continue # Skip tiny promos under 5 mins
+                    if new_mins < 5 or new_mins > 45:
+                        continue # Skip tiny promos under 5 mins and compilations over 45 mins
                         
                     old_mins = get_minutes(row[5])
                     
@@ -289,7 +291,7 @@ def main():
             
             is_recent = (i >= len(rows) - 100)
             
-            if is_promo(title) or current_mins < 16 or is_recent:
+            if is_promo(title) or current_mins < 16 or current_mins > 45 or is_recent:
                 print(f"Checking for better version for Ep {ep_num} (Currently: {duration_str})...")
                 result = find_episode(ep_num, require_full=False)
                 if result:
@@ -303,6 +305,8 @@ def main():
                     
                     should_upgrade = False
                     if old_is_promo and not new_is_promo:
+                        should_upgrade = True
+                    elif current_mins > 45 and new_mins <= 45 and new_mins >= 15:
                         should_upgrade = True
                     elif old_is_geoblocked and not new_is_geoblocked and new_mins >= 18:
                         should_upgrade = True
