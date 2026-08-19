@@ -24,8 +24,8 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-STATE_FILE = "state.json"
-CSV_FILE = "episodes.csv"
+STATE_FILE = "data/state.json"
+CSV_FILE = "data/episodes.csv"
 
 
 def get_minutes(duration_str: str) -> int:

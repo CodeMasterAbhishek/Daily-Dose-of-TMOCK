@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="TMKOC-Logo.png" alt="TMKOC Logo" width="800" />
+  <img src="assets/TMKOC-Logo.png" alt="TMKOC Logo" width="800" />
   <h1>Daily Dose of Taarak Mehta Ka Ooltah Chashmah. 🚂</h1>
   <p>A fast, serverless web application that aggregates all episodes of Taarak Mehta Ka Ooltah Chashmah, powered entirely by GitHub Pages and Actions.</p>
 
@@ -110,21 +110,28 @@ Here is an overview of the codebase:
 Daily-Dose-of-TMOCK/
 ├── .github/workflows/
 │   └── daily_sync.yml          # GitHub Action for the automated cron job
+├── assets/
+│   └── TMKOC-Logo.png          # Main project logo
 ├── css/
 │   ├── layout.css              # Responsive grid & container layouts
 │   ├── style.css               # Main styling & Custom Video Player UI
 │   └── variables.css           # Design tokens & color themes
+├── data/
+│   ├── episodes.csv            # Master dataset containing all 4,500+ episodes
+│   ├── state.json              # Tracks the latest processed episode state
+│   ├── storylines.json         # Structured data for multi-episode arcs
+│   └── dates_cache.json        # Cache of broadcast dates
 ├── js/
 │   ├── api.js                  # Data ingestion & CSV parsing logic
 │   ├── app.js                  # App initialization, theme toggler, and core event listeners
 │   └── ui.js                   # DOM rendering & Custom Video Player Engine (incl. ipify)
-├── episodes.csv                # Master dataset containing all 4,500+ episodes
+├── scripts/
+│   ├── update_website.py       # Python scraper and database updater
+│   └── (other scripts...)      # Helper python tools
 ├── index.html                  # Main web application entry point
 ├── README.md                   # Project documentation
 ├── requirements.txt            # Python dependencies for the automation script
-├── state.json                  # Tracks the latest processed episode state
-├── storylines.json             # Structured data for multi-episode arcs
-└── update_website.py           # Python scraper and database updater
+└── UPDATE_LOG.md               # Changelog for updates
 ```
 
 ---
@@ -143,7 +150,7 @@ cd Daily-Dose-of-TMOCK
 If you want to manually update the episode database:
 ```bash
 pip install -r requirements.txt
-python update_website.py
+python scripts/update_website.py
 ```
 
 ### 3. Enable GitHub Pages

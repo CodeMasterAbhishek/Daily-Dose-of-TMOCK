@@ -28,12 +28,12 @@ jobs:
 
       - name: Run Auto-Sync Script
         run: |
-          python update_website.py
+          python scripts/update_website.py
 
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add episodes.csv state.json UPDATE_LOG.md
+          git add data/episodes.csv data/state.json UPDATE_LOG.md
           git status
           git diff-index --quiet HEAD || (git commit -m "Auto-update: Synced new TMKOC episodes [skip ci]" && git push)
