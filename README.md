@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="TMKOC-Logo.png" alt="TMKOC Logo" width="200" />
+  <img src="TMKOC-Logo.png" alt="TMKOC Logo" width="800" />
   <h1>Daily Dose of Taarak Mehta Ka Ooltah Chashmah. 🚂</h1>
   <p>A fast, serverless web application that aggregates all episodes of Taarak Mehta Ka Ooltah Chashmah, powered entirely by GitHub Pages and Actions.</p>
 
