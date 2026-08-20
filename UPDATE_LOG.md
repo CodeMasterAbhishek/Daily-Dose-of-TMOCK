@@ -1,3 +1,6 @@
+### Auto-Sync Run: 20 Aug 2026 12:21
+- **Episodes Upgraded:** Ep 4793 (10m -> 21m), Ep 4715 (20m -> 21m)
+
 ### Auto-Sync Run: 20 Aug 2026 00:28
 - **Episodes Upgraded:** Ep 1191 (41m -> 29m)
 
