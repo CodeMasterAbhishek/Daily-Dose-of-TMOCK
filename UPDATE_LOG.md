@@ -1,3 +1,6 @@
+### Auto-Sync Run: 21 Aug 2026 00:31
+- **Episodes Upgraded:** Ep 4726 (21m -> 22m)
+
 ### Auto-Sync Run: 20 Aug 2026 18:21
 - **New Episodes Found:** Ep 4795
 - **Episodes Upgraded:** Ep 4794 (1m -> 10m)
