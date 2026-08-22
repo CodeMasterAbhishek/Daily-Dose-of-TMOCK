@@ -742,13 +742,13 @@ a:hover, a:visited, a:focus, a:active {
   outline: none;
   transition: all var(--transition-fast);
   background: #ffffff;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid #9ca3af;
   color: var(--text-primary);
 }
 
 [data-theme="dark"] .static-search-form input {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: #121212;
+  border: 1.5px solid #4b5563;
 }
 
 .static-search-form input::placeholder {
