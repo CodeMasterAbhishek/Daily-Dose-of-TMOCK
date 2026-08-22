@@ -198,13 +198,53 @@ if (searchInput) {
     });
 }
 
-// Sorting Select Handler
-const sortSelect = document.getElementById('sort-select');
-if (sortSelect) {
-    sortSelect.addEventListener('change', () => {
-        currentSort = sortSelect.value;
-        currentPage = 1;
-        renderPage(false);
+// Custom Sorting Dropdown Handlers
+const sortTrigger = document.getElementById('sort-trigger');
+const sortMenu = document.getElementById('sort-menu');
+const sortSelectedText = document.getElementById('sort-selected-text');
+const dropdownItems = document.querySelectorAll('.dropdown-item');
+
+if (sortTrigger && sortMenu) {
+    sortTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = sortTrigger.getAttribute('aria-expanded') === 'true';
+        sortTrigger.setAttribute('aria-expanded', !isExpanded);
+        sortMenu.classList.toggle('show');
+    });
+
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Get selected value and display text
+            const selectedVal = item.getAttribute('data-value');
+            const selectedText = item.textContent.trim();
+            
+            // Update active states
+            dropdownItems.forEach(el => {
+                el.classList.remove('active');
+                el.setAttribute('aria-selected', 'false');
+            });
+            item.classList.add('active');
+            item.setAttribute('aria-selected', 'true');
+            
+            // Update state and trigger re-render
+            currentSort = selectedVal;
+            if (sortSelectedText) sortSelectedText.textContent = selectedText;
+            
+            // Close menu
+            sortTrigger.setAttribute('aria-expanded', 'false');
+            sortMenu.classList.remove('show');
+            
+            currentPage = 1;
+            renderPage(false);
+        });
+    });
+
+    // Close dropdown on click outside
+    window.addEventListener('click', () => {
+        sortTrigger.setAttribute('aria-expanded', 'false');
+        sortMenu.classList.remove('show');
     });
 }
 

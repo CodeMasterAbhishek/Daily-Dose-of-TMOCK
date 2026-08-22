@@ -44,11 +44,17 @@
                 <button class="chip active" data-category="all">All Episodes</button>
                 <button class="chip" data-category="storylines">Storylines</button>
 
-                <select id="sort-select" class="chip sort-dropdown" aria-label="Sort episodes">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                    <option value="unwatched">Unwatched First</option>
-                </select>
+                <div class="custom-dropdown" id="sort-dropdown-container">
+                    <button type="button" class="chip sort-trigger-btn" id="sort-trigger" aria-haspopup="listbox" aria-expanded="false">
+                        <span id="sort-selected-text">Newest First</span>
+                        <svg class="chevron-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <ul class="dropdown-menu" id="sort-menu" role="listbox" aria-label="Sort options">
+                        <li class="dropdown-item active" data-value="newest" role="option" aria-selected="true">Newest First</li>
+                        <li class="dropdown-item" data-value="oldest" role="option" aria-selected="false">Oldest First</li>
+                        <li class="dropdown-item" data-value="unwatched" role="option" aria-selected="false">Unwatched First</li>
+                    </ul>
+                </div>
             </section>
 
             <!-- Right Group: Fan Stats + Theme Toggle -->
