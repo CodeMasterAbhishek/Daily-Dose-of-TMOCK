@@ -202,7 +202,7 @@ function initIntersectionObserver() {
     }, { rootMargin: '200px' });
 }
 
-function getCompletedWatchedList() {
+export function getCompletedWatchedList() {
     try {
         return JSON.parse(localStorage.getItem(STORAGE_COMPLETED) || '[]');
     } catch(e) {

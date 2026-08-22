@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache } from './ui.js';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, getCompletedWatchedList } from './ui.js';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -48,6 +48,7 @@ let allStorylines = [];
 let activeStorylineArc = null;
 let searchQuery = '';
 let currentCategory = sessionStorage.getItem('currentCategory') || 'all';
+let currentSort = 'newest';
 const ITEMS_PER_PAGE = 30;
 let currentPage = 1;
 
@@ -99,20 +100,29 @@ function getFilteredAndRankedArticles() {
 
         return categoryMatch && searchMatch;
     }).sort((a, b) => {
-        if (!searchQuery) {
-            return b.epNumber - a.epNumber;
+        if (searchQuery) {
+            const epA = a.epNumber.toString();
+            const epB = b.epNumber.toString();
+
+            if (epA === searchQuery && epB !== searchQuery) return -1;
+            if (epB === searchQuery && epA !== searchQuery) return 1;
+
+            if (epA.startsWith(searchQuery) && !epB.startsWith(searchQuery)) return -1;
+            if (epB.startsWith(searchQuery) && !epA.startsWith(searchQuery)) return 1;
         }
 
-        const epA = a.epNumber.toString();
-        const epB = b.epNumber.toString();
-
-        if (epA === searchQuery && epB !== searchQuery) return -1;
-        if (epB === searchQuery && epA !== searchQuery) return 1;
-
-        if (epA.startsWith(searchQuery) && !epB.startsWith(searchQuery)) return -1;
-        if (epB.startsWith(searchQuery) && !epA.startsWith(searchQuery)) return 1;
-
-        return b.epNumber - a.epNumber;
+        if (currentSort === 'oldest') {
+            return a.epNumber - b.epNumber;
+        } else if (currentSort === 'unwatched') {
+            const completed = getCompletedWatchedList();
+            const watchedA = completed.includes(a.id);
+            const watchedB = completed.includes(b.id);
+            if (watchedA && !watchedB) return 1;
+            if (!watchedA && watchedB) return -1;
+            return b.epNumber - a.epNumber;
+        } else {
+            return b.epNumber - a.epNumber; // newest
+        }
     });
 }
 
@@ -161,33 +171,7 @@ if (fanStatsBtn) {
     });
 }
 
-// Expandable Circle Search Bar Handlers
-const searchTriggerBtn = document.getElementById('search-trigger-btn');
-const searchCloseBtn = document.getElementById('search-close-btn');
-
-function openExpandableSearch() {
-    if (searchForm) searchForm.classList.add('active');
-    if (searchInput) searchInput.focus();
-}
-
-function closeExpandableSearch() {
-    if (searchForm) searchForm.classList.remove('active');
-    if (searchInput) {
-        searchInput.value = '';
-        searchQuery = '';
-    }
-    currentPage = 1;
-    renderPage(false);
-}
-
-if (searchTriggerBtn) {
-    searchTriggerBtn.addEventListener('click', openExpandableSearch);
-}
-
-if (searchCloseBtn) {
-    searchCloseBtn.addEventListener('click', closeExpandableSearch);
-}
-
+// Search Bar Handlers (Always Visible)
 if (searchForm) {
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -207,10 +191,20 @@ if (searchInput) {
     document.addEventListener('keydown', (e) => {
         if (e.key === '/' && document.activeElement !== searchInput) {
             e.preventDefault();
-            openExpandableSearch();
-        } else if (e.key === 'Escape' && searchForm && searchForm.classList.contains('active')) {
-            closeExpandableSearch();
+            searchInput.focus();
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+            searchInput.blur();
         }
+    });
+}
+
+// Sorting Select Handler
+const sortSelect = document.getElementById('sort-select');
+if (sortSelect) {
+    sortSelect.addEventListener('change', () => {
+        currentSort = sortSelect.value;
+        currentPage = 1;
+        renderPage(false);
     });
 }
 

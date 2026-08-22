@@ -31,19 +31,24 @@
                 Daily Dose of <small class="logo-sub" style="font-size: 10px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px; margin-left: 2px;">TMKOC</small>
             </a>
             
-            <!-- Middle Group: Search Circle (FIRST), All Episodes (SECOND), Trending (THIRD), Storylines (FOURTH) -->
+            <!-- Middle Group: Search Bar, All Episodes, Storylines, Sort Dropdown -->
             <section class="filters" aria-label="Category filters" style="margin: 0; display: flex; align-items: center; gap: 8px;">
-                <!-- Expandable Circle Search Bar (FIRST) -->
-                <form id="search-form" class="expandable-search-form">
-                    <button type="button" id="search-trigger-btn" class="search-circle-btn" aria-label="Toggle Search" title="Search episodes (Press /)">
+                <!-- Always Visible Search Bar -->
+                <form id="search-form" class="static-search-form">
+                    <div class="search-input-wrapper">
                         <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    </button>
-                    <input type="text" id="search-input" placeholder="Search episode # (e.g. 450, 1500)..." aria-label="Search episode number">
-                    <button type="button" id="search-close-btn" class="search-close-btn" title="Close Search">✕</button>
+                        <input type="text" id="search-input" placeholder="Search episode # (e.g. 450, 1500)..." aria-label="Search episode number">
+                    </div>
                 </form>
 
                 <button class="chip active" data-category="all">All Episodes</button>
                 <button class="chip" data-category="storylines">Storylines</button>
+
+                <select id="sort-select" class="chip sort-dropdown" aria-label="Sort episodes">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="unwatched">Unwatched First</option>
+                </select>
             </section>
 
             <!-- Right Group: Fan Stats + Theme Toggle -->
