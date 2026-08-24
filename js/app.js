@@ -78,6 +78,17 @@ async function init() {
     }
 }
 
+function parseDurationText(text) {
+    if (!text) return 0;
+    const parts = text.split(':');
+    if (parts.length === 3) {
+        return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+    } else if (parts.length === 2) {
+        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    }
+    return 0;
+}
+
 function getFilteredAndRankedArticles() {
     if (activeStorylineArc) {
         return allArticles.filter(article => 
@@ -85,7 +96,7 @@ function getFilteredAndRankedArticles() {
         ).sort((a, b) => a.epNumber - b.epNumber); // Chronological sequence for storyline
     }
 
-    return allArticles.filter(article => {
+    const filtered = allArticles.filter(article => {
         let categoryMatch = true;
         if (currentCategory !== 'all') {
             categoryMatch = article.category.toLowerCase() === currentCategory.toLowerCase();
@@ -99,7 +110,18 @@ function getFilteredAndRankedArticles() {
         }
 
         return categoryMatch && searchMatch;
-    }).sort((a, b) => {
+    });
+
+    if (currentSort === 'random') {
+        // Fisher-Yates Shuffle
+        for (let i = filtered.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+        }
+        return filtered;
+    }
+
+    return filtered.sort((a, b) => {
         if (searchQuery) {
             const epA = a.epNumber.toString();
             const epB = b.epNumber.toString();
@@ -120,6 +142,8 @@ function getFilteredAndRankedArticles() {
             if (watchedA && !watchedB) return 1;
             if (!watchedA && watchedB) return -1;
             return b.epNumber - a.epNumber;
+        } else if (currentSort === 'longest') {
+            return parseDurationText(b.durationText) - parseDurationText(a.durationText);
         } else {
             return b.epNumber - a.epNumber; // newest
         }
@@ -199,12 +223,12 @@ if (searchInput) {
 }
 
 // Custom Sorting Dropdown Handlers
+const sortDropdownContainer = document.getElementById('sort-dropdown-container');
 const sortTrigger = document.getElementById('sort-trigger');
 const sortMenu = document.getElementById('sort-menu');
 const sortSelectedText = document.getElementById('sort-selected-text');
-const dropdownItems = document.querySelectorAll('.dropdown-item');
 
-if (sortTrigger && sortMenu) {
+if (sortDropdownContainer && sortTrigger && sortMenu) {
     sortTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
         const isExpanded = sortTrigger.getAttribute('aria-expanded') === 'true';
@@ -212,8 +236,9 @@ if (sortTrigger && sortMenu) {
         sortMenu.classList.toggle('show');
     });
 
-    dropdownItems.forEach(item => {
-        item.addEventListener('click', (e) => {
+    sortMenu.addEventListener('click', (e) => {
+        const item = e.target.closest('.dropdown-item');
+        if (item) {
             e.stopPropagation();
             
             // Get selected value and display text
@@ -221,6 +246,7 @@ if (sortTrigger && sortMenu) {
             const selectedText = item.textContent.trim();
             
             // Update active states
+            const dropdownItems = sortMenu.querySelectorAll('.dropdown-item');
             dropdownItems.forEach(el => {
                 el.classList.remove('active');
                 el.setAttribute('aria-selected', 'false');
@@ -238,7 +264,7 @@ if (sortTrigger && sortMenu) {
             
             currentPage = 1;
             renderPage(false);
-        });
+        }
     });
 
     // Close dropdown on click outside
