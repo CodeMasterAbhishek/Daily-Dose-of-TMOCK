@@ -275,7 +275,7 @@ if (sortDropdownContainer && sortTrigger && sortMenu) {
 }
 
 // Category Chips Handler
-const filterChips = document.querySelectorAll('.chip');
+const filterChips = document.querySelectorAll('.filters .chip');
 filterChips.forEach(chip => {
     chip.addEventListener('click', (e) => {
         if (chip.id === 'fan-stats-btn') return;
