@@ -1,3 +1,7 @@
+### Auto-Sync Run: 25 Aug 2026 18:22
+- **New Episodes Found:** Ep 4799
+- **Episodes Upgraded:** Ep 4798 (0m -> 10m)
+
 ### Auto-Sync Run: 25 Aug 2026 12:21
 - **Episodes Upgraded:** Ep 4797 (10m -> 22m), Ep 240 (17m -> 20m), Ep 4769 (20m -> 21m)
 
@@ -59,7 +63,4 @@
 
 ### Auto-Sync Run: 19 Aug 2026 12:19
 - **Episodes Upgraded:** Ep 3158 (20m -> 56m), Ep 4758 (19m -> 21m)
-
-### Auto-Sync Run: 19 Aug 2026 06:22
-- **Episodes Upgraded:** Ep 4792 (10m -> 21m), Ep 3430 (19m -> 57m)
 
