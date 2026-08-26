@@ -90,15 +90,15 @@ function parseDurationText(text) {
 }
 
 function getFilteredAndRankedArticles() {
-    if (activeStorylineArc) {
-        return allArticles.filter(article => 
-            article.epNumber >= activeStorylineArc.startEp && article.epNumber <= activeStorylineArc.endEp
-        ).sort((a, b) => a.epNumber - b.epNumber); // Chronological sequence for storyline
-    }
-
     const filtered = allArticles.filter(article => {
+        if (activeStorylineArc) {
+            if (article.epNumber < activeStorylineArc.startEp || article.epNumber > activeStorylineArc.endEp) {
+                return false;
+            }
+        }
+
         let categoryMatch = true;
-        if (currentCategory !== 'all') {
+        if (!activeStorylineArc && currentCategory !== 'all') {
             categoryMatch = article.category.toLowerCase() === currentCategory.toLowerCase();
         }
 
@@ -152,7 +152,36 @@ function getFilteredAndRankedArticles() {
 
 function renderPage(append = false) {
     if (currentCategory === 'storylines' && !activeStorylineArc) {
-        renderStorylinesGrid(allStorylines, 'news-container');
+        let sortedStorylines = [...allStorylines];
+
+        if (currentSort === 'random') {
+            for (let i = sortedStorylines.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [sortedStorylines[i], sortedStorylines[j]] = [sortedStorylines[j], sortedStorylines[i]];
+            }
+        } else {
+            const completed = currentSort === 'unwatched' ? getCompletedWatchedList() : [];
+            sortedStorylines.sort((a, b) => {
+                if (currentSort === 'oldest') {
+                    return a.startEp - b.startEp;
+                } else if (currentSort === 'longest') {
+                    const lenA = a.endEp - a.startEp;
+                    const lenB = b.endEp - b.startEp;
+                    return lenB - lenA;
+                } else if (currentSort === 'unwatched') {
+                    const unwatchedA = allArticles.some(art => art.epNumber >= a.startEp && art.epNumber <= a.endEp && !completed.includes(art.id));
+                    const unwatchedB = allArticles.some(art => art.epNumber >= b.startEp && art.epNumber <= b.endEp && !completed.includes(art.id));
+                    
+                    if (unwatchedA && !unwatchedB) return -1;
+                    if (!unwatchedA && unwatchedB) return 1;
+                    return b.startEp - a.startEp;
+                } else {
+                    return b.startEp - a.startEp; // newest
+                }
+            });
+        }
+
+        renderStorylinesGrid(sortedStorylines, 'news-container');
         if (paginationSection) paginationSection.style.display = 'none';
         return;
     }
