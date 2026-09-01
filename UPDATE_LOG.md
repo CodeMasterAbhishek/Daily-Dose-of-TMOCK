@@ -1,3 +1,6 @@
+### Auto-Sync Run: 01 Sep 2026 15:38
+- **Episodes Upgraded:** Ep 4783 (21m -> 22m), Ep 4804 (1m -> 10m)
+
 ### Auto-Sync Run: 01 Sep 2026 10:36
 - **Episodes Upgraded:** Ep 4803 (10m -> 21m)
 
@@ -59,7 +62,4 @@
 
 ### Auto-Sync Run: 23 Aug 2026 12:14
 - **Episodes Upgraded:** Ep 4709 (20m -> 21m)
-
-### Auto-Sync Run: 23 Aug 2026 06:19
-- **Episodes Upgraded:** Ep 4796 (11m -> 23m), Ep 4736 (19m -> 21m)
 
