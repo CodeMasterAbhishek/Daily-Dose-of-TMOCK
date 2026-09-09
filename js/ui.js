@@ -1,7 +1,7 @@
 /**
  * UI module for DailyDose TMKOC, Episode Badges, Exact Ranking Search, Real Leaderboard Data, and Clean Theme Card Design.
  */
-import { syncUserToCloud, fetchGlobalLeaderboard, isSupabaseConfigured } from './supabase.js';
+import { syncUserToCloud, fetchGlobalLeaderboard, isSupabaseConfigured, getOrCreateUserId } from './supabase.js';
 
 let allArticlesMap = {};
 let masterEpNumberMap = {};
@@ -231,8 +231,23 @@ export async function syncCurrentUserStats() {
     try {
         const completed = getCompletedWatchedList();
         const count = completed.length;
-        const hours = Math.floor(getExactWatchSeconds() / 3600);
-        const handle = localStorage.getItem(STORAGE_HANDLE) || '@TMKOCSuperfan';
+        const totalSecs = getExactWatchSeconds();
+        const hours = Math.floor(totalSecs / 3600);
+        const savedHandle = localStorage.getItem(STORAGE_HANDLE);
+
+        // Only sync if user has actually watched episodes OR explicitly saved a handle
+        if (count === 0 && totalSecs === 0 && !savedHandle) {
+            return { success: false, reason: 'no_activity' };
+        }
+
+        const userId = getOrCreateUserId();
+        const defaultHandle = `@Fan_${userId.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`;
+        const handle = (savedHandle && savedHandle.trim()) ? savedHandle.trim() : defaultHandle;
+
+        if (!savedHandle) {
+            localStorage.setItem(STORAGE_HANDLE, handle);
+        }
+
         const level = getFanLevel(count);
 
         return await syncUserToCloud({
