@@ -742,7 +742,7 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.2); padding: 10px 14px; border-radius: 10px; font-size: 11px; color: var(--text-primary); opacity: 0.8; margin-bottom: 12px; border: 1px solid var(--border-color);">
             <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: ${isConfigured ? '#10b981' : '#f59e0b'}; display: inline-block;"></span>
-                ${isConfigured ? 'Live Cloud Sync (Supabase)' : 'Local Mode (Configure Supabase for Global Leaderboard)'}
+                ${isConfigured ? 'Live Global Sync' : 'Local Storage Mode'}
             </span>
             <span style="font-weight: 800;">${nowStr}</span>
         </div>
