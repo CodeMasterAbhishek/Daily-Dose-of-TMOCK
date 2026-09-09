@@ -1,6 +1,7 @@
 /**
  * UI module for DailyDose TMKOC, Episode Badges, Exact Ranking Search, Real Leaderboard Data, and Clean Theme Card Design.
  */
+import { syncUserToCloud, fetchGlobalLeaderboard, isSupabaseConfigured } from './supabase.js';
 
 let allArticlesMap = {};
 let masterEpNumberMap = {};
@@ -226,12 +227,32 @@ function getTimestamps() {
     }
 }
 
+export async function syncCurrentUserStats() {
+    try {
+        const completed = getCompletedWatchedList();
+        const count = completed.length;
+        const hours = Math.floor(getExactWatchSeconds() / 3600);
+        const handle = localStorage.getItem(STORAGE_HANDLE) || '@TMKOCSuperfan';
+        const level = getFanLevel(count);
+
+        return await syncUserToCloud({
+            handle,
+            watchedCount: count,
+            watchHours: hours,
+            fanTier: level.title
+        });
+    } catch(e) {
+        return { success: false, error: e.message };
+    }
+}
+
 function saveCompletedEpisode(id) {
     try {
         const completed = getCompletedWatchedList();
         if (!completed.includes(id)) {
             completed.push(id);
             localStorage.setItem(STORAGE_COMPLETED, JSON.stringify(completed));
+            syncCurrentUserStats();
         }
         const elements = document.querySelectorAll(`[data-id="${id}"]`);
         elements.forEach(el => el.classList.add('read-article', 'watched-article'));
@@ -479,6 +500,7 @@ function stopActiveWatchTracker() {
     if (activeWatchTrackerTimer) {
         clearInterval(activeWatchTrackerTimer);
         activeWatchTrackerTimer = null;
+        syncCurrentUserStats();
     }
 }
 
@@ -638,7 +660,7 @@ function getFanLevel(watchedCount) {
     return { title: 'Gokuldham Resident', color: 'var(--text-primary)' };
 }
 
-export function updateFanDashboard() {
+export async function updateFanDashboard() {
     const completedList = getCompletedWatchedList();
     const watchedCount = completedList.length;
 
@@ -675,14 +697,105 @@ export function updateFanDashboard() {
     if (cardMainStat) cardMainStat.textContent = `${watchedCount} Episodes Watched`;
     if (cardSubStat) cardSubStat.textContent = `${watchHours} Hours ${watchMins} Mins Exact Watch Time`;
 
-    renderLeaderboardList(savedHandle, watchedCount, watchHours, level.title);
+    // Sync current stats to cloud
+    await syncCurrentUserStats();
+
+    await renderLeaderboardList(savedHandle, watchedCount, watchHours, level.title);
 }
 
-function renderLeaderboardList(userHandle, userCount, userHours, userLevel) {
+function createLeaderboardRowHTML(item) {
+    const isTopThree = ['1', '2', '3'].includes(item.rank);
+    const rankBadgeStyle = item.rank === '1' ? 'background: linear-gradient(135deg, #f59e0b, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent;' :
+                           item.rank === '2' ? 'background: linear-gradient(135deg, #94a3b8, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;' :
+                           item.rank === '3' ? 'background: linear-gradient(135deg, #b45309, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent;' :
+                           'color: var(--text-primary); opacity: 0.75;';
+
+    return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-radius: 12px; border: 1px solid ${item.isUser ? 'var(--text-primary)' : 'var(--border-color)'}; background: var(--bg-primary); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); position: relative; overflow: hidden; margin-bottom: 8px;">
+            ${item.isUser ? '<div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(to bottom, #f59e0b, #fbbf24);"></div>' : ''}
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <span style="font-weight: 900; font-size: 18px; min-width: 32px; ${rankBadgeStyle}">#${item.rank}</span>
+                <div>
+                    <div style="font-weight: 800; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                        ${item.handle} 
+                        ${item.isUser ? '<span style="font-size: 9px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">YOU</span>' : ''}
+                    </div>
+                    <div style="font-size: 11px; font-weight: 600; opacity: 0.7; color: var(--text-primary); margin-top: 2px;">${item.level}</div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 900; font-size: 14px; color: var(--text-primary);">${item.count} Eps</div>
+                <div style="font-size: 11px; font-weight: 600; opacity: 0.7; color: var(--text-primary); margin-top: 2px;">${item.hours} hrs</div>
+            </div>
+        </div>
+    `;
+}
+
+async function renderLeaderboardList(userHandle, userCount, userHours, userLevel) {
     const leaderboardEl = document.getElementById('leaderboard-list');
     if (!leaderboardEl) return;
 
-    // Real User Entries Only (Zero Mock Data)
+    const isConfigured = isSupabaseConfigured();
+    const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    const statusBanner = `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.2); padding: 10px 14px; border-radius: 10px; font-size: 11px; color: var(--text-primary); opacity: 0.8; margin-bottom: 12px; border: 1px solid var(--border-color);">
+            <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${isConfigured ? '#10b981' : '#f59e0b'}; display: inline-block;"></span>
+                ${isConfigured ? 'Live Cloud Sync (Supabase)' : 'Local Mode (Configure Supabase for Global Leaderboard)'}
+            </span>
+            <span style="font-weight: 800;">${nowStr}</span>
+        </div>
+    `;
+
+    // Attempt cloud leaderboard fetch if Supabase is configured
+    if (isConfigured) {
+        leaderboardEl.innerHTML = statusBanner + `
+            <div style="padding: 24px; text-align: center; color: var(--text-primary); opacity: 0.6; font-size: 13px;">
+                Syncing live global rankings...
+            </div>
+        `;
+
+        const globalFans = await fetchGlobalLeaderboard(50);
+        if (globalFans && globalFans.length > 0) {
+            let rowsHtml = '';
+            let userFoundInList = false;
+
+            globalFans.forEach(item => {
+                if (item.isUser) userFoundInList = true;
+                rowsHtml += createLeaderboardRowHTML(item);
+            });
+
+            // If user has watch progress but didn't make top 50, show user card at bottom
+            if (!userFoundInList && (userCount > 0 || userHours > 0)) {
+                rowsHtml += `
+                    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-primary); opacity: 0.6; margin-bottom: 8px; text-transform: uppercase;">Your Standing</div>
+                        ${createLeaderboardRowHTML({
+                            rank: '-',
+                            handle: userHandle || '@TMKOCSuperfan',
+                            count: userCount,
+                            hours: userHours,
+                            level: userLevel,
+                            isUser: true
+                        })}
+                    </div>
+                `;
+            }
+
+            leaderboardEl.innerHTML = statusBanner + rowsHtml;
+            return;
+        } else if (globalFans && globalFans.length === 0) {
+            leaderboardEl.innerHTML = statusBanner + `
+                <div style="padding: 30px 20px; text-align: center; background: var(--bg-primary); border-radius: 12px; border: 1px dashed var(--border-color); font-size: 13px; color: var(--text-primary); opacity: 0.7;">
+                    No fans on the Global Leaderboard yet.<br>Save your handle or watch an episode to claim Rank #1!
+                </div>
+            `;
+            return;
+        }
+    }
+
+    // Local-only fallback (Zero mock data)
     const realEntries = [];
     if (userCount > 0 || userHours > 0 || userHandle) {
         realEntries.push({
@@ -695,47 +808,16 @@ function renderLeaderboardList(userHandle, userCount, userHours, userLevel) {
         });
     }
 
-    const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
-    let html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.2); padding: 10px 14px; border-radius: 10px; font-size: 11px; color: var(--text-primary); opacity: 0.8; margin-bottom: 12px; border: 1px solid var(--border-color);">
-            <span style="font-weight: 600;">Last Sync: Daily at 18:00 UTC (11:30 PM IST)</span>
-            <span style="font-weight: 800;">${nowStr}</span>
-        </div>
-    `;
-
     if (realEntries.length === 0) {
-        html += `
+        leaderboardEl.innerHTML = statusBanner + `
             <div style="padding: 30px 20px; text-align: center; background: var(--bg-primary); border-radius: 12px; border: 1px dashed var(--border-color); font-size: 13px; color: var(--text-primary); opacity: 0.7;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.5;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><br>
-                No watched episodes logged yet.<br>Start watching episodes to claim your spot on the Global Leaderboard!
+                No watched episodes logged yet.<br>Start watching episodes to claim your spot on the Leaderboard!
             </div>
         `;
     } else {
-        realEntries.forEach((item, idx) => {
-            html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-primary); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); position: relative; overflow: hidden;">
-                    <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(to bottom, #f59e0b, #fbbf24);"></div>
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <span style="font-weight: 900; font-size: 18px; min-width: 30px; background: linear-gradient(135deg, #f59e0b, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">#1</span>
-                        <div>
-                            <div style="font-weight: 800; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                                ${item.handle} 
-                                <span style="font-size: 9px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">YOU</span>
-                            </div>
-                            <div style="font-size: 11px; font-weight: 600; opacity: 0.7; color: var(--text-primary); margin-top: 2px;">${item.level}</div>
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: 900; font-size: 14px; color: var(--text-primary);">${item.count} Eps</div>
-                        <div style="font-size: 11px; font-weight: 600; opacity: 0.7; color: var(--text-primary); margin-top: 2px;">${item.hours} hrs</div>
-                    </div>
-                </div>
-            `;
-        });
+        leaderboardEl.innerHTML = statusBanner + realEntries.map(item => createLeaderboardRowHTML(item)).join('');
     }
-
-    leaderboardEl.innerHTML = html;
 }
 
 window.closeFanModal = function() {
@@ -753,11 +835,27 @@ window.toggleFullScreen = function() {
     }
 };
 
-window.saveUserHandle = function() {
+window.saveUserHandle = async function() {
     const input = document.getElementById('user-handle-input');
+    const btn = document.getElementById('save-handle-btn');
     if (input && input.value.trim()) {
-        localStorage.setItem(STORAGE_HANDLE, input.value.trim());
-        updateFanDashboard();
+        const newHandle = input.value.trim();
+        localStorage.setItem(STORAGE_HANDLE, newHandle);
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            btn.style.opacity = '0.7';
+        }
+        await syncCurrentUserStats();
+        await updateFanDashboard();
+        if (btn) {
+            btn.textContent = 'Saved!';
+            setTimeout(() => {
+                btn.textContent = 'Save';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }, 1200);
+        }
     }
 };
 
