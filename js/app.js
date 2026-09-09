@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, getCompletedWatchedList } from './ui.js';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, getCompletedWatchedList, syncCurrentUserStats } from './ui.js';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -72,6 +72,9 @@ async function init() {
         
         registerMasterArticles(allArticles);
         renderPage();
+
+        // Silently sync existing watched episodes to the Global Leaderboard in the background
+        syncCurrentUserStats();
     } catch (error) {
         console.error("Initialization failed:", error);
         document.getElementById('news-container').innerHTML = '<p style="color:red">Failed to load dataset. Please try again later.</p>';
