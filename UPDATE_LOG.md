@@ -1,3 +1,6 @@
+### Auto-Sync Run: 10 Sep 2026 10:08
+- **Episodes Upgraded:** Ep 4811 (10m -> 21m), Ep 4751 (21m -> 21m), Ep 4766 (21m -> 22m), Ep 4787 (20m -> 21m)
+
 ### Auto-Sync Run: 09 Sep 2026 20:07
 - **New Episodes Found:** Ep 4812
 - **Episodes Upgraded:** Ep 4811 (1m -> 10m)
@@ -61,7 +64,4 @@
 
 ### Auto-Sync Run: 02 Sep 2026 10:01
 - **Episodes Upgraded:** Ep 4804 (10m -> 21m), Ep 317 (42m -> 22m)
-
-### Auto-Sync Run: 01 Sep 2026 20:14
-- **New Episodes Found:** Ep 4805
 
