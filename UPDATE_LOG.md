@@ -1,3 +1,6 @@
+### Auto-Sync Run: 15 Sep 2026 15:47
+- **Episodes Upgraded:** Ep 4816 (0m -> 9m)
+
 ### Auto-Sync Run: 15 Sep 2026 10:33
 - **Episodes Upgraded:** Ep 4815 (10m -> 21m)
 
@@ -60,8 +63,4 @@
 
 ### Auto-Sync Run: 08 Sep 2026 10:10
 - **Episodes Upgraded:** Ep 4809 (10m -> 22m)
-
-### Auto-Sync Run: 07 Sep 2026 16:43
-- **New Episodes Found:** Ep 4810
-- **Episodes Upgraded:** Ep 4809 (0m -> 10m)
 
