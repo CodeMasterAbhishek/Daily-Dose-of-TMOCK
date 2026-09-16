@@ -1,8 +1,8 @@
 <div align="center">
+  <h1>Daily Dose of Taarak Mehta Ka Ooltah Chashmah. 🚂</h1>
   <a href="https://CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/" target="_blank" rel="noopener noreferrer">
     <img src="assets/TMKOC-Logo.png" alt="TMKOC Logo" width="800" />
   </a>
-  <h1>Daily Dose of Taarak Mehta Ka Ooltah Chashmah. 🚂</h1>
   <p>A fast, serverless web application that aggregates all episodes of Taarak Mehta Ka Ooltah Chashmah, powered entirely by GitHub Pages and Actions.</p>
 
   <a href="https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMOCK/actions/workflows/daily_sync.yml" target="_blank" rel="noopener noreferrer">
