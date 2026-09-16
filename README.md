@@ -102,39 +102,7 @@ sequenceDiagram
     DB->>Site: Auto-deploy live web app updates
 ```
 
----
 
-## Project Structure
-
-Here is an overview of the codebase:
-
-```text
-Daily-Dose-of-TMOCK/
-├── .github/workflows/
-│   └── daily_sync.yml          # GitHub Action for the automated cron job
-├── assets/
-│   └── TMKOC-Logo.png          # Main project logo
-├── css/
-│   ├── layout.css              # Responsive grid & container layouts
-│   ├── style.css               # Main styling & Custom Video Player UI
-│   └── variables.css           # Design tokens & color themes
-├── data/
-│   ├── episodes.csv            # Master dataset containing all 4,500+ episodes
-│   ├── state.json              # Tracks the latest processed episode state
-│   ├── storylines.json         # Structured data for multi-episode arcs
-│   └── dates_cache.json        # Cache of broadcast dates
-├── js/
-│   ├── api.js                  # Data ingestion & CSV parsing logic
-│   ├── app.js                  # App initialization, theme toggler, and core event listeners
-│   └── ui.js                   # DOM rendering & Custom Video Player Engine (incl. ipify)
-├── scripts/
-│   ├── update_website.py       # Python scraper and database updater
-│   └── (other scripts...)      # Helper python tools
-├── index.html                  # Main web application entry point
-├── README.md                   # Project documentation
-├── requirements.txt            # Python dependencies for the automation script
-└── UPDATE_LOG.md               # Changelog for updates
-```
 
 ---
 
