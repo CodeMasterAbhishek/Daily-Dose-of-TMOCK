@@ -1,3 +1,6 @@
+### Auto-Sync Run: 22 Sep 2026 15:49
+- **Episodes Upgraded:** Ep 4743 (20m -> 20m), Ep 4822 (1m -> 9m)
+
 ### Auto-Sync Run: 22 Sep 2026 10:26
 - **Episodes Upgraded:** Ep 4821 (10m -> 21m)
 
@@ -59,7 +62,4 @@
 
 ### Auto-Sync Run: 13 Sep 2026 19:56
 - **Episodes Upgraded:** Ep 4722 (20m -> 20m)
-
-### Auto-Sync Run: 13 Sep 2026 15:09
-- **Episodes Upgraded:** Ep 4728 (21m -> 22m)
 
