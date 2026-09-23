@@ -1,7 +1,9 @@
+import os
 import csv
 import re
 import sys
 import time
+import shutil
 
 try:
     import scrapetube
@@ -9,7 +11,7 @@ except ImportError:
     print("Please pip install scrapetube")
     sys.exit(1)
 
-CSV_FILE = '../data/episodes.csv'
+CSV_FILE = os.path.join(os.path.dirname(__file__), '../data/episodes.csv')
 
 def get_minutes(duration_str: str) -> int:
     parts = duration_str.split(':')
@@ -26,13 +28,14 @@ with open(CSV_FILE, 'r', encoding='utf-8') as f:
     for row in reader:
         rows.append(row)
 
-# Start updating from row 1 (skip header if it exists, or just process all that have lengths >= 6)
 updated_count = 0
+print(f"Total rows read: {len(rows)}")
 
 print("Starting backfill for fallback URLs...")
 print("This will take a while. It will only search for episodes that don't already have a fallback.")
 
-with open(CSV_FILE, 'w', encoding='utf-8', newline='') as f:
+TEMP_FILE = CSV_FILE + '.tmp'
+with open(TEMP_FILE, 'w', encoding='utf-8', newline='') as f:
     writer = csv.writer(f)
     
     for row in rows:
@@ -57,12 +60,10 @@ with open(CSV_FILE, 'w', encoding='utf-8', newline='') as f:
                 for vid in videos:
                     channel = vid.get('ownerText', {}).get('runs', [{}])[0].get('text', '').lower()
                     
-                    # We want an alternative channel. If primary is Sony, we want TMKOC.
                     if channel == 'taarak mehta ka ooltah chashmah' or channel == 'taarak mehta ka ooltah chashmah episodes':
                         title_runs = vid.get('title', {}).get('runs', [])
                         title = "".join([r.get('text', '') for r in title_runs]).strip().lower()
                         
-                        # Verify ep number in title
                         ep_extract = re.search(r'(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d+)', title)
                         found_ep = int(ep_extract.group(1)) if ep_extract else -1
                         
@@ -71,7 +72,6 @@ with open(CSV_FILE, 'w', encoding='utf-8', newline='') as f:
                             duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
                             mins = get_minutes(duration_str)
                             
-                            # ensure it's a full episode (roughly same length or at least 15 mins)
                             if 15 <= mins <= 30 and vid_id:
                                 potential_url = f"https://www.youtube.com/watch?v={vid_id}"
                                 if potential_url != primary_url:
@@ -80,7 +80,6 @@ with open(CSV_FILE, 'w', encoding='utf-8', newline='') as f:
             except Exception as e:
                 pass
                 
-            # Append fallback url (even if empty, to maintain structure)
             if len(row) == 6:
                 row.append(fallback_url)
             else:
@@ -93,9 +92,10 @@ with open(CSV_FILE, 'w', encoding='utf-8', newline='') as f:
                 print(f"  -> No fallback found.")
                 
             writer.writerow(row)
-            time.sleep(0.5) # Sleep to avoid rate limits
+            f.flush()
+            time.sleep(0.5)
         else:
-            # write header or malformed row as is
             writer.writerow(row)
 
+shutil.move(TEMP_FILE, CSV_FILE)
 print(f"Done! Added fallbacks for {updated_count} episodes.")

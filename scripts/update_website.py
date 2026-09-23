@@ -149,6 +149,7 @@ def find_episode(ep_num: int, require_full: bool = False):
     best_match = None
     best_duration = -1
     fallback_url = ""
+    short_url = ""
 
     for query in search_queries:
         try:
@@ -174,21 +175,27 @@ def find_episode(ep_num: int, require_full: bool = False):
                         continue
                         
                     if mins > best_duration:
-                        # If we already had a best match, save it as fallback (if from different channel)
+                        # If we already had a best match, save it as fallback or short
                         if best_match and best_match[2] != url:
-                            fallback_url = best_match[2]
+                            if best_duration >= 15:
+                                fallback_url = best_match[2]
+                            elif best_duration >= 8 and not short_url:
+                                short_url = best_match[2]
                         best_duration = mins
                         best_match = (vid_id, title, url, date_str, duration_str)
-                    elif best_match and url != best_match[2] and not fallback_url and mins >= 15:
-                        fallback_url = url
+                    elif best_match and url != best_match[2]:
+                        if not fallback_url and mins >= 15:
+                            fallback_url = url
+                        elif not short_url and 8 <= mins < 15:
+                            short_url = url
         except Exception:
             continue
             
-        if best_duration > 15:
+        if best_duration > 15 and fallback_url and short_url:
             break
 
     if best_match:
-        return (*best_match, fallback_url)
+        return (*best_match, fallback_url, short_url)
     return None
 import re
 
@@ -304,7 +311,7 @@ def main():
                 print(f"Checking for better version for Ep {ep_num} (Currently: {duration_str})...")
                 result = find_episode(ep_num, require_full=False)
                 if result:
-                    vid_id, new_title, new_url, new_date_str, new_duration_str, fallback_url = result
+                    vid_id, new_title, new_url, new_date_str, new_duration_str, fallback_url, short_url = result
                     new_mins = get_minutes(new_duration_str)
                     
                     old_is_promo = is_promo(title)
@@ -332,7 +339,7 @@ def main():
                         
                     if should_upgrade:
                         print(f"  [UPGRADED] Ep {ep_num}: {new_title} ({new_duration_str})")
-                        rows[i] = [ep_num, new_title, new_url, "Found", new_date_str if new_date_str else row[4], new_duration_str, fallback_url]
+                        rows[i] = [ep_num, new_title, new_url, "Found", new_date_str if new_date_str else row[4], new_duration_str, fallback_url, short_url]
                         upgraded_count += 1
                         upgraded_details.append(f"Ep {ep_num} ({current_mins}m -> {new_mins}m)")
                     else:
@@ -352,15 +359,15 @@ def main():
         result = find_episode(next_ep)
 
         if result:
-            vid_id, title, url, date_str, duration_str, fallback_url = result
+            vid_id, title, url, date_str, duration_str, fallback_url, short_url = result
             print(f"[FOUND] Ep {next_ep}: {title} ({url})")
 
             with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 if date_str:
-                    writer.writerow([next_ep, title, url, "Found", date_str, duration_str, fallback_url])
+                    writer.writerow([next_ep, title, url, "Found", date_str, duration_str, fallback_url, short_url])
                 else:
-                    writer.writerow([next_ep, title, url, "Found", "", duration_str, fallback_url])
+                    writer.writerow([next_ep, title, url, "Found", "", duration_str, fallback_url, short_url])
 
             added_details.append(f"Ep {next_ep}")
             last_ep = next_ep

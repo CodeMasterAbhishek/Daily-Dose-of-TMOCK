@@ -601,32 +601,47 @@ function openCleanPlayer(article) {
                 },
                 events: {
                     'onError': function(event) {
-                        if ((event.data === 150 || event.data === 101) && article.fallbackId) {
-                            if (ytPlayer) {
-                                ytPlayer.loadVideoById(article.fallbackId, resumeSeconds);
+                        if (event.data === 150 || event.data === 101) {
+                            if (!window._playbackAttempts) window._playbackAttempts = {};
+                            const attempts = window._playbackAttempts[article.id] || 0;
+                            
+                            let nextVideoId = null;
+                            let msg = "";
+                            if (attempts === 0 && article.fallbackId) {
+                                nextVideoId = article.fallbackId;
+                                msg = `⚠️ <strong>Switched to Backup Stream</strong>: The main video was blocked in your region, attempting to load a backup full episode...`;
+                            } else if (attempts <= 1 && article.shortId) {
+                                nextVideoId = article.shortId;
+                                msg = `⚠️ <strong>Switched to Short Version</strong>: The full episode is geo-blocked, so we automatically loaded the 10-minute promo/short version instead.`;
                             }
-                            if (modalWarning) {
-                                modalWarning.style.display = 'block';
-                                modalWarning.innerHTML = `⚠️ <strong>Switched to Backup Stream</strong>: The main video was blocked, so we automatically switched to the backup link.`;
-                            }
-                            try {
-                                verifiedVideos.add(article.id);
-                                const card = document.querySelector(`.card[data-id="${article.id}"]`);
-                                if (card) card.classList.remove('ep-unavailable');
-                            } catch(e) {}
-                        } else {
-                            if (modalWarning) {
-                                modalWarning.style.display = 'block';
-                                modalWarning.innerHTML = `⚠️ <strong>Video Unavailable:</strong> YouTube refused to play this video. It may be geo-blocked, made private, or Sony disabled embedding. <a href="https://www.youtube.com/results?search_query=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" target="_blank" style="color: #d97706; text-decoration: underline;">Search for Ep ${article.epNumber} on YouTube</a>. (Code: ${event.data})`;
-                            }
-                            try {
-                                verifiedVideos.add(article.id);
-                                const card = document.querySelector(`.card[data-id="${article.id}"]`);
-                                if (card && !card.classList.contains('ep-unavailable')) {
-                                    card.classList.add('ep-unavailable');
+                            
+                            if (nextVideoId) {
+                                window._playbackAttempts[article.id] = attempts + 1;
+                                if (ytPlayer) ytPlayer.loadVideoById(nextVideoId, resumeSeconds);
+                                if (modalWarning) {
+                                    modalWarning.style.display = 'block';
+                                    modalWarning.innerHTML = msg;
                                 }
-                            } catch(e) {}
+                                try {
+                                    verifiedVideos.add(article.id);
+                                    const card = document.querySelector(`.card[data-id="${article.id}"]`);
+                                    if (card) card.classList.remove('ep-unavailable');
+                                } catch(e) {}
+                                return;
+                            }
                         }
+                        
+                        if (modalWarning) {
+                            modalWarning.style.display = 'block';
+                            modalWarning.innerHTML = `⚠️ <strong>Video Unavailable:</strong> YouTube refused to play this video. It may be geo-blocked, made private, or Sony disabled embedding. <a href="https://www.youtube.com/results?search_query=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" target="_blank" style="color: #d97706; text-decoration: underline;">Search for Ep ${article.epNumber} on YouTube</a>. (Code: ${event.data})`;
+                        }
+                        try {
+                            verifiedVideos.add(article.id);
+                            const card = document.querySelector(`.card[data-id="${article.id}"]`);
+                            if (card && !card.classList.contains('ep-unavailable')) {
+                                card.classList.add('ep-unavailable');
+                            }
+                        } catch(e) {}
                     },
                     'onStateChange': function(event) {
                         if (event.data === window.YT.PlayerState.PLAYING) {
