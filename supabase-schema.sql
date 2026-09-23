@@ -7,11 +7,25 @@
 CREATE TABLE IF NOT EXISTS public.leaderboard (
     user_id TEXT PRIMARY KEY,
     handle TEXT NOT NULL,
-    watched_count INTEGER DEFAULT 0,
-    watch_hours NUMERIC(10, 2) DEFAULT 0,
+    watched_count INTEGER DEFAULT 0 CHECK (watched_count >= 0),
+    watch_hours NUMERIC(10, 2) DEFAULT 0 CHECK (watch_hours >= 0),
     fan_tier TEXT DEFAULT 'Gokuldham Resident',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
+
+-- Auto-update updated_at on row modification
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = TIMEZONE('utc'::text, NOW());
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_updated_at
+    BEFORE UPDATE ON leaderboard
+    FOR EACH ROW
+    EXECUTE FUNCTION update_modified_column();
 
 -- 2. Enable Row Level Security (RLS) for security
 ALTER TABLE public.leaderboard ENABLE ROW LEVEL SECURITY;
@@ -29,10 +43,12 @@ FOR INSERT
 WITH CHECK (true);
 
 -- 5. Policy: Allow visitors to update their own stats record (UPDATE)
+-- Security Note: Since this is a client-side app, users can update any row. Ensure non-negative stats.
 CREATE POLICY "Allow public update access"
 ON public.leaderboard
 FOR UPDATE
-USING (true);
+USING (true)
+WITH CHECK (watched_count >= 0 AND watch_hours >= 0);
 
 -- 6. Create performance index for fast ranking retrieval
 CREATE INDEX IF NOT EXISTS idx_leaderboard_rank 

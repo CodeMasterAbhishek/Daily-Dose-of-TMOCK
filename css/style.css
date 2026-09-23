@@ -302,6 +302,7 @@ html {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
   transition: all var(--transition-normal);
   animation: fadeInUp 0.6s var(--transition-bounce) both;
 }
@@ -364,9 +365,21 @@ a {
   text-decoration: none;
 }
 
-a:hover, a:visited, a:focus, a:active {
+a:visited {
   color: var(--text-primary);
   text-decoration: none;
+}
+
+a:hover, a:active {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+a:focus {
+  color: var(--text-primary);
+  text-decoration: none;
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
 }
 
 .card-title {

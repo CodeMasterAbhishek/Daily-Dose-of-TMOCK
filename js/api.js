@@ -68,7 +68,12 @@ export async function fetchNewsData() {
             for (let j = 0; j < line.length; j++) {
                 const char = line[j];
                 if (char === '"') {
-                    inQuotes = !inQuotes;
+                    if (inQuotes && line[j + 1] === '"') {
+                        current += '"';
+                        j++; // skip the escaped quote
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
                 } else if (char === ',' && !inQuotes) {
                     parts.push(current);
                     current = '';
@@ -100,8 +105,26 @@ export async function fetchNewsData() {
 
                 const durationText = csvDuration ? csvDuration : (realEpNum === 4778 ? '09:48' : '21:45');
 
-                const parsedDate = new Date(airDate);
-                const pubDateStr = isNaN(parsedDate) ? new Date().toISOString() : parsedDate.toISOString();
+                const monthLookup = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+                let pubDateStr = new Date().toISOString();
+                if (airDate) {
+                    const dateParts = airDate.split(/\s+/);
+                    if (dateParts.length >= 3) {
+                        let dayStr = dateParts[0].replace(/,/g, '');
+                        let monthStr = dateParts[1].replace(/,/g, '');
+                        if (isNaN(parseInt(dayStr, 10))) {
+                            const temp = dayStr;
+                            dayStr = monthStr;
+                            monthStr = temp;
+                        }
+                        const day = parseInt(dayStr, 10);
+                        const month = monthStr.substring(0, 3).toLowerCase();
+                        const year = parseInt(dateParts[2], 10);
+                        if (!isNaN(day) && monthLookup[month] !== undefined && !isNaN(year)) {
+                            pubDateStr = new Date(Date.UTC(year, monthLookup[month], day)).toISOString();
+                        }
+                    }
+                }
 
                 articles.push({
                     id: `ep_${realEpNum}`,

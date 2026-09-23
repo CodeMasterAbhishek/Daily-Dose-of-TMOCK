@@ -24,17 +24,13 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-STATE_FILE = "data/state.json"
-CSV_FILE = "data/episodes.csv"
+from config import STATE_FILE, CSV_FILE, VALID_CHANNELS
+from utils import get_minutes
 
-
-def get_minutes(duration_str: str) -> int:
-    parts = duration_str.split(':')
-    if len(parts) == 3: # H:M:S
-        return int(parts[0]) * 60 + int(parts[1])
-    elif len(parts) == 2: # M:S
-        return int(parts[0])
-    return 0
+RE_EPISODE_RANGE = re.compile(r'\b(?:ep|episode|episodes|ep\.|एपिसोड)?\s*(\d{2,4})\s*(?:-|–|—|to|से)\s*(\d{2,4})\b')
+RE_EP_EXTRACT = re.compile(r'(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d+)')
+RE_RELATIVE_DATE = re.compile(r'(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago')
+RE_EP_PATTERN = re.compile(r"(?i)(?:ep|episode)\s*[-:]?\s*(\d+)")
 
 def is_promo(title: str) -> bool:
     title_lower = title.lower()
@@ -43,18 +39,11 @@ def is_promo(title: str) -> bool:
     return False
 
 def is_geoblocked_title(title: str) -> bool:
-    return "new episode" in title.lower()
+    title_lower = title.lower()
+    return "new episode available" in title_lower or "new episode premieres" in title_lower
 
 def is_single_episode(title: str, description: str, channel: str, ep_num: int, require_full: bool = False) -> bool:
-    valid_channels = [
-        'sony sab', 
-        'sony pal', 
-        'taarak mehta ka ooltah chashmah', 
-        'taarak mehta ka ooltah chashmah episodes',
-        'taarak mehta ka ooltah chashmah movies',
-        'liv comedy'
-    ]
-    if channel.lower() not in valid_channels:
+    if channel.lower() not in VALID_CHANNELS:
         return False
 
     title_lower = title.lower()
@@ -62,12 +51,11 @@ def is_single_episode(title: str, description: str, channel: str, ep_num: int, r
     combined_text = title_lower + " " + desc_lower
 
     # Reject multi-episode compilations
-    if re.search(r'\b(?:ep|episode|episodes|ep\.|एपिसोड)?\s*(\d{2,4})\s*(?:-|–|—|to|से)\s*(\d{2,4})\b', combined_text):
-        m = re.search(r'\b(?:ep|episode|episodes|ep\.|एपिसोड)?\s*(\d{2,4})\s*(?:-|–|—|to|से)\s*(\d{2,4})\b', combined_text)
-        if m and int(m.group(1)) != int(m.group(2)):
-            n1, n2 = int(m.group(1)), int(m.group(2))
-            if abs(n2 - n1) >= 2:
-                return False
+    m = RE_EPISODE_RANGE.search(combined_text)
+    if m and int(m.group(1)) != int(m.group(2)):
+        n1, n2 = int(m.group(1)), int(m.group(2))
+        if abs(n2 - n1) >= 2:
+            return False
 
     if any(k in combined_text for k in ['compilation', 'best of', 'full movie', 'mega episode']):
         return False
@@ -77,7 +65,7 @@ def is_single_episode(title: str, description: str, channel: str, ep_num: int, r
             return False
 
     # Check if a different episode number is explicitly in title
-    ep_extract = re.search(r'(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d+)', title_lower)
+    ep_extract = RE_EP_EXTRACT.search(title_lower)
     if ep_extract:
         found_ep = int(ep_extract.group(1))
         if found_ep != ep_num:
@@ -117,7 +105,7 @@ def parse_relative_date(time_text: str) -> str:
     text = time_text.lower()
     now = datetime.datetime.now()
     
-    match = re.search(r'(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago', text)
+    match = RE_RELATIVE_DATE.search(text)
     if not match:
         return ""
         
@@ -144,6 +132,22 @@ def parse_relative_date(time_text: str) -> str:
     return target_date.strftime("%d %b %Y")
 
 
+def get_video_score(mins: int, channel: str) -> int:
+    channel_lower = channel.lower()
+    c_score = 0
+    if channel_lower == 'sony sab':
+        c_score = 100
+    elif 'taarak mehta ka ooltah chashmah' in channel_lower:
+        c_score = 80
+    elif channel_lower == 'sony pal':
+        c_score = 20
+        
+    is_full = 1000 if mins >= 15 else 0
+    is_double = 1000 if mins >= 35 else 0
+    
+    return is_full + is_double + c_score * 10 + mins
+
+
 def find_episode(ep_num: int, require_full: bool = False):
     search_queries = [
         f"Ep {ep_num} Taarak Mehta Ka Ooltah Chashmah",
@@ -153,7 +157,8 @@ def find_episode(ep_num: int, require_full: bool = False):
     ]
 
     best_match = None
-    best_duration = -1
+    best_score = -1
+    best_mins = -1
     fallback_url = ""
     short_url = ""
 
@@ -177,18 +182,21 @@ def find_episode(ep_num: int, require_full: bool = False):
                         continue
                         
                     mins = get_minutes(duration_str)
-                    if mins > 30:
+                    if mins > 55:  # Increased from 30 to 55 to allow Maha Episodes
                         continue
                         
-                    if mins > best_duration:
+                    score = get_video_score(mins, channel)
+                        
+                    if score > best_score:
                         # If we already had a best match, save it as fallback or short
                         if best_match and best_match[2] != url:
-                            if best_duration >= 15:
+                            if best_mins >= 15:
                                 fallback_url = best_match[2]
-                            elif best_duration >= 8 and not short_url:
+                            elif best_mins >= 8 and not short_url:
                                 short_url = best_match[2]
-                        best_duration = mins
-                        best_match = (vid_id, title, url, date_str, duration_str)
+                        best_score = score
+                        best_mins = mins
+                        best_match = (vid_id, title, url, date_str, duration_str, channel)
                     elif best_match and url != best_match[2]:
                         if not fallback_url and mins >= 15:
                             fallback_url = url
@@ -197,26 +205,25 @@ def find_episode(ep_num: int, require_full: bool = False):
         except Exception:
             continue
             
-        if best_duration > 15 and fallback_url and short_url:
+        if best_mins > 15 and fallback_url and short_url:
             break
 
     if best_match:
-        return (*best_match, fallback_url, short_url)
+        # best_match is (vid_id, title, url, date_str, duration_str, channel)
+        return (best_match[0], best_match[1], best_match[2], best_match[3], best_match[4], best_match[5], fallback_url, short_url)
     return None
-import re
 
-def reverse_global_scan(rows):
+def reverse_global_scan(rows, upgraded_details):
     print("Running Reverse Global Scan for recent Sony uploads...")
     upgraded_count = 0
     try:
         videos = scrapetube.get_search("Taarak Mehta Ka Ooltah Chashmah Full Episode", sort_by="upload_date", limit=300)
         
         ep_map = {int(r[0]): (i, r) for i, r in enumerate(rows) if len(r) >= 6}
-        valid_channels = ['sony sab', 'sony pal', 'taarak mehta ka ooltah chashmah', 'taarak mehta ka ooltah chashmah episodes']
         
         for vid in videos:
             channel = vid.get('ownerText', {}).get('runs', [{}])[0].get('text', '').lower()
-            if channel not in valid_channels:
+            if channel not in VALID_CHANNELS:
                 continue
                 
             title_runs = vid.get('title', {}).get('runs', [])
@@ -224,10 +231,9 @@ def reverse_global_scan(rows):
             description = extract_description_text(vid)
             
             # Extract episode number from title or description
-            pattern = r"(?i)(?:ep|episode)\s*[-:]?\s*(\d+)"
-            match = re.search(pattern, title)
+            match = RE_EP_PATTERN.search(title)
             if not match:
-                match = re.search(pattern, description)
+                match = RE_EP_PATTERN.search(description)
                 
             if match:
                 ep_num = int(match.group(1))
@@ -245,24 +251,26 @@ def reverse_global_scan(rows):
                     duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
                     new_mins = get_minutes(duration_str)
                     
-                    if new_mins < 5 or new_mins > 30:
-                        continue # Skip tiny promos under 5 mins and compilations over 30 mins
+                    if new_mins < 5 or new_mins > 55:
+                        continue # Skip tiny promos under 5 mins and compilations over 55 mins
                         
                     old_mins = get_minutes(row[5])
                     
-                    # Cascade upgrade: Accept if it's significantly longer than what we currently have.
-                    # This allows 1-min promos to upgrade to 10-min parts, and 10-min parts to upgrade to 20-min full episodes!
-                    if new_mins > old_mins + 2:
+                    # We don't know the exact old channel, but we assume it's "Unknown" (0 channel score)
+                    # This means we rely heavily on the new score.
+                    new_score = get_video_score(new_mins, channel)
+                    old_score_estimate = get_video_score(old_mins, "Unknown")
+                    
+                    # Cascade upgrade: Accept if it scores significantly higher
+                    if new_score > old_score_estimate + 10:
                         url = f"https://www.youtube.com/watch?v={vid_id}"
                         time_text = vid.get('publishedTimeText', {}).get('simpleText', '')
                         date_str = parse_relative_date(time_text)
                         
-                        print(f"  [REVERSE UPGRADE] Ep {ep_num}: {title} ({duration_str})")
-                        rows[row_idx] = [ep_num, title, url, "Found", date_str if date_str else row[4], duration_str]
+                        print(f"  [REVERSE UPGRADE] Ep {ep_num}: {title} ({duration_str}) [Score: {new_score}]")
+                        extra = row[6:] if len(row) > 6 else []
+                        rows[row_idx] = [ep_num, title, url, "Found", date_str if date_str else row[4], duration_str] + extra
                         upgraded_count += 1
-                        if 'upgraded_details' not in globals():
-                            global upgraded_details
-                            upgraded_details = []
                         upgraded_details.append(f"Ep {ep_num} ({old_mins}m -> {new_mins}m)")
                         
                         # Update map so we don't downgrade it if an older duplicate is further down the results
@@ -279,7 +287,6 @@ def main():
     print("  TMKOC Website & DB Auto-Updater (Zero Quota Mode)")
     print("=======================================================")
 
-    global upgraded_details
     upgraded_details = []
     added_details = []
 
@@ -300,7 +307,7 @@ def main():
             rows = list(reader)
 
     # 1. Reverse Global Scan (Catch extremely old re-uploads and promos)
-    upgraded_count = reverse_global_scan(rows)
+    upgraded_count = reverse_global_scan(rows, upgraded_details)
     
     # 2. Check for missing episode upgrades (old promos that might have been uploaded later but missed)
     # AND aggressively scan the last 100 episodes (using YouTube Relevance sort) to replace geo-blocked videos with public ones.
@@ -313,11 +320,12 @@ def main():
             
             is_recent = (i >= len(rows) - 100)
             
-            if is_promo(title) or current_mins < 16 or current_mins > 30 or is_recent:
+            if is_promo(title) or current_mins < 16 or current_mins > 55 or is_recent:
                 print(f"Checking for better version for Ep {ep_num} (Currently: {duration_str})...")
                 result = find_episode(ep_num, require_full=False)
                 if result:
-                    vid_id, new_title, new_url, new_date_str, new_duration_str, fallback_url, short_url = result
+                    # best_match is (vid_id, title, url, date_str, duration_str, channel, fallback, short)
+                    vid_id, new_title, new_url, new_date_str, new_duration_str, new_channel, fallback_url, short_url = result
                     new_mins = get_minutes(new_duration_str)
                     
                     old_is_promo = is_promo(title)
@@ -326,21 +334,22 @@ def main():
                     new_is_geoblocked = is_geoblocked_title(new_title)
                     
                     should_upgrade = False
+                    
                     if old_is_promo and not new_is_promo:
-                        should_upgrade = True
-                    elif current_mins > 30 and new_mins <= 30 and new_mins >= 15:
                         should_upgrade = True
                     elif old_is_geoblocked and not new_is_geoblocked and new_mins >= 18:
                         should_upgrade = True
-                    elif new_mins > current_mins + 1:
-                        # Only upgrade on duration if we aren't downgrading public -> geoblocked
-                        if not (not old_is_geoblocked and new_is_geoblocked):
-                            should_upgrade = True
-                    elif is_recent and new_mins >= 18:
-                        # For recent episodes, accept new full episodes via relevance sort.
-                        # Only upgrade if the video ID is different AND it's not a downgrade to geoblocked!
-                        if vid_id != row[2].split('v=')[-1]:
-                            if not (not old_is_geoblocked and new_is_geoblocked):
+                    elif not old_is_geoblocked and new_is_geoblocked:
+                        should_upgrade = False
+                    else:
+                        # We don't know the old channel, so we conservatively estimate its score as "Unknown" (0 bonus)
+                        # We only upgrade if the new one scores higher than the BEST possible version of the old one?
+                        # No, if we estimate old channel as 0, and new channel is SAB (1000), it'll upgrade.
+                        new_score = get_video_score(new_mins, new_channel)
+                        old_score_estimate = get_video_score(current_mins, "Unknown")
+                        if new_score > old_score_estimate + 10:
+                            # Verify video is actually different
+                            if vid_id != row[2].split('v=')[-1]:
                                 should_upgrade = True
                         
                     if should_upgrade:
@@ -352,9 +361,12 @@ def main():
                         print(f"  [KEPT] Existing version is optimal.")
 
     if upgraded_count > 0:
-        with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", newline="", encoding="utf-8", delete=False, dir=os.path.dirname(CSV_FILE)) as f:
             writer = csv.writer(f)
             writer.writerows(rows)
+            tmp_name = f.name
+        os.replace(tmp_name, CSV_FILE)
             
     # 2. Find new episodes
     episodes_added = 0

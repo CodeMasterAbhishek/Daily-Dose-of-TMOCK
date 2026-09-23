@@ -15,11 +15,6 @@ body {
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
-a, a:hover, a:visited, a:focus, a:active {
-  text-decoration: none;
-  color: var(--text-primary);
-}
-
 /* Typography Overrides */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);

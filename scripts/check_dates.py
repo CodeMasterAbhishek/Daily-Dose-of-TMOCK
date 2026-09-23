@@ -1,8 +1,9 @@
 import csv
 import subprocess
+from config import CSV_FILE
 
 def check_dates():
-    with open('data/episodes.csv', 'r', encoding='utf-8') as f:
+    with open(CSV_FILE, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         header = next(reader)
         rows = list(reader)

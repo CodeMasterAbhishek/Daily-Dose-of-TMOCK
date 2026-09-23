@@ -5,9 +5,9 @@ import re
 from datetime import datetime
 import os
 
-CSV_FILE = 'data/episodes.csv'
-TEMP_CSV_FILE = 'episodes_patch.csv'
-CACHE_FILE = 'data/dates_cache.json'
+from config import CSV_FILE, DATES_CACHE_FILE as CACHE_FILE
+
+TEMP_CSV_FILE = os.path.join(os.path.dirname(CSV_FILE), 'episodes_patch.csv')
 
 def format_date(raw_date):
     try:
@@ -35,7 +35,7 @@ def patch_dates():
             if url in unavailable_urls:
                 try:
                     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                    html = urllib.request.urlopen(req).read().decode('utf-8')
+                    html = urllib.request.urlopen(req, timeout=15).read().decode('utf-8')
                     match = re.search(r'"publishDate":"(.*?)"', html)
                     if match:
                         raw_date = match.group(1)
@@ -46,7 +46,7 @@ def patch_dates():
                             patched_count += 1
                             print(f"Patched Episode {row[0]}: {formatted}")
                 except Exception as e:
-                    pass
+                    print(f"Warning: {e}")
                 
     if patched_count > 0:
         with open(TEMP_CSV_FILE, 'w', encoding='utf-8', newline='') as f:

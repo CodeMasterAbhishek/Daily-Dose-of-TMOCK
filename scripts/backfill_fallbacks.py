@@ -11,17 +11,13 @@ except ImportError:
     print("Please pip install scrapetube")
     sys.exit(1)
 
-CSV_FILE = os.path.join(os.path.dirname(__file__), '../data/episodes.csv')
+from config import CSV_FILE, VALID_CHANNELS
+from utils import get_minutes
+import logging
 
-def get_minutes(duration_str: str) -> int:
-    parts = duration_str.split(':')
-    if len(parts) == 3: # H:M:S
-        return int(parts[0]) * 60 + int(parts[1])
-    elif len(parts) == 2: # M:S
-        return int(parts[0])
-    return 0
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(threadName)s] %(message)s')
 
-print("Reading episodes...")
+logging.info("Reading episodes...")
 rows = []
 with open(CSV_FILE, 'r', encoding='utf-8') as f:
     reader = csv.reader(f)
@@ -29,10 +25,10 @@ with open(CSV_FILE, 'r', encoding='utf-8') as f:
         rows.append(row)
 
 updated_count = 0
-print(f"Total rows read: {len(rows)}")
+logging.info(f"Total rows read: {len(rows)}")
 
-print("Starting backfill for fallback URLs...")
-print("This will take a while. It will only search for episodes that don't already have a fallback.")
+logging.info("Starting backfill for fallback URLs...")
+logging.info("This will take a while. It will only search for episodes that don't already have a fallback.")
 
 TEMP_FILE = CSV_FILE + '.tmp'
 import concurrent.futures
@@ -47,7 +43,7 @@ def process_row(row):
     if len(row) >= 8 and row[6].strip() and row[7].strip():
         return row
         
-    print(f"Searching fallback & short for Ep {ep_num}...")
+    logging.info(f"Searching fallback & short for Ep {ep_num}...")
     
     query = f"Taarak Mehta Ka Ooltah Chashmah Episode {ep_num}"
     fallback_url = row[6].strip() if len(row) >= 7 else ""
@@ -57,16 +53,7 @@ def process_row(row):
         videos = scrapetube.get_search(query, limit=10)
         for vid in videos:
             channel = vid.get('ownerText', {}).get('runs', [{}])[0].get('text', '').lower()
-            valid_channels = [
-                'sony sab', 
-                'sony pal', 
-                'taarak mehta ka ooltah chashmah', 
-                'taarak mehta ka ooltah chashmah episodes',
-                'taarak mehta ka ooltah chashmah movies',
-                'liv comedy'
-            ]
-            
-            if channel in valid_channels:
+            if channel in VALID_CHANNELS:
                 title_runs = vid.get('title', {}).get('runs', [])
                 title = "".join([r.get('text', '') for r in title_runs]).strip().lower()
                 
@@ -88,7 +75,7 @@ def process_row(row):
             if fallback_url and short_url:
                 break
     except Exception as e:
-        pass
+        logging.warning(f"Warning: {e}")
         
     while len(row) < 8:
         row.append("")
@@ -98,13 +85,16 @@ def process_row(row):
     
     return row
 
-print("Processing episodes concurrently using 20 workers...")
+logging.info("Processing episodes concurrently using 20 workers...")
+
+original_fallbacks = {i: row[6] if len(row) > 6 else '' for i, row in enumerate(rows)}
+original_shorts = {i: row[7] if len(row) > 7 else '' for i, row in enumerate(rows)}
 
 processed_rows = []
 with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
     processed_rows = list(executor.map(process_row, rows))
 
-updated_count = sum(1 for i, r in enumerate(processed_rows) if len(r) >= 8 and (r[6] or r[7]) and (len(rows[i]) < 8 or r[6] != rows[i][6] if len(rows[i])>6 else r[6] or r[7] != rows[i][7] if len(rows[i])>7 else r[7]))
+updated_count = sum(1 for i, r in enumerate(processed_rows) if len(r) >= 8 and (r[6] != original_fallbacks[i] or r[7] != original_shorts[i]))
 
 with open(TEMP_FILE, 'w', encoding='utf-8', newline='') as f:
     writer = csv.writer(f)
@@ -112,4 +102,4 @@ with open(TEMP_FILE, 'w', encoding='utf-8', newline='') as f:
         writer.writerow(row)
 
 shutil.move(TEMP_FILE, CSV_FILE)
-print(f"Done! Evaluated {len(rows)} episodes. Added/Updated fallbacks.")
+logging.info(f"Done! Evaluated {len(rows)} episodes. Added/Updated fallbacks.")

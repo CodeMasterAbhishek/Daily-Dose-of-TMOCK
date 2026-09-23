@@ -1,19 +1,14 @@
-﻿import csv
-
-def get_minutes(duration_str):
-    parts = duration_str.split(':')
-    if len(parts) == 3:
-        return int(parts[0]) * 60 + int(parts[1])
-    elif len(parts) == 2:
-        return int(parts[0])
-    return 0
+import csv
+from scripts.config import CSV_FILE
+from scripts.utils import get_minutes
 
 short_eps = []
 long_eps = []
 
 try:
-    with open('data/episodes.csv', 'r', encoding='utf-8') as f:
+    with open(CSV_FILE, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
+        next(reader, None)
         for row in reader:
             if len(row) >= 6:
                 ep_num = row[0]
@@ -24,7 +19,7 @@ try:
                 elif mins > 35:
                     long_eps.append((ep_num, duration_str, row[1]))
 except FileNotFoundError:
-    print("Could not find data/episodes.csv")
+    print(f"Could not find {CSV_FILE}")
     exit(1)
 
 print("=== SHORT EPISODES (< 15 mins) ===")

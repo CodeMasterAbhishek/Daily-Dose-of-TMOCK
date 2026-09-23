@@ -3,6 +3,21 @@
  */
 import { syncUserToCloud, fetchGlobalLeaderboard, isSupabaseConfigured, getOrCreateUserId } from './supabase.js';
 
+function escapeHTML(str) {
+    if (str == null) return '';
+    if (typeof str !== 'string') return str;
+    return str.replace(/[&<>"']/g, function(match) {
+        switch (match) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#39;';
+            default: return match;
+        }
+    });
+}
+
 let allArticlesMap = {};
 let masterEpNumberMap = {};
 let currentModalEpNum = null;
@@ -73,8 +88,9 @@ function processBgCheckerQueue() {
         if (bgCheckerTimeout) clearTimeout(bgCheckerTimeout);
         try { if (tempPlayer) tempPlayer.destroy(); } catch(e) {}
         try { 
-            const el = document.getElementById('bg-checker-wrapper');
-            if (el) document.body.removeChild(el); 
+            if (wrapperDiv && wrapperDiv.parentNode) {
+                wrapperDiv.parentNode.removeChild(wrapperDiv);
+            }
         } catch(e) {}
         
         handleCheckerResult(article, isUnavailable);
@@ -331,16 +347,16 @@ function createHeroHTML(articles) {
         slidesHTML += `
             <article class="hero-slide ${activeClass} ${readClass}" data-index="${index}" data-category="${article.category.toLowerCase()}" data-id="${article.id}">
                 <a href="javascript:void(0)" class="hero-img-wrap" onclick="playEpisode('${article.id}')">
-                    <img src="${imageUrl}" alt="${article.title}" class="hero-img" onerror="this.src='https://via.placeholder.com/1280x720/18181b/818cf8?text=TMKOC+Episode'">
+                    <img src="${imageUrl}" alt="${escapeHTML(article.title)}" class="hero-img" onerror="this.src='https://via.placeholder.com/1280x720/18181b/818cf8?text=TMKOC+Episode'">
                     <div class="hero-overlay"></div>
                     <div class="hero-content">
                         <div class="hero-meta">
-                            <span class="hero-category">${article.category}</span>
+                            <span class="hero-category">${escapeHTML(article.category)}</span>
                             <span class="hero-source" style="background: var(--text-primary); color: var(--bg-primary); padding: 2px 8px; border-radius: 4px; font-weight: 800;">EP ${article.epNumber}</span>
-                            <span>${article.airDate || ''}</span>
+                            <span>${escapeHTML(article.airDate) || ''}</span>
                         </div>
-                        <h1 class="hero-title">${article.title}</h1>
-                        <p class="hero-desc">${article.description || ''}</p>
+                        <h1 class="hero-title">${escapeHTML(article.title)}</h1>
+                        <p class="hero-desc">${escapeHTML(article.description) || ''}</p>
                     </div>
                 </a>
             </article>
@@ -393,9 +409,9 @@ function createCardHTML(article) {
     const progressPercent = savedTimeSec ? Math.min(100, Math.round((savedTimeSec / 1260) * 100)) : 0;
     
     return `
-        <article class="card ${readClass} ${unavailableClass}" data-id="${article.id}" data-category="${article.category.toLowerCase()}">
+        <article class="card ${readClass} ${unavailableClass}" data-id="${article.id}" data-category="${escapeHTML(article.category).toLowerCase()}">
             <a href="javascript:void(0)" class="card-img-wrap" onclick="playEpisode('${article.id}')">
-                <img src="${imageUrl}" alt="${article.title}" loading="lazy" class="card-img" onerror="this.src='https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode'">
+                <img src="${imageUrl}" alt="${escapeHTML(article.title)}" loading="lazy" class="card-img" onerror="this.src='https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode'">
                 <span class="card-duration-badge">${displayDuration || '21:45'}</span>
                 ${progressPercent > 0 ? `<div class="card-progress-container"><div class="card-progress-bar" style="width: ${progressPercent}%;"></div></div>` : ''}
             </a>
@@ -403,10 +419,10 @@ function createCardHTML(article) {
                 <div class="card-meta">
                     <span class="card-source" style="font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">EP ${article.epNumber}</span>
                     <span>•</span>
-                    <span class="card-date">${article.airDate || ''}</span>
+                    <span class="card-date">${escapeHTML(article.airDate) || ''}</span>
                 </div>
                 <h2 class="card-title">
-                    <a href="javascript:void(0)" onclick="playEpisode('${article.id}')">${article.title}</a>
+                    <a href="javascript:void(0)" onclick="playEpisode('${article.id}')">${escapeHTML(article.title)}</a>
                 </h2>
             </div>
         </article>
@@ -442,6 +458,7 @@ export function renderArticles(articles, containerId, append = false) {
 let heroAutoTimer = null;
 
 function setupHeroSlider() {
+    if (heroAutoTimer) clearInterval(heroAutoTimer);
     const slider = document.querySelector('.hero-slider');
     if (!slider) return;
 
@@ -519,30 +536,60 @@ export function renderHeroContainer(articles, containerId) {
 // ----------------------------------------------------
 // STRICT WATCHED ENGINE (>= 90% COMPLETION & EXACT SECONDS)
 // ----------------------------------------------------
+let flushTimer = null;
+let pendingExactWatchSeconds = null;
+let pendingTimestamps = null;
+
+function flushWatchTracker() {
+    if (pendingExactWatchSeconds !== null) {
+        localStorage.setItem(STORAGE_EXACT_WATCH_SECONDS, pendingExactWatchSeconds.toString());
+        pendingExactWatchSeconds = null;
+    }
+    if (pendingTimestamps !== null) {
+        localStorage.setItem(STORAGE_TIMESTAMPS, JSON.stringify(pendingTimestamps));
+        pendingTimestamps = null;
+    }
+}
+
+window.addEventListener('beforeunload', flushWatchTracker);
+
 function startActiveWatchTracker(articleId) {
     stopActiveWatchTracker();
     currentActiveEpId = articleId;
 
+    let totalSecs = getExactWatchSeconds();
+    let timestamps = getTimestamps();
+    let currentEpSecs = timestamps[articleId] || 0;
+
     activeWatchTrackerTimer = setInterval(() => {
-        const totalSecs = getExactWatchSeconds() + 1;
-        localStorage.setItem(STORAGE_EXACT_WATCH_SECONDS, totalSecs.toString());
+        if (typeof ytPlayer !== 'undefined' && ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() === window.YT.PlayerState.PLAYING) {
+            totalSecs += 1;
+            currentEpSecs += 1;
+            
+            pendingExactWatchSeconds = totalSecs;
+            
+            timestamps[articleId] = currentEpSecs;
+            pendingTimestamps = timestamps;
 
-        const timestamps = getTimestamps();
-        const currentEpSecs = (timestamps[articleId] || 0) + 1;
-        timestamps[articleId] = currentEpSecs;
-        localStorage.setItem(STORAGE_TIMESTAMPS, JSON.stringify(timestamps));
-
-        const totalEpSecs = 1260; // 21 mins
-        if (currentEpSecs >= totalEpSecs * 0.90) {
-            saveCompletedEpisode(articleId);
+            const totalEpSecs = 1260; // 21 mins
+            if (currentEpSecs >= totalEpSecs * 0.90) {
+                saveCompletedEpisode(articleId);
+            }
         }
     }, 1000);
+    
+    flushTimer = setInterval(flushWatchTracker, 15000);
 }
 
 function stopActiveWatchTracker() {
     if (activeWatchTrackerTimer) {
         clearInterval(activeWatchTrackerTimer);
         activeWatchTrackerTimer = null;
+        if (flushTimer) {
+            clearInterval(flushTimer);
+            flushTimer = null;
+        }
+        flushWatchTracker();
         syncCurrentUserStats();
     }
 }
@@ -755,10 +802,16 @@ window.toggleAutoplay = function(checked) {
 
 window.navCleanEp = function(dir) {
     if (!currentModalEpNum) return;
-    const targetEp = currentModalEpNum + dir;
-    const targetArticle = masterEpNumberMap[targetEp];
-    if (targetArticle) {
-        openCleanPlayer(targetArticle);
+    let targetEp = currentModalEpNum + dir;
+    let iterations = 0;
+    while (iterations < 50) {
+        const targetArticle = masterEpNumberMap[targetEp];
+        if (targetArticle) {
+            openCleanPlayer(targetArticle);
+            return;
+        }
+        targetEp += dir;
+        iterations++;
     }
 };
 
@@ -841,7 +894,7 @@ function createLeaderboardRowHTML(item) {
                 <span style="font-weight: 900; font-size: 18px; min-width: 32px; ${rankBadgeStyle}">#${item.rank}</span>
                 <div>
                     <div style="font-weight: 800; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                        ${item.handle} 
+                        ${escapeHTML(item.handle)} 
                         ${item.isUser ? '<span style="font-size: 9px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">YOU</span>' : ''}
                     </div>
                     <div style="font-size: 11px; font-weight: 600; opacity: 0.7; color: var(--text-primary); margin-top: 2px;">${item.level}</div>
@@ -1041,7 +1094,7 @@ export function renderStorylinesGrid(storylines, containerId) {
 
         card.innerHTML = `
             <div class="card-img-wrap">
-                <img src="${coverImg}" alt="${arc.title}" loading="lazy" class="card-img" onerror="this.src='https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Storyline'">
+                <img src="${coverImg}" alt="${escapeHTML(arc.title)}" loading="lazy" class="card-img" onerror="this.src='https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Storyline'">
                 <span class="card-duration-badge" style="background: rgba(15,23,42,0.85); font-weight: 800;">${arc.totalEpisodes} EPISODES</span>
             </div>
             <div class="card-content">
@@ -1049,9 +1102,9 @@ export function renderStorylinesGrid(storylines, containerId) {
                     <span class="card-source" style="font-weight: 800; color: var(--text-primary); text-transform: uppercase;">EP ${arc.startEp} TO EP ${arc.endEp}</span>
                 </div>
                 <h2 class="card-title" style="margin-top: 4px;">
-                    <a href="javascript:void(0)" onclick="window.viewStorylineDetail('${arc.id}')">${arc.title}</a>
+                    <a href="javascript:void(0)" onclick="window.viewStorylineDetail('${arc.id}')">${escapeHTML(arc.title)}</a>
                 </h2>
-                <p style="font-size: 12px; opacity: 0.75; margin-top: 6px; line-height: 1.4; color: var(--text-primary);">${arc.description}</p>
+                <p style="font-size: 12px; opacity: 0.75; margin-top: 6px; line-height: 1.4; color: var(--text-primary);">${escapeHTML(arc.description)}</p>
             </div>
         `;
 

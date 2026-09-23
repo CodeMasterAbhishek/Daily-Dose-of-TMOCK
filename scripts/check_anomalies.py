@@ -1,9 +1,10 @@
 import csv
 import re
 from collections import defaultdict
+from config import CSV_FILE
 
 def check_anomalies():
-    with open('data/episodes.csv', 'r', encoding='utf-8') as f:
+    with open(CSV_FILE, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         header = next(reader)
         rows = list(reader)

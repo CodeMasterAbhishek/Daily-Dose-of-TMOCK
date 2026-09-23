@@ -9,6 +9,8 @@ on:
 jobs:
   sync-episodes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -20,6 +22,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Install Dependencies
         run: |
@@ -36,4 +39,4 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/episodes.csv data/state.json UPDATE_LOG.md
           git status
-          git diff-index --quiet HEAD || (git commit -m "Auto-update: Synced new TMKOC episodes [skip ci]" && git push)
+          git diff-index --quiet HEAD || (git commit -m "Auto-update: Synced new TMKOC episodes [skip ci]" && git push || echo 'Push failed, possible conflict')

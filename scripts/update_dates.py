@@ -5,9 +5,9 @@ import subprocess
 import time
 from datetime import datetime
 
-CACHE_FILE = 'data/dates_cache.json'
-CSV_FILE = 'data/episodes.csv'
-TEMP_CSV_FILE = 'episodes_temp.csv'
+from config import CSV_FILE, DATES_CACHE_FILE as CACHE_FILE
+
+TEMP_CSV_FILE = os.path.join(os.path.dirname(CSV_FILE), 'episodes_temp.csv')
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
