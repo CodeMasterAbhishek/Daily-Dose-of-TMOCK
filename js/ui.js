@@ -307,13 +307,14 @@ function updateStreak() {
     return updated;
 }
 
-function logActivity(type, title) {
+function logActivity(type, title, durationSecs = null) {
     try {
         const log = JSON.parse(localStorage.getItem(STORAGE_ACTIVITY) || '[]');
         if (log.length > 0 && log[0].type === type && log[0].title === title) {
             log[0].date = new Date().toISOString();
+            if (durationSecs !== null) log[0].duration = durationSecs;
         } else {
-            log.unshift({ type, title, date: new Date().toISOString() });
+            log.unshift({ type, title, date: new Date().toISOString(), duration: durationSecs });
             if (log.length > 20) log.length = 20;
         }
         localStorage.setItem(STORAGE_ACTIVITY, JSON.stringify(log));
@@ -668,6 +669,12 @@ function flushWatchTracker() {
     }
     if (pendingTimestamps !== null) {
         localStorage.setItem(STORAGE_TIMESTAMPS, JSON.stringify(pendingTimestamps));
+        
+        if (currentActiveEpId && currentModalEpNum) {
+            let secs = pendingTimestamps[currentActiveEpId] || 0;
+            logActivity('watch', `Episode ${currentModalEpNum}`, secs);
+        }
+        
         pendingTimestamps = null;
     }
 }
@@ -718,7 +725,9 @@ function stopActiveWatchTracker() {
 function openCleanPlayer(article) {
     currentModalEpNum = article.epNumber;
     localStorage.setItem(STORAGE_LAST_OPENED, article.id);
-    logActivity('watch', `Episode ${article.epNumber}`);
+    
+    const initialTimestamps = getTimestamps();
+    logActivity('watch', `Episode ${article.epNumber}`, initialTimestamps[article.id] || 0);
 
     let backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (!backdrop) {
@@ -959,16 +968,6 @@ export async function updateFanDashboard() {
 
     const level = getFanLevel(watchedCount);
 
-    const countEl = document.getElementById('stat-episodes-count');
-    const hoursEl = document.getElementById('stat-watch-hours');
-    const levelEl = document.getElementById('stat-fan-level');
-
-    if (countEl) countEl.textContent = watchedCount;
-    if (hoursEl) hoursEl.innerHTML = `${watchHours}<span style="font-size:16px; font-weight:700; opacity:0.6; margin-left:2px; margin-right:6px;">h</span>${watchMins}<span style="font-size:16px; font-weight:700; opacity:0.6; margin-left:2px;">m</span>`;
-    if (levelEl) {
-        levelEl.textContent = level.title;
-        levelEl.style.color = level.color;
-    }
 
     let savedHandle = localStorage.getItem(STORAGE_HANDLE);
     if (!savedHandle) {
@@ -1001,20 +1000,9 @@ export async function updateFanDashboard() {
     // Streak card
     const streakData = getStreakData();
     const currentStreak = streakData.currentStreak || 0;
-    const streakEl = document.getElementById('stat-streak-count');
-    if (streakEl) streakEl.textContent = currentStreak;
 
     // Decimal hours for sidebar + leaderboard
     const decimalHours = parseFloat((totalWatchSecs / 3600).toFixed(2));
-
-    // Next tier info
-    const nextTierEl = document.getElementById('stat-next-tier');
-    if (nextTierEl) {
-        if (watchedCount < 51) nextTierEl.textContent = `Next tier in ${51 - watchedCount} episodes`;
-        else if (watchedCount < 301) nextTierEl.textContent = `Next tier in ${301 - watchedCount} episodes`;
-        else if (watchedCount < 1000) nextTierEl.textContent = `Next tier in ${1000 - watchedCount} episodes`;
-        else nextTierEl.textContent = 'Max level reached!';
-    }
 
     // Sidebar: Quick Stats
     const qsEpisodes = document.getElementById('qs-episodes');
@@ -1022,7 +1010,6 @@ export async function updateFanDashboard() {
     const qsWatchTime = document.getElementById('qs-watch-time');
     const qsStreak = document.getElementById('qs-streak');
     const qsLevel = document.getElementById('qs-level');
-    const statUniqueSub = document.getElementById('stat-unique-episodes');
     
     const uniqueStartedCount = Object.keys(getTimestamps()).length;
     
@@ -1031,10 +1018,6 @@ export async function updateFanDashboard() {
     if (qsWatchTime) qsWatchTime.textContent = `${decimalHours} hrs`;
     if (qsStreak) qsStreak.textContent = `${currentStreak} days`;
     if (qsLevel) qsLevel.textContent = level.title;
-    
-    if (statUniqueSub) {
-        statUniqueSub.innerHTML = `≥ 90% Completed <span style="opacity: 0.7; margin-left: 4px;">(of ${uniqueStartedCount} started)</span>`;
-    }
 
     // Sidebar: Continue Watching / Brand Card
     const lastEp = getLastWatchedEpisode();
@@ -1068,7 +1051,17 @@ export async function updateFanDashboard() {
                 const icon = a.type === 'watch' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>' :
                              a.type === 'streak' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2c0 4-4 6-4 10a4 4 0 0 0 8 0c0-4-4-6-4-10z"></path></svg>' :
                              a.type === 'level' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>' : '';
-                const label = a.type === 'watch' ? `Watched ${a.title}` :
+                let watchText = `Watched ${a.title}`;
+                if (a.type === 'watch' && a.duration) {
+                    const dur = parseInt(a.duration);
+                    if (dur > 0) {
+                        const m = Math.floor(dur / 60);
+                        const s = dur % 60;
+                        if (m > 0) watchText += ` (${m}m ${s}s)`;
+                        else watchText += ` (${s}s)`;
+                    }
+                }
+                const label = a.type === 'watch' ? watchText :
                               a.type === 'streak' ? `Streak continued` :
                               a.type === 'level' ? `Reached: ${a.title}` : a.title;
                 const sub = a.type === 'streak' ? a.title : getRelativeTime(a.date);
