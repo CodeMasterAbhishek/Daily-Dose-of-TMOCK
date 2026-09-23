@@ -29,6 +29,7 @@ const STORAGE_EXACT_WATCH_SECONDS = 'tmkoc_exact_watch_seconds';
 const STORAGE_HANDLE = 'tmkoc_user_handle';
 const STORAGE_STREAK = 'tmkoc_streak_data';
 const STORAGE_ACTIVITY = 'tmkoc_activity_log';
+const STORAGE_LAST_OPENED = 'tmkoc_last_opened';
 
 let activeWatchTrackerTimer = null;
 let currentActiveEpId = null;
@@ -326,9 +327,12 @@ function getRecentActivity(limit = 10) {
 
 function getLastWatchedEpisode() {
     try {
-        const completed = getCompletedWatchedList();
-        if (completed.length === 0) return null;
-        const lastId = completed[completed.length - 1];
+        let lastId = localStorage.getItem(STORAGE_LAST_OPENED);
+        if (!lastId) {
+            const completed = getCompletedWatchedList();
+            if (completed.length === 0) return null;
+            lastId = completed[completed.length - 1];
+        }
         const article = allArticlesMap[lastId];
         if (article) return { id: lastId, title: article.title, epNumber: article.epNumber };
         return { id: lastId, title: `Episode`, epNumber: lastId };
@@ -709,6 +713,7 @@ function stopActiveWatchTracker() {
 
 function openCleanPlayer(article) {
     currentModalEpNum = article.epNumber;
+    localStorage.setItem(STORAGE_LAST_OPENED, article.id);
 
     let backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (!backdrop) {
@@ -1072,10 +1077,21 @@ export async function updateFanDashboard() {
 
 function createPodiumCardHTML(item) {
     const colorClass = item.rank === '1' ? 'gold' : item.rank === '2' ? 'silver' : 'bronze';
+    
+    // Fill color logic
+    const fillColors = {
+        gold: '#fbbf24',
+        silver: '#cbd5e1',
+        bronze: '#d97706'
+    };
+    const fillHex = fillColors[colorClass];
+
     return `
         <div class="lb-podium-card lb-podium-card--${colorClass}${item.isUser ? ' lb-podium-card--you' : ''}">
-            <div class="lb-podium__rank lb-podium__rank--${colorClass}">#${item.rank}</div>
-            <div class="lb-podium__handle">
+            <div class="lb-podium__rank lb-podium__rank--${colorClass}" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="${fillHex}" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+            </div>
+            <div class="lb-podium__handle" style="margin-top: 4px;">
                 ${escapeHTML(item.handle)}
                 ${item.isUser ? '<span class="lb-you-badge">YOU</span>' : ''}
             </div>
