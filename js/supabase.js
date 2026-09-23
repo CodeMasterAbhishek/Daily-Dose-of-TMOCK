@@ -99,7 +99,8 @@ export async function fetchGlobalLeaderboard(limit = 50) {
                 headers: {
                     'apikey': SUPABASE_CONFIG.anonKey,
                     'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Prefer': 'count=exact'
                 }
             }
         );
@@ -109,10 +110,19 @@ export async function fetchGlobalLeaderboard(limit = 50) {
             return null;
         }
 
+        let totalCount = 0;
+        const rangeHeader = response.headers.get('content-range');
+        if (rangeHeader) {
+            const parts = rangeHeader.split('/');
+            if (parts.length === 2) {
+                totalCount = parseInt(parts[1], 10);
+            }
+        }
+
         const data = await response.json();
         const myUserId = getOrCreateUserId();
 
-        return (data || []).map((row, index) => ({
+        const fans = (data || []).map((row, index) => ({
             rank: (index + 1).toString(),
             handle: row.handle,
             count: Number(row.watched_count) || 0,
@@ -120,6 +130,8 @@ export async function fetchGlobalLeaderboard(limit = 50) {
             level: row.fan_tier,
             isUser: row.user_id === myUserId
         }));
+        
+        return { fans, totalCount };
     } catch (err) {
         console.warn('Failed to fetch leaderboard:', err);
         return null;

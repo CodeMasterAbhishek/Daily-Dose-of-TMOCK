@@ -771,9 +771,17 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
             </div>
         `;
 
-        const globalFans = await fetchGlobalLeaderboard(50);
-        if (globalFans && globalFans.length > 0) {
-            let rowsHtml = '';
+        const leaderboardData = await fetchGlobalLeaderboard(50);
+        if (leaderboardData && leaderboardData.fans && leaderboardData.fans.length > 0) {
+            const globalFans = leaderboardData.fans;
+            const totalCount = leaderboardData.totalCount;
+
+            let rowsHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 4px;">
+                    <span style="font-weight: 800; font-size: 14px; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px;">Top 50 Global Fans</span>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-primary); opacity: 0.7; background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">Total Users: ${totalCount}</span>
+                </div>
+            `;
             let userFoundInList = false;
 
             globalFans.forEach(item => {
@@ -800,7 +808,7 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
 
             leaderboardEl.innerHTML = statusBanner + rowsHtml;
             return;
-        } else if (globalFans && globalFans.length === 0) {
+        } else if (leaderboardData && leaderboardData.fans && leaderboardData.fans.length === 0) {
             leaderboardEl.innerHTML = statusBanner + `
                 <div style="padding: 30px 20px; text-align: center; background: var(--bg-primary); border-radius: 12px; border: 1px dashed var(--border-color); font-size: 13px; color: var(--text-primary); opacity: 0.7;">
                     No fans on the Global Leaderboard yet.<br>Save your handle or watch an episode to claim Rank #1!
