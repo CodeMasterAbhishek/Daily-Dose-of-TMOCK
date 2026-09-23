@@ -46,8 +46,14 @@ def is_geoblocked_title(title: str) -> bool:
     return "new episode" in title.lower()
 
 def is_single_episode(title: str, description: str, channel: str, ep_num: int, require_full: bool = False) -> bool:
-    # Strict channel filter
-    valid_channels = ['sony sab', 'sony pal', 'taarak mehta ka ooltah chashmah', 'taarak mehta ka ooltah chashmah episodes']
+    valid_channels = [
+        'sony sab', 
+        'sony pal', 
+        'taarak mehta ka ooltah chashmah', 
+        'taarak mehta ka ooltah chashmah episodes',
+        'taarak mehta ka ooltah chashmah movies',
+        'liv comedy'
+    ]
     if channel.lower() not in valid_channels:
         return False
 

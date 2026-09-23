@@ -115,6 +115,10 @@ function getFilteredAndRankedArticles() {
         return categoryMatch && searchMatch;
     });
 
+    if (activeStorylineArc) {
+        return filtered.sort((a, b) => a.epNumber - b.epNumber);
+    }
+
     if (currentSort === 'random') {
         // Fisher-Yates Shuffle
         for (let i = filtered.length - 1; i > 0; i--) {
@@ -156,6 +160,15 @@ function getFilteredAndRankedArticles() {
 function renderPage(append = false) {
     if (!append) {
         window.scrollTo(0, 0);
+    }
+
+    const sortDropdownContainer = document.getElementById('sort-dropdown-container');
+    if (sortDropdownContainer) {
+        if (activeStorylineArc) {
+            sortDropdownContainer.style.display = 'none';
+        } else {
+            sortDropdownContainer.style.display = 'block';
+        }
     }
 
     if (currentCategory === 'storylines' && !activeStorylineArc) {
