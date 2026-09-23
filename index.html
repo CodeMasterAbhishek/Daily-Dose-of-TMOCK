@@ -118,108 +118,203 @@
     <section id="fan-dashboard-view" class="container" style="display: none; margin-top: 2rem; padding-bottom: 4rem;">
         <div class="fan-dashboard">
 
-            <!-- Dashboard Header -->
-            <div class="dash-header dash-animate">
-                <div class="dash-header__left">
-                    <div class="dash-badge">DASHBOARD</div>
-                    <h2 class="dash-title">Fan Stats & Leaderboard</h2>
+            <!-- ===== LEFT: MAIN CONTENT ===== -->
+            <div class="dash-main">
+
+                <!-- Dashboard Header -->
+                <div class="dash-header dash-animate">
+                    <div class="dash-header__left">
+                        <div class="dash-header__subtitle">WELCOME BACK</div>
+                        <h2 class="dash-title">Fan Stats & Leaderboard</h2>
+                        <p class="dash-header__desc">Your journey with Daily Dose of TMKOC. Track your progress, see how you compare, and keep the streak going!</p>
+                    </div>
                 </div>
-                <div class="dash-live-indicator">
-                    <span class="dash-live-dot"></span>
-                    Live
+
+                <!-- Handle Input Bar -->
+                <div class="handle-bar dash-animate">
+                    <svg class="handle-bar__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span class="handle-bar__label">Your Handle</span>
+                    <input type="text" id="user-handle-input" class="handle-bar__input" placeholder="e.g. Jethalal123">
+                    <button id="save-handle-btn" class="handle-bar__save" onclick="saveUserHandle()">Save</button>
+                </div>
+
+                <!-- Bento Stats Grid (4 cards) -->
+                <div class="stats-bento dash-animate">
+                    <!-- Episodes Watched -->
+                    <div class="stat-card stat-card--episodes">
+                        <div class="stat-card__icon stat-card__icon--episodes">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+                        </div>
+                        <div id="stat-episodes-count" class="stat-card__value">0</div>
+                        <div class="stat-card__label">Episodes Watched</div>
+                        <div class="stat-card__sub">≥ 90% Completed</div>
+                    </div>
+
+                    <!-- Watch Time -->
+                    <div class="stat-card stat-card--hours">
+                        <div class="stat-card__icon stat-card__icon--hours">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        </div>
+                        <div id="stat-watch-hours" class="stat-card__value">0h 0m</div>
+                        <div class="stat-card__label">Exact Watch Time</div>
+                        <div class="stat-card__sub">Active Playback Only</div>
+                    </div>
+
+                    <!-- Fan Level -->
+                    <div class="stat-card stat-card--level">
+                        <div class="stat-card__icon stat-card__icon--level">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+                        </div>
+                        <div id="stat-fan-level" class="stat-card__value stat-card__value--level">Gokuldham Resident</div>
+                        <div class="stat-card__label">Fan Level · Tier</div>
+                        <div id="stat-next-tier" class="stat-card__sub">Next tier in 51 episodes</div>
+                    </div>
+
+                    <!-- Day Streak -->
+                    <div class="stat-card stat-card--streak">
+                        <div class="stat-card__icon stat-card__icon--streak">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c0 4-4 6-4 10a4 4 0 0 0 8 0c0-4-4-6-4-10z"></path></svg>
+                        </div>
+                        <div class="stat-card__value-row">
+                            <span id="stat-streak-count" class="stat-card__value">0</span>
+                            <span class="stat-card__value-unit">Day Streak</span>
+                        </div>
+                        <div class="stat-card__label">Keep watching!</div>
+                    </div>
+                </div>
+
+                <!-- Share Card Section -->
+                <div class="share-section dash-animate">
+                    <div class="share-section__header">
+                        <span class="share-section__title">Your Social Share Card</span>
+                        <button class="share-section__copy-btn" onclick="copyShareCardText()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy Link
+                        </button>
+                    </div>
+
+                    <div id="spotify-card-elem" class="spotify-share-card">
+                        <div class="spotify-card-header">
+                            <div class="spotify-card-brand">Daily Dose of <small style="font-size: 10px; background: white; color: #1e1b4b; padding: 3px 6px; border-radius: 4px; font-weight: 800; margin-left: 4px;">TMKOC</small></div>
+                            <div id="card-user-badge" class="spotify-user-badge">@TMKOCSuperfan</div>
+                        </div>
+                        <div class="spotify-card-body">
+                            <div class="spotify-art-box">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            </div>
+                            <div class="spotify-stats-info">
+                                <div id="card-tier-badge" class="spotify-tier-title">Gokuldham Resident</div>
+                                <div id="card-main-stat" class="spotify-main-stat">0 Episodes Watched</div>
+                                <div id="card-sub-stat" class="spotify-sub-stat">0 Hours 0 Mins Exact Watch Time</div>
+                            </div>
+                        </div>
+                        <div class="spotify-card-footer">
+                            <span>Join the community and share your progress!</span>
+                            <span>#TMKOC #DailyDose</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard Section -->
+                <div class="leaderboard-section dash-animate">
+                    <div class="leaderboard-header">
+                        <h4 class="leaderboard-header__title">Global Superfan Leaderboard</h4>
+                        <span class="leaderboard-header__live">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                            Live
+                        </span>
+                    </div>
+                    <div id="leaderboard-list">
+                        <!-- Rendered by JS -->
+                    </div>
                 </div>
             </div>
 
-            <!-- Handle Input Bar -->
-            <div class="handle-bar dash-animate">
-                <svg class="handle-bar__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                <span class="handle-bar__label">Your Handle</span>
-                <input type="text" id="user-handle-input" class="handle-bar__input" placeholder="e.g. Jethalal123">
-                <button id="save-handle-btn" class="handle-bar__save" onclick="saveUserHandle()">Save</button>
-            </div>
+            <!-- ===== RIGHT: SIDEBAR ===== -->
+            <aside class="dash-sidebar">
 
-            <!-- Bento Stats Grid -->
-            <div class="stats-bento dash-animate">
-                <!-- Episodes Watched -->
-                <div class="stat-card stat-card--episodes">
-                    <div class="stat-card__icon stat-card__icon--episodes">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+                <!-- Brand Card -->
+                <div class="sidebar-brand dash-animate">
+                    <div class="sidebar-brand__header">
+                        <span class="sidebar-brand__badge">TMKOC</span>
+                        <div class="sidebar-brand__name">Daily Dose of <strong>TMKOC</strong></div>
+                        <div class="sidebar-brand__tagline">Because 24 episodes are never enough.</div>
                     </div>
-                    <div id="stat-episodes-count" class="stat-card__value">0</div>
-                    <div class="stat-card__label">Episodes Watched</div>
-                    <div class="stat-card__sub">≥ 90% Completed</div>
-                </div>
-
-                <!-- Watch Time -->
-                <div class="stat-card stat-card--hours">
-                    <div class="stat-card__icon stat-card__icon--hours">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <div class="sidebar-brand__episode">
+                        <div class="sidebar-brand__play-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        </div>
+                        <div class="sidebar-brand__ep-info">
+                            <div class="sidebar-brand__ep-label">Latest Episode</div>
+                            <div id="brand-ep-title" class="sidebar-brand__ep-title">No episodes yet</div>
+                            <div id="brand-ep-sub" class="sidebar-brand__ep-sub">Start watching to track progress</div>
+                        </div>
                     </div>
-                    <div id="stat-watch-hours" class="stat-card__value">0h 0m</div>
-                    <div class="stat-card__label">Exact Watch Time</div>
-                    <div class="stat-card__sub">Active Playback Only</div>
-                </div>
-
-                <!-- Fan Level -->
-                <div class="stat-card stat-card--level">
-                    <div class="stat-card__icon stat-card__icon--level">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
-                    </div>
-                    <div id="stat-fan-level" class="stat-card__value stat-card__value--level">Gokuldham Resident</div>
-                    <div class="stat-card__label">Fan Level Tier</div>
-                </div>
-            </div>
-
-            <!-- Share Card Section -->
-            <div class="share-section dash-animate">
-                <div class="share-section__header">
-                    <span class="share-section__title">Social Share Card</span>
-                    <button class="share-section__copy-btn" onclick="copyShareCardText()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        Copy Details
+                    <button id="continue-watching-btn" class="sidebar-brand__continue">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        Continue Watching
                     </button>
                 </div>
 
-                <div id="spotify-card-elem" class="spotify-share-card">
-                    <div class="spotify-card-header">
-                        <div class="spotify-card-brand">Daily Dose of <small style="font-size: 10px; background: white; color: #1e1b4b; padding: 3px 6px; border-radius: 4px; font-weight: 800; margin-left: 4px;">TMKOC</small></div>
-                        <div id="card-user-badge" class="spotify-user-badge">@TMKOCSuperfan</div>
+                <!-- Quick Stats -->
+                <div class="sidebar-section dash-animate">
+                    <div class="sidebar-section__header">
+                        <span class="sidebar-section__title">🔥 Quick Stats</span>
                     </div>
-
-                    <div class="spotify-card-body">
-                        <div class="spotify-art-box">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <div class="quick-stats-list">
+                        <div class="qs-row">
+                            <div class="qs-row__left">
+                                <div class="qs-row__icon qs-row__icon--episodes">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+                                </div>
+                                <span class="qs-row__label">Total Episodes</span>
+                            </div>
+                            <span id="qs-episodes" class="qs-row__value">0</span>
                         </div>
-                        <div class="spotify-stats-info">
-                            <div id="card-tier-badge" class="spotify-tier-title">Gokuldham Resident</div>
-                            <div id="card-main-stat" class="spotify-main-stat">0 Episodes Watched</div>
-                            <div id="card-sub-stat" class="spotify-sub-stat">0 Hours 0 Mins Exact Watch Time</div>
+                        <div class="qs-row">
+                            <div class="qs-row__left">
+                                <div class="qs-row__icon qs-row__icon--hours">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                </div>
+                                <span class="qs-row__label">Total Watch Time</span>
+                            </div>
+                            <span id="qs-watch-time" class="qs-row__value">0 hrs</span>
+                        </div>
+                        <div class="qs-row">
+                            <div class="qs-row__left">
+                                <div class="qs-row__icon qs-row__icon--streak">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2c0 4-4 6-4 10a4 4 0 0 0 8 0c0-4-4-6-4-10z"></path></svg>
+                                </div>
+                                <span class="qs-row__label">Current Streak</span>
+                            </div>
+                            <span id="qs-streak" class="qs-row__value">0 days</span>
+                        </div>
+                        <div class="qs-row">
+                            <div class="qs-row__left">
+                                <div class="qs-row__icon qs-row__icon--level">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"></path></svg>
+                                </div>
+                                <span class="qs-row__label">Fan Level</span>
+                            </div>
+                            <span id="qs-level" class="qs-row__value">Gokuldham Resident</span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="spotify-card-footer">
-                        <span>CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/</span>
-                        <span>#TMKOC #DailyDose</span>
+                <!-- Recent Activity -->
+                <div class="sidebar-section dash-animate">
+                    <div class="sidebar-section__header">
+                        <span class="sidebar-section__title">📋 Recent Activity</span>
+                    </div>
+                    <div id="activity-list" class="activity-list">
+                        <div class="activity-empty">No activity yet. Watch an episode to get started!</div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Leaderboard Section -->
-            <div class="leaderboard-section dash-animate">
-                <div class="leaderboard-header">
-                    <h4 class="leaderboard-header__title">Global Superfan Leaderboard</h4>
-                    <span class="leaderboard-header__live">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                        Live
-                    </span>
-                </div>
-                <div id="leaderboard-list">
-                    <!-- Rendered by JS -->
-                </div>
-            </div>
-
+            </aside>
         </div>
     </section>
+
 
 
     <footer>

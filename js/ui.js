@@ -27,6 +27,8 @@ const STORAGE_COMPLETED = 'tmkoc_completed_watched_eps'; // Only >= 90% complete
 const STORAGE_TIMESTAMPS = 'tmkoc_timestamps';
 const STORAGE_EXACT_WATCH_SECONDS = 'tmkoc_exact_watch_seconds';
 const STORAGE_HANDLE = 'tmkoc_user_handle';
+const STORAGE_STREAK = 'tmkoc_streak_data';
+const STORAGE_ACTIVITY = 'tmkoc_activity_log';
 
 let activeWatchTrackerTimer = null;
 let currentActiveEpId = null;
@@ -256,6 +258,101 @@ function getTimestamps() {
     }
 }
 
+// ----------------------------------------------------
+// STREAK & ACTIVITY TRACKING
+// ----------------------------------------------------
+function getStreakData() {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE_STREAK) || '{}');
+    } catch(e) {
+        return {};
+    }
+}
+
+function getTodayDateStr() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function updateStreak() {
+    const data = getStreakData();
+    const today = getTodayDateStr();
+
+    if (data.lastWatchDate === today) return data;
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    let currentStreak = data.currentStreak || 0;
+    let longestStreak = data.longestStreak || 0;
+
+    if (data.lastWatchDate === yesterdayStr) {
+        currentStreak += 1;
+    } else {
+        currentStreak = 1;
+    }
+
+    if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+    }
+
+    const updated = { currentStreak, longestStreak, lastWatchDate: today };
+    localStorage.setItem(STORAGE_STREAK, JSON.stringify(updated));
+
+    if (currentStreak > 1) {
+        logActivity('streak', `${currentStreak} days in a row`);
+    }
+
+    return updated;
+}
+
+function logActivity(type, title) {
+    try {
+        const log = JSON.parse(localStorage.getItem(STORAGE_ACTIVITY) || '[]');
+        log.unshift({ type, title, date: new Date().toISOString() });
+        if (log.length > 20) log.length = 20;
+        localStorage.setItem(STORAGE_ACTIVITY, JSON.stringify(log));
+    } catch(e) {}
+}
+
+function getRecentActivity(limit = 10) {
+    try {
+        const log = JSON.parse(localStorage.getItem(STORAGE_ACTIVITY) || '[]');
+        return log.slice(0, limit);
+    } catch(e) {
+        return [];
+    }
+}
+
+function getLastWatchedEpisode() {
+    try {
+        const completed = getCompletedWatchedList();
+        if (completed.length === 0) return null;
+        const lastId = completed[completed.length - 1];
+        const article = allArticlesMap[lastId];
+        if (article) return { id: lastId, title: article.title, epNumber: article.epNumber };
+        return { id: lastId, title: `Episode`, epNumber: lastId };
+    } catch(e) {
+        return null;
+    }
+}
+
+function getRelativeTime(dateStr) {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
 export async function syncCurrentUserStats() {
     try {
         const completed = getCompletedWatchedList();
@@ -303,8 +400,24 @@ function saveCompletedEpisode(id) {
     try {
         const completed = getCompletedWatchedList();
         if (!completed.includes(id)) {
+            const prevLevel = getFanLevel(completed.length).title;
             completed.push(id);
             localStorage.setItem(STORAGE_COMPLETED, JSON.stringify(completed));
+
+            // Track streak
+            updateStreak();
+
+            // Log activity
+            const article = allArticlesMap[id];
+            const epTitle = article ? `Episode ${article.epNumber}` : `Episode`;
+            logActivity('watch', epTitle);
+
+            // Check fan level change
+            const newLevel = getFanLevel(completed.length).title;
+            if (newLevel !== prevLevel) {
+                logActivity('level', newLevel);
+            }
+
             syncCurrentUserStats();
         }
         const elements = document.querySelectorAll(`[data-id="${id}"]`);
@@ -874,10 +987,86 @@ export async function updateFanDashboard() {
     if (cardMainStat) cardMainStat.textContent = `${watchedCount} Episodes Watched`;
     if (cardSubStat) cardSubStat.textContent = `${watchHours} Hours ${watchMins} Mins Exact Watch Time`;
 
+    // Streak card
+    const streakData = getStreakData();
+    const currentStreak = streakData.currentStreak || 0;
+    const streakEl = document.getElementById('stat-streak-count');
+    if (streakEl) streakEl.textContent = currentStreak;
+
+    // Decimal hours for sidebar + leaderboard
+    const decimalHours = parseFloat((totalWatchSecs / 3600).toFixed(2));
+
+    // Next tier info
+    const nextTierEl = document.getElementById('stat-next-tier');
+    if (nextTierEl) {
+        if (watchedCount < 51) nextTierEl.textContent = `Next tier in ${51 - watchedCount} episodes`;
+        else if (watchedCount < 301) nextTierEl.textContent = `Next tier in ${301 - watchedCount} episodes`;
+        else if (watchedCount < 1000) nextTierEl.textContent = `Next tier in ${1000 - watchedCount} episodes`;
+        else nextTierEl.textContent = 'Max level reached!';
+    }
+
+    // Sidebar: Quick Stats
+    const qsEpisodes = document.getElementById('qs-episodes');
+    const qsWatchTime = document.getElementById('qs-watch-time');
+    const qsStreak = document.getElementById('qs-streak');
+    const qsLevel = document.getElementById('qs-level');
+    if (qsEpisodes) qsEpisodes.textContent = watchedCount;
+    if (qsWatchTime) qsWatchTime.textContent = `${decimalHours} hrs`;
+    if (qsStreak) qsStreak.textContent = `${currentStreak} days`;
+    if (qsLevel) qsLevel.textContent = level.title;
+
+    // Sidebar: Continue Watching / Brand Card
+    const lastEp = getLastWatchedEpisode();
+    const brandEpTitle = document.getElementById('brand-ep-title');
+    const brandEpSub = document.getElementById('brand-ep-sub');
+    const continueBtn = document.getElementById('continue-watching-btn');
+    if (lastEp) {
+        if (brandEpTitle) brandEpTitle.textContent = `Episode ${lastEp.epNumber}`;
+        if (brandEpSub) brandEpSub.textContent = lastEp.title;
+        if (continueBtn) {
+            continueBtn.style.display = 'flex';
+            continueBtn.onclick = () => { if (window.playEpisode) window.playEpisode(lastEp.id); };
+        }
+    } else {
+        if (brandEpTitle) brandEpTitle.textContent = 'No episodes yet';
+        if (brandEpSub) brandEpSub.textContent = 'Start watching to track progress';
+        if (continueBtn) continueBtn.style.display = 'flex';
+    }
+
+    // Sidebar: Recent Activity
+    const activityEl = document.getElementById('activity-list');
+    if (activityEl) {
+        const activities = getRecentActivity(5);
+        if (activities.length === 0) {
+            activityEl.innerHTML = '<div class="activity-empty">No activity yet. Watch an episode to get started!</div>';
+        } else {
+            activityEl.innerHTML = activities.map(a => {
+                const iconClass = a.type === 'watch' ? 'activity-icon--watch' :
+                                  a.type === 'streak' ? 'activity-icon--streak' :
+                                  a.type === 'level' ? 'activity-icon--level' : 'activity-icon--watch';
+                const icon = a.type === 'watch' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>' :
+                             a.type === 'streak' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2c0 4-4 6-4 10a4 4 0 0 0 8 0c0-4-4-6-4-10z"></path></svg>' :
+                             a.type === 'level' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>' : '';
+                const label = a.type === 'watch' ? `Watched ${a.title}` :
+                              a.type === 'streak' ? `Streak continued` :
+                              a.type === 'level' ? `Reached: ${a.title}` : a.title;
+                const sub = a.type === 'streak' ? a.title : getRelativeTime(a.date);
+                return `
+                    <div class="activity-item">
+                        <div class="activity-icon ${iconClass}">${icon}</div>
+                        <div class="activity-info">
+                            <div class="activity-label">${escapeHTML(label)}</div>
+                            <div class="activity-time">${escapeHTML(sub)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
     // Sync current stats to cloud
     await syncCurrentUserStats();
 
-    const decimalHours = parseFloat((totalWatchSecs / 3600).toFixed(1));
     await renderLeaderboardList(savedHandle, watchedCount, decimalHours, level.title);
 }
 
