@@ -601,39 +601,17 @@ function openCleanPlayer(article) {
                 },
                 events: {
                     'onError': function(event) {
-                        // Codes 150 and 101 mean embedding is disabled or restricted
-                        if (event.data === 150 || event.data === 101) {
-                            if (modalWarning) {
-                                modalWarning.style.display = 'block';
-                                modalWarning.innerHTML = `⚠️ <strong>Switched to Backup Stream</strong>: The main video was blocked, so we automatically found an alternative official stream!`;
-                            }
-                            // Destroy the current broken player
-                            if (ytPlayer) {
-                                ytPlayer.destroy();
-                                ytPlayer = null;
-                            }
-                            // Replace with a dynamic Search-Based embed that skips blocked videos automatically
-                            const searchParam = encodeURIComponent(`Taarak Mehta Ka Ooltah Chashmah Episode ${article.epNumber}`);
-                            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=${searchParam}&autoplay=1&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%; height:100%; min-height: 270px;"></iframe>`;
-                            
-                            try {
-                                verifiedVideos.add(article.id);
-                                const card = document.querySelector(`.card[data-id="${article.id}"]`);
-                                if (card) card.classList.remove('ep-unavailable');
-                            } catch(e) {}
-                        } else {
-                            if (modalWarning) {
-                                modalWarning.style.display = 'block';
-                                modalWarning.innerHTML = `⚠️ <strong>Video Unavailable:</strong> YouTube refused to play this video. It may be geo-blocked, made private, or Sony disabled embedding. <a href="https://www.youtube.com/results?search_query=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" target="_blank" style="color: #d97706; text-decoration: underline;">Search for Ep ${article.epNumber} on YouTube</a>. (Code: ${event.data})`;
-                            }
-                            try {
-                                verifiedVideos.add(article.id);
-                                const card = document.querySelector(`.card[data-id="${article.id}"]`);
-                                if (card && !card.classList.contains('ep-unavailable')) {
-                                    card.classList.add('ep-unavailable');
-                                }
-                            } catch(e) {}
+                        if (modalWarning) {
+                            modalWarning.style.display = 'block';
+                            modalWarning.innerHTML = `⚠️ <strong>Video Unavailable:</strong> YouTube refused to play this video. It may be geo-blocked, made private, or Sony disabled embedding. <a href="https://www.youtube.com/results?search_query=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" target="_blank" style="color: #d97706; text-decoration: underline;">Search for Ep ${article.epNumber} on YouTube</a>. (Code: ${event.data})`;
                         }
+                        try {
+                            verifiedVideos.add(article.id);
+                            const card = document.querySelector(`.card[data-id="${article.id}"]`);
+                            if (card && !card.classList.contains('ep-unavailable')) {
+                                card.classList.add('ep-unavailable');
+                            }
+                        } catch(e) {}
                     },
                     'onStateChange': function(event) {
                         if (event.data === window.YT.PlayerState.PLAYING) {
