@@ -490,22 +490,23 @@
 
 /* Brand Card */
 .sidebar-brand {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   padding: 24px;
-  color: #fff;
+  color: var(--text-primary);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-brand__header { display: flex; flex-direction: column; gap: 8px; }
 
 .sidebar-brand__badge {
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(8px);
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--bg-primary);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 10px;
@@ -514,47 +515,50 @@
   width: fit-content;
 }
 
-.sidebar-brand__name { font-size: 16px; font-weight: 700; color: #fff; }
+.sidebar-brand__name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
 .sidebar-brand__name strong { font-weight: 900; }
-.sidebar-brand__tagline { font-size: 12px; color: #a5b4fc; }
+.sidebar-brand__tagline { font-size: 12px; color: var(--text-secondary); }
 
 .sidebar-brand__episode {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 14px;
   padding: 14px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
 
-.sidebar-brand__episode:hover { background: rgba(255,255,255,0.12); }
+.sidebar-brand__episode:hover { 
+  background: var(--bg-primary); 
+  border-color: var(--text-primary);
+}
 
 .sidebar-brand__play-icon {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.15);
+  background: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #fff;
+  color: var(--bg-primary);
 }
 
 .sidebar-brand__ep-info { min-width: 0; }
-.sidebar-brand__ep-label { font-size: 10px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.5px; }
-.sidebar-brand__ep-title { font-size: 14px; font-weight: 800; color: #fff; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar-brand__ep-sub { font-size: 11px; color: #c7d2fe; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-brand__ep-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.sidebar-brand__ep-title { font-size: 14px; font-weight: 800; color: var(--text-primary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-brand__ep-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .sidebar-brand__continue {
   width: 100%;
   padding: 12px;
   border-radius: 12px;
-  background: #fff;
-  color: #1e1b4b;
+  background: var(--text-primary);
+  color: var(--bg-primary);
   border: none;
   cursor: pointer;
   font-weight: 800;

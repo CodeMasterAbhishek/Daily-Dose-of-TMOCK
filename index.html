@@ -130,14 +130,6 @@
                     </div>
                 </div>
 
-                <!-- Handle Input Bar -->
-                <div class="handle-bar dash-animate">
-                    <svg class="handle-bar__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                    <span class="handle-bar__label">Your Handle</span>
-                    <input type="text" id="user-handle-input" class="handle-bar__input" placeholder="e.g. Jethalal123">
-                    <button id="save-handle-btn" class="handle-bar__save" onclick="saveUserHandle()">Save</button>
-                </div>
-
                 <!-- Bento Stats Grid (4 cards) -->
                 <div class="stats-bento dash-animate">
                     <!-- Episodes Watched -->
@@ -254,6 +246,18 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                         Continue Watching
                     </button>
+                </div>
+
+                <!-- Handle Input Bar (Moved to Sidebar) -->
+                <div class="sidebar-section dash-animate" style="padding: 16px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        Your Handle
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="user-handle-input" class="handle-bar__input" placeholder="e.g. Jethalal123" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; font-size: 13px; flex: 1;">
+                        <button id="save-handle-btn" class="handle-bar__save" onclick="saveUserHandle()" style="padding: 10px 16px; border-radius: 8px;">Save</button>
+                    </div>
                 </div>
 
                 <!-- Quick Stats -->

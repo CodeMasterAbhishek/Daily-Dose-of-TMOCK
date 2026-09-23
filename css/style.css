@@ -631,17 +631,17 @@ a:focus-visible {
 /* Spotify-Style Visual Share Card Component */
 .spotify-share-card {
   width: 100%;
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+  background: var(--bg-primary);
   border-radius: 16px;
   padding: 24px;
-  color: #ffffff;
-  box-shadow: 0 15px 35px rgba(49, 46, 129, 0.4);
+  color: var(--text-primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-color);
 }
 
 .spotify-card-header {
@@ -655,21 +655,26 @@ a:focus-visible {
   font-size: 18px;
   font-weight: 900;
   letter-spacing: -0.5px;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .spotify-card-brand span {
-  color: #818cf8;
+  color: var(--text-secondary);
+}
+
+.spotify-card-brand small {
+  background: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
 }
 
 .spotify-user-badge {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
+  background: var(--bg-secondary);
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .spotify-card-body {
@@ -681,14 +686,16 @@ a:focus-visible {
 .spotify-art-box {
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 36px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
+  color: var(--text-primary);
 }
 
 .spotify-stats-info {
@@ -709,23 +716,24 @@ a:focus-visible {
   font-size: 24px;
   font-weight: 900;
   letter-spacing: -0.5px;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .spotify-sub-stat {
   font-size: 13px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .spotify-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px dashed var(--border-color);
   padding-top: 12px;
   font-size: 11px;
-  color: #a5b4fc;
+  color: var(--text-secondary);
 }
+
 
 /* Static Search Bar Component (Always Visible) */
 .static-search-form {
