@@ -154,6 +154,10 @@ function getFilteredAndRankedArticles() {
 }
 
 function renderPage(append = false) {
+    if (!append) {
+        window.scrollTo(0, 0);
+    }
+
     if (currentCategory === 'storylines' && !activeStorylineArc) {
         let sortedStorylines = [...allStorylines];
 
