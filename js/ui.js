@@ -240,12 +240,21 @@ export async function syncCurrentUserStats() {
             return { success: false, reason: 'no_activity' };
         }
 
-        const userId = getOrCreateUserId();
-        const defaultHandle = `@Fan_${userId.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`;
-        const handle = (savedHandle && savedHandle.trim()) ? savedHandle.trim() : defaultHandle;
-
-        if (!savedHandle) {
+        let handle = savedHandle;
+        if (!handle || !handle.trim()) {
+            let nextUserNumber = 1;
+            try {
+                const lbData = await fetchGlobalLeaderboard(1);
+                if (lbData && lbData.totalCount !== undefined) {
+                    nextUserNumber = lbData.totalCount + 1;
+                }
+            } catch (e) {
+                console.warn('Could not fetch count for default username');
+            }
+            handle = `Gokuldham resident ${nextUserNumber}`;
             localStorage.setItem(STORAGE_HANDLE, handle);
+        } else {
+            handle = handle.trim();
         }
 
         const level = getFanLevel(count);
@@ -696,7 +705,19 @@ export async function updateFanDashboard() {
         levelEl.style.color = level.color;
     }
 
-    const savedHandle = localStorage.getItem(STORAGE_HANDLE) || '@TMKOCSuperfan';
+    let savedHandle = localStorage.getItem(STORAGE_HANDLE);
+    if (!savedHandle) {
+        let nextUserNumber = 1;
+        try {
+            const lbData = await fetchGlobalLeaderboard(1);
+            if (lbData && lbData.totalCount !== undefined) {
+                nextUserNumber = lbData.totalCount + 1;
+            }
+        } catch (e) {}
+        savedHandle = `Gokuldham resident ${nextUserNumber}`;
+        localStorage.setItem(STORAGE_HANDLE, savedHandle);
+    }
+
     const handleInput = document.getElementById('user-handle-input');
     if (handleInput && !handleInput.value) {
         handleInput.value = savedHandle;
