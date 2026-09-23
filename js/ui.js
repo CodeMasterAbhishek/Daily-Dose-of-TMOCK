@@ -161,8 +161,16 @@ function handleCheckerResult(article, isUnavailable) {
         
         const card = document.querySelector(`.card[data-id="${article.id}"]`);
         if (card) {
-            if (isUnavailable) card.classList.add('ep-unavailable');
-            else card.classList.remove('ep-unavailable');
+            if (isUnavailable && !article.fallbackId && !article.shortId) {
+                card.classList.add('ep-unavailable');
+            } else {
+                card.classList.remove('ep-unavailable');
+            }
+            
+            if (isUnavailable && !article.fallbackId && article.shortId) {
+                const durationBadge = card.querySelector('.card-duration-badge');
+                if (durationBadge) durationBadge.innerHTML = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
+            }
         }
     } catch(e) {}
     
@@ -187,7 +195,12 @@ function initIntersectionObserver() {
                         if (cache[article.videoId]) {
                             verifiedVideos.add(article.id);
                             if (cache[article.videoId].isUnavailable) {
-                                card.classList.add('ep-unavailable');
+                                if (!article.fallbackId && !article.shortId) {
+                                    card.classList.add('ep-unavailable');
+                                } else if (!article.fallbackId && article.shortId) {
+                                    const durationBadge = card.querySelector('.card-duration-badge');
+                                    if (durationBadge) durationBadge.innerHTML = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
+                                }
                             }
                         } else {
                             if (!bgCheckerQueue.some(a => a.id === article.id)) {
@@ -365,8 +378,14 @@ function createCardHTML(article) {
     
     let unavailableClass = '';
     const cache = getCheckerCache();
+    let displayDuration = article.durationText;
+    
     if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
-        unavailableClass = 'ep-unavailable';
+        if (!article.fallbackId && !article.shortId) {
+            unavailableClass = 'ep-unavailable';
+        } else if (!article.fallbackId && article.shortId) {
+            displayDuration = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
+        }
     }
 
     const timestamps = getTimestamps();
@@ -377,7 +396,7 @@ function createCardHTML(article) {
         <article class="card ${readClass} ${unavailableClass}" data-id="${article.id}" data-category="${article.category.toLowerCase()}">
             <a href="javascript:void(0)" class="card-img-wrap" onclick="playEpisode('${article.id}')">
                 <img src="${imageUrl}" alt="${article.title}" loading="lazy" class="card-img" onerror="this.src='https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode'">
-                <span class="card-duration-badge">${article.durationText || '21:45'}</span>
+                <span class="card-duration-badge">${displayDuration || '21:45'}</span>
                 ${progressPercent > 0 ? `<div class="card-progress-container"><div class="card-progress-bar" style="width: ${progressPercent}%;"></div></div>` : ''}
             </a>
             <div class="card-content">
@@ -585,7 +604,28 @@ function openCleanPlayer(article) {
         }
         viewport.innerHTML = '<div id="clean-iframe-container"></div>';
         
-        const videoIdToPlay = article.videoId || '';
+        let videoIdToPlay = article.videoId || '';
+        let initialMsg = "";
+        
+        // INSTANT BYPASS: If the background checker already knows the main video is blocked,
+        // instantly switch to fallback/short without waiting 10s for the player to error out!
+        try {
+            const cache = getCheckerCache();
+            if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
+                if (article.fallbackId) {
+                    videoIdToPlay = article.fallbackId;
+                    if (!window._playbackAttempts) window._playbackAttempts = {};
+                    window._playbackAttempts[article.id] = 1;
+                    initialMsg = `⚠️ <strong>Switched to Backup Stream</strong>: The main video was blocked in your region, so we automatically pre-loaded the backup full episode!`;
+                } else if (article.shortId) {
+                    videoIdToPlay = article.shortId;
+                    if (!window._playbackAttempts) window._playbackAttempts = {};
+                    window._playbackAttempts[article.id] = 2;
+                    initialMsg = `⚠️ <strong>Switched to Short Version</strong>: The full episode is geo-blocked, so we automatically pre-loaded the 10-minute promo/short version instead!`;
+                }
+            }
+        } catch(e) {}
+        
         if (videoIdToPlay) {
             ytPlayer = new window.YT.Player('clean-iframe-container', {
                 videoId: videoIdToPlay,
@@ -600,6 +640,12 @@ function openCleanPlayer(article) {
                     'playsinline': 1
                 },
                 events: {
+                    'onReady': function(event) {
+                        if (initialMsg && modalWarning) {
+                            modalWarning.style.display = 'block';
+                            modalWarning.innerHTML = initialMsg;
+                        }
+                    },
                     'onError': function(event) {
                         if (event.data === 150 || event.data === 101) {
                             if (!window._playbackAttempts) window._playbackAttempts = {};
