@@ -49,7 +49,7 @@ function extractRealDate(title, epNum) {
 
 export async function fetchNewsData() {
     try {
-        const cacheBuster = Math.floor(Date.now() / 3600000);
+        const cacheBuster = Math.floor(Date.now() / 600000); // 10 minutes cache for episodes
         const response = await fetch(`data/episodes.csv?t=${cacheBuster}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -155,7 +155,7 @@ export async function fetchNewsData() {
 
 export async function fetchStorylines() {
     try {
-        const cacheBuster = Math.floor(Date.now() / 3600000);
+        const cacheBuster = Date.now(); // Force bypass CDN cache
         const response = await fetch(`data/storylines.json?t=${cacheBuster}`);
         if (!response.ok) return [];
         const data = await response.json();
