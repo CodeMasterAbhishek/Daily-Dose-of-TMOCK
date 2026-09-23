@@ -51,35 +51,35 @@ The project embraces a lightweight, no-framework philosophy, leaning heavily on 
 ---
 
 ## Architecture & Detailed Explanation
-
 ### 1. The "Zero-Cost" Database Layer
-Instead of using a traditional relational database (like PostgreSQL) or a NoSQL solution (like MongoDB), the entire episode catalogue is stored in a simple, static `episodes.csv` file. 
-*   **Why?** A flat file can be served instantaneously by GitHub's CDN. 
-*   When a user loads the app, the frontend asynchronously fetches the `.csv` file, parses it into JSON objects locally in the browser, and renders the interface. This completely eliminates database querying latency and hosting costs.
+Instead of using a traditional database, the entire catalogue of 4,800+ episodes is stored in a simple, highly optimized static \episodes.csv\ file. 
+*   **Why?** A flat file can be served instantaneously by GitHub's globally distributed CDN. 
+*   When a user loads the app, the frontend asynchronously fetches the \.csv\ file, parses it into JSON objects locally in the browser, and renders the interface. This completely eliminates database querying latency and traditional backend hosting costs.
 
-### 2. Automated Data Ingestion (What the GitHub Action Does)
-Official YouTube APIs have strict quotas and limitations. To solve this, the backend utilizes a custom Python script (`update_website.py`), which is triggered every 6 hours by a <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener noreferrer">GitHub Action</a>.
+### 2. Multi-Tiered Self-Healing Scraper
+Official YouTube channels frequently geo-block, delete, or re-upload episodes, leading to dead links. We bypass this entirely with a resilient auto-scraper running via <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener noreferrer">GitHub Actions</a>.
+1.  **Expanded Channel Polling**: Every 6 hours, our \update_website.py\ script utilizes \scrapetube\ to concurrently poll **6 official channels** (Sony SAB, Sony Pal, TMKOC Episodes, TMKOC Movies, LIV Comedy, etc.) to capture new releases.
+2.  **Cascading Fallbacks**: The backend aggressively searches for 3 distinct video tiers for *every* episode: 
+    - The Primary Full Episode (20+ minutes)
+    - A Fallback Full Episode (Hosted on secondary channels)
+    - A "Short" Version (10-minute highlights commonly available in geo-blocked regions like India)
+3.  **Auto-Commit & Deploy**: If new episodes or better fallbacks are discovered, the bot automatically commits changes to \episodes.csv\. GitHub Pages instantly deploys the updated links to all global users.
 
-Here is exactly what happens during every automated run:
-1.  **Environment Setup**: The Action spins up an Ubuntu server environment, installs Python, and downloads required dependencies like `scrapetube`.
-2.  **Fetching Data**: The Python script connects to the official Sony SAB YouTube channel and scrapes the metadata of their most recent video uploads.
-3.  **Data Filtering**: The script analyzes video titles and descriptions to intelligently filter out irrelevant content (like 30-second promos, teasers, or multi-episode compilations), ensuring only authentic, full-length TMKOC episodes make it through.
-4.  **Database Update**: If new valid episodes are found, the script extracts their YouTube Video IDs, Titles, Dates, and Thumbnails, appending this new row of data directly to the `episodes.csv` file. It also updates a tracker in `state.json`.
-5.  **Auto-Commit & Deploy**: The GitHub Action checks if the script modified any files. If it did, it automatically commits the changes and pushes them back to the `main` branch. This push instantly triggers GitHub Pages to serve the updated CSV file to all website visitors globally.
-
-### 3. The Client Application
-The web client consists of highly modular Vanilla JS:
-*   `api.js`: Handles data fetching, parsing the CSV, and interacting with `storylines.json` (which groups multi-episode arcs for binge-watching).
-*   `ui.js`: Manages DOM rendering, UI transitions, and the lifecycle of the custom video player.
-*   **Smart Geo-Caching**: Because some videos are region-blocked on YouTube, the app employs the <a href="https://www.ipify.org/" target="_blank" rel="noopener noreferrer">ipify API</a> to detect the user's IP. It heavily caches working episodes into the browser's `localStorage`. If a user connects to a VPN or changes networks, the app detects the IP change and intelligently flushes the cache to reload video availability without excessive API calls.
+### 3. Asynchronous Background Pre-Checking & Smart Routing
+Because YouTube heavily geo-blocks certain TMKOC episodes in specific countries (returning a fatal \150\ iframe crash), relying on a static database isn't enough. We built a proactive, invisible frontend architecture to solve this:
+*   **IntersectionObserver Queuing**: As the user scrolls, off-screen episodes are pushed into a \gCheckerQueue\.
+*   **Invisible Headless Player**: A hidden 200x200 YouTube iframe silently loads queued video IDs in the background. If the video fails (Error 150/101), the frontend instantly marks it as "unavailable" and caches this state.
+*   **Instant Cascading Fallbacks**: If a user clicks an episode where the primary link is blocked, the custom UI instantly destroys the main player, bypasses the dead link, and reroutes them to the Fallback or Short version without any black screens or loading delays. The video duration badge dynamically updates to reflect the shorter runtime (\~10:00 (Short)\).
+*   **IP-Aware Caching**: Results are stored in \localStorage\. Using the <a href="https://www.ipify.org/" target="_blank" rel="noopener noreferrer">ipify API</a>, if the user toggles a VPN or changes networks, the cache is instantly invalidated and episodes are re-verified for the new region.
 
 ---
 
 ## Core Features
 
-- **Custom Video Player:** A bespoke player built on top of the <a href="https://developers.google.com/youtube/iframe_api_reference" target="_blank" rel="noopener noreferrer">YouTube IFrame API</a>. Features include custom scrubbing, volume controls, playback speed adjustments (0.75x to 2x), and seamless Next/Previous navigation.
-- **Curated "Storylines":** Dedicated section leveraging `storylines.json` to organize multi-episode arcs for binge-watching specific plots.
-- **Modern UI/UX:** Responsive interface featuring a Light/Dark mode switcher, smooth transitions, and a featured episode carousel.
+- **Cascading Smart Routing:** Automatically falls back to alternative uploads or 10-minute short versions instantly if an episode is geo-blocked in your country.
+- **Fan Stats Dashboard:** Client-side analytics leveraging \localStorage\ to track your watched episodes, calculate total hours spent watching, and measure your completion percentage across 16+ years of content.
+- **Custom Video Player:** A bespoke player built on top of the <a href="https://developers.google.com/youtube/iframe_api_reference" target="_blank" rel="noopener noreferrer">YouTube IFrame API</a> featuring custom scrubbing, speed adjustments (0.75x to 2x), and instant Next/Previous navigation.
+- **Curated "Storylines":** Dedicated section grouping multi-episode arcs for binge-watching. Episodes inside a storyline strictly override global sorting mechanisms to force chronological viewing.
 - **$0 Running Costs:** Completely hosted and automated on GitHub's ecosystem.
 
 ---
@@ -88,54 +88,27 @@ The web client consists of highly modular Vanilla JS:
 
 The synchronization process is fully automated and runs every 6 hours.
 
-```mermaid
+`mermaid
 sequenceDiagram
-    participant SAB as Official YouTube (Sony SAB)
+    participant SAB as 6 Official YouTube Channels
     participant Action as GitHub Actions Bot
     participant DB as episodes.csv & state.json
     participant Site as GitHub Pages Web App
 
     Note over Action: Triggered via cron (Every 6 hours)
     Action->>SAB: Run update_website.py & scrape releases
-    Action->>DB: Append new episode to CSV & Update State
-    Action->>DB: Commit updated files back to GitHub
-    DB->>Site: Auto-deploy live web app updates
-```
+    Action->>DB: Append new episodes & fallback links to CSV
+    Action->>Action: Auto-Commit changes
+    DB-->>Site: Instantly deploy new data via Pages CDN
+`
 
+## Contributing
+Contributions are always welcome. To get started:
+1. Fork the repository
+2. Create your feature branch (\git checkout -b feature/AmazingFeature\)
+3. Commit your changes (\git commit -m 'Add some AmazingFeature'\)
+4. Push to the branch (\git push origin feature/AmazingFeature\)
+5. Open a Pull Request
 
-
----
-
-## Setup & Deployment
-
-Want to deploy your own instance?
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/CodeMasterAbhishek/Daily-Dose-of-TMOCK.git
-cd Daily-Dose-of-TMOCK
-```
-
-### 2. Run Automation Locally (Optional)
-If you want to manually update the episode database:
-```bash
-pip install -r requirements.txt
-python scripts/update_website.py
-```
-
-### 3. Enable GitHub Pages
-- Navigate to your repository's **Settings > Pages**.
-- Under **Build and deployment**, set the Source to **Deploy from a branch**.
-- Select the `main` branch and the `/ (root)` directory.
-- Click **Save**. Your website will be live at `https://<username>.github.io/<repository>/` shortly!
-
----
-
-## License & Legal Disclaimer
-
-The code for this project is open-source and licensed under the <a href="LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a>. 
-
-**COPYRIGHT DISCLAIMER:**  
-The creator of this repository does **NOT** own, host, or distribute any of the video content. All videos are embedded directly from YouTube via the official YouTube IFrame API. 
-
-All video content, characters, and trademarks for *Taarak Mehta Ka Ooltah Chashmah* belong entirely and exclusively to **Sony Pictures Networks India Pvt. Ltd. (Sony SAB, Sony PAL, Sony LIV)** and **Neela Tele Films**. This is a non-commercial, fan-made organizational tool.
+## License
+Distributed under the MIT License. See \LICENSE\ for more information.
