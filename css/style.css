@@ -375,7 +375,7 @@ a:hover, a:active {
   text-decoration: underline;
 }
 
-a:focus {
+a:focus-visible {
   color: var(--text-primary);
   text-decoration: none;
   outline: 2px solid var(--text-primary);
