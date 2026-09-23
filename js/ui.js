@@ -310,8 +310,12 @@ function updateStreak() {
 function logActivity(type, title) {
     try {
         const log = JSON.parse(localStorage.getItem(STORAGE_ACTIVITY) || '[]');
-        log.unshift({ type, title, date: new Date().toISOString() });
-        if (log.length > 20) log.length = 20;
+        if (log.length > 0 && log[0].type === type && log[0].title === title) {
+            log[0].date = new Date().toISOString();
+        } else {
+            log.unshift({ type, title, date: new Date().toISOString() });
+            if (log.length > 20) log.length = 20;
+        }
         localStorage.setItem(STORAGE_ACTIVITY, JSON.stringify(log));
     } catch(e) {}
 }
@@ -714,6 +718,7 @@ function stopActiveWatchTracker() {
 function openCleanPlayer(article) {
     currentModalEpNum = article.epNumber;
     localStorage.setItem(STORAGE_LAST_OPENED, article.id);
+    logActivity('watch', `Episode ${article.epNumber}`);
 
     let backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (!backdrop) {
@@ -912,6 +917,7 @@ window.closeCleanPlayer = function() {
     if (iframe) iframe.src = '';
     document.body.style.overflow = 'auto';
     stopActiveWatchTracker();
+    updateFanDashboard();
 };
 
 window.toggleAutoplay = function(checked) {
