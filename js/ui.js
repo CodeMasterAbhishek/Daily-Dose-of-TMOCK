@@ -261,7 +261,7 @@ export async function syncCurrentUserStats() {
         const completed = getCompletedWatchedList();
         const count = completed.length;
         const totalSecs = getExactWatchSeconds();
-        const hours = Math.floor(totalSecs / 3600);
+        const hours = parseFloat((totalSecs / 3600).toFixed(1));
         const savedHandle = localStorage.getItem(STORAGE_HANDLE);
 
         // Only sync if user has actually watched episodes OR explicitly saved a handle
@@ -877,7 +877,8 @@ export async function updateFanDashboard() {
     // Sync current stats to cloud
     await syncCurrentUserStats();
 
-    await renderLeaderboardList(savedHandle, watchedCount, watchHours, level.title);
+    const decimalHours = parseFloat((totalWatchSecs / 3600).toFixed(1));
+    await renderLeaderboardList(savedHandle, watchedCount, decimalHours, level.title);
 }
 
 function createLeaderboardRowHTML(item) {
@@ -1049,7 +1050,7 @@ window.copyShareCardText = function() {
     const completedList = getCompletedWatchedList();
     const count = completedList.length;
     const totalSecs = getExactWatchSeconds();
-    const hours = Math.floor(totalSecs / 3600);
+    const hours = parseFloat((totalSecs / 3600).toFixed(1));
     const level = getFanLevel(count);
 
     const shareText = `I've watched ${count} episodes (${hours} Hours) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/`;
