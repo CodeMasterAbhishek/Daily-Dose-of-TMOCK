@@ -617,11 +617,23 @@ function openCleanPlayer(article) {
                             
                             if (nextVideoId) {
                                 window._playbackAttempts[article.id] = attempts + 1;
-                                if (ytPlayer) ytPlayer.loadVideoById(nextVideoId, resumeSeconds);
-                                if (modalWarning) {
-                                    modalWarning.style.display = 'block';
-                                    modalWarning.innerHTML = msg;
-                                }
+                                
+                                // YouTube's iframe often breaks completely (black screen) after a 150 error,
+                                // so we must fully destroy and recreate the player with the new videoId
+                                article.videoId = nextVideoId;
+                                setTimeout(() => {
+                                    openCleanPlayer(article);
+                                    
+                                    // Show the warning banner on the newly created player
+                                    setTimeout(() => {
+                                        const newWarning = document.getElementById('clean-modal-warning');
+                                        if (newWarning) {
+                                            newWarning.style.display = 'block';
+                                            newWarning.innerHTML = msg;
+                                        }
+                                    }, 100);
+                                }, 50);
+                               
                                 try {
                                     verifiedVideos.add(article.id);
                                     const card = document.querySelector(`.card[data-id="${article.id}"]`);

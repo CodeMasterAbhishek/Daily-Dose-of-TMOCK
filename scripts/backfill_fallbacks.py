@@ -39,21 +39,24 @@ with open(TEMP_FILE, 'w', encoding='utf-8', newline='') as f:
     writer = csv.writer(f)
     
     for row in rows:
-        # If it's a valid data row
         if len(row) >= 6 and row[0].isdigit():
             ep_num = int(row[0])
             primary_url = row[2]
             
-            # If we already have a 7th column (fallback url), just rewrite and skip
-            if len(row) >= 7 and row[6].strip():
+            # If we already have an 8th column, just rewrite and skip
+            if len(row) >= 8 and row[6].strip() and row[7].strip():
                 writer.writerow(row)
                 continue
                 
-            print(f"Searching fallback for Ep {ep_num}...")
+            print(f"Searching fallback & short for Ep {ep_num}...")
             
-            # Search specifically for TMKOC official channel
             query = f"Taarak Mehta Ka Ooltah Chashmah Episode {ep_num}"
             fallback_url = ""
+            short_url = ""
+            
+            # If we already had a fallback but no short, preserve the fallback
+            if len(row) >= 7 and row[6].strip():
+                fallback_url = row[6].strip()
             
             try:
                 videos = scrapetube.get_search(query, limit=10)
@@ -72,24 +75,29 @@ with open(TEMP_FILE, 'w', encoding='utf-8', newline='') as f:
                             duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
                             mins = get_minutes(duration_str)
                             
-                            if 15 <= mins <= 30 and vid_id:
-                                potential_url = f"https://www.youtube.com/watch?v={vid_id}"
-                                if potential_url != primary_url:
+                            potential_url = f"https://www.youtube.com/watch?v={vid_id}"
+                            if potential_url != primary_url:
+                                if 15 <= mins <= 30 and not fallback_url:
                                     fallback_url = potential_url
-                                    break
+                                elif 8 <= mins < 15 and not short_url:
+                                    short_url = potential_url
+                                    
+                    if fallback_url and short_url:
+                        break
             except Exception as e:
                 pass
                 
-            if len(row) == 6:
-                row.append(fallback_url)
-            else:
-                row[6] = fallback_url
+            while len(row) < 8:
+                row.append("")
                 
-            if fallback_url:
-                print(f"  -> Found fallback: {fallback_url}")
+            row[6] = fallback_url
+            row[7] = short_url
+                
+            if fallback_url or short_url:
+                print(f"  -> Found fallback: {fallback_url}, short: {short_url}")
                 updated_count += 1
             else:
-                print(f"  -> No fallback found.")
+                print(f"  -> No alternatives found.")
                 
             writer.writerow(row)
             f.flush()
