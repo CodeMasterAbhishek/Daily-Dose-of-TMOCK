@@ -51,6 +51,17 @@ let currentCategory = sessionStorage.getItem('currentCategory') || 'all';
 let currentSort = 'newest';
 const ITEMS_PER_PAGE = 30;
 let currentPage = 1;
+let stateVersion = 0;
+let cachedFilteredArticles = null;
+let cachedStateVersion = -1;
+
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
 
 const paginationSection = document.getElementById('pagination');
 const searchForm = document.getElementById('search-form');
@@ -69,6 +80,7 @@ async function init() {
         await initializeIpCache();
         allArticles = await fetchNewsData();
         allStorylines = await fetchStorylines();
+        stateVersion++;
         
         registerMasterArticles(allArticles);
         renderPage();
@@ -93,6 +105,10 @@ function parseDurationText(text) {
 }
 
 function getFilteredAndRankedArticles() {
+    if (cachedStateVersion === stateVersion && cachedFilteredArticles) {
+        return cachedFilteredArticles;
+    }
+
     const filtered = allArticles.filter(article => {
         if (activeStorylineArc) {
             if (article.epNumber < activeStorylineArc.startEp || article.epNumber > activeStorylineArc.endEp) {
@@ -115,47 +131,47 @@ function getFilteredAndRankedArticles() {
         return categoryMatch && searchMatch;
     });
 
+    let result;
     if (activeStorylineArc) {
-        return filtered.sort((a, b) => a.epNumber - b.epNumber);
+        result = filtered.sort((a, b) => a.epNumber - b.epNumber);
+    } else if (currentSort === 'random') {
+        result = shuffleArray(filtered);
+    } else {
+        result = filtered.sort((a, b) => {
+            if (searchQuery) {
+                const epA = a.epNumber.toString();
+                const epB = b.epNumber.toString();
+
+                if (epA === searchQuery && epB !== searchQuery) return -1;
+                if (epB === searchQuery && epA !== searchQuery) return 1;
+
+                if (epA.startsWith(searchQuery) && !epB.startsWith(searchQuery)) return -1;
+                if (epB.startsWith(searchQuery) && !epA.startsWith(searchQuery)) return 1;
+            }
+
+            if (currentSort === 'oldest') {
+                return a.epNumber - b.epNumber;
+            } else if (currentSort === 'unwatched') {
+                const completed = getCompletedWatchedList();
+                const watchedA = completed.includes(a.id);
+                const watchedB = completed.includes(b.id);
+                if (watchedA && !watchedB) return 1;
+                if (!watchedA && watchedB) return -1;
+                return b.epNumber - a.epNumber;
+            } else if (currentSort === 'longest') {
+                return parseDurationText(b.durationText) - parseDurationText(a.durationText);
+            } else {
+                return b.epNumber - a.epNumber; // newest
+            }
+        });
     }
 
-    if (currentSort === 'random') {
-        // Fisher-Yates Shuffle
-        for (let i = filtered.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
-        }
-        return filtered;
-    }
-
-    return filtered.sort((a, b) => {
-        if (searchQuery) {
-            const epA = a.epNumber.toString();
-            const epB = b.epNumber.toString();
-
-            if (epA === searchQuery && epB !== searchQuery) return -1;
-            if (epB === searchQuery && epA !== searchQuery) return 1;
-
-            if (epA.startsWith(searchQuery) && !epB.startsWith(searchQuery)) return -1;
-            if (epB.startsWith(searchQuery) && !epA.startsWith(searchQuery)) return 1;
-        }
-
-        if (currentSort === 'oldest') {
-            return a.epNumber - b.epNumber;
-        } else if (currentSort === 'unwatched') {
-            const completed = getCompletedWatchedList();
-            const watchedA = completed.includes(a.id);
-            const watchedB = completed.includes(b.id);
-            if (watchedA && !watchedB) return 1;
-            if (!watchedA && watchedB) return -1;
-            return b.epNumber - a.epNumber;
-        } else if (currentSort === 'longest') {
-            return parseDurationText(b.durationText) - parseDurationText(a.durationText);
-        } else {
-            return b.epNumber - a.epNumber; // newest
-        }
-    });
+    cachedStateVersion = stateVersion;
+    cachedFilteredArticles = result;
+    return result;
 }
+
+
 
 function renderPage(append = false) {
     if (!append) {
@@ -175,10 +191,7 @@ function renderPage(append = false) {
         let sortedStorylines = [...allStorylines];
 
         if (currentSort === 'random') {
-            for (let i = sortedStorylines.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [sortedStorylines[i], sortedStorylines[j]] = [sortedStorylines[j], sortedStorylines[i]];
-            }
+            sortedStorylines = shuffleArray(sortedStorylines);
         } else {
             const completed = currentSort === 'unwatched' ? getCompletedWatchedList() : [];
             sortedStorylines.sort((a, b) => {
@@ -225,6 +238,7 @@ function renderPage(append = false) {
 window.addEventListener('selectStorylineArc', (e) => {
     activeStorylineArc = e.detail;
     currentPage = 1;
+    stateVersion++;
     renderPage(false);
 });
 
@@ -244,12 +258,59 @@ if (fanStatsBtn) {
     });
 }
 
+// Logo Click Handler (Return to Home)
+const logoEl = document.querySelector('.logo');
+if (logoEl) {
+    logoEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Reset State
+        searchQuery = '';
+        if (searchInput) searchInput.value = '';
+        
+        currentCategory = 'all';
+        sessionStorage.setItem('currentCategory', 'all');
+        
+        currentSort = 'newest';
+        const sortSelectedText = document.getElementById('sort-selected-text');
+        if (sortSelectedText) sortSelectedText.textContent = 'Newest First';
+        document.querySelectorAll('.dropdown-item').forEach(item => {
+            item.classList.remove('active');
+            item.setAttribute('aria-selected', 'false');
+            if (item.dataset.value === 'newest') {
+                item.classList.add('active');
+                item.setAttribute('aria-selected', 'true');
+            }
+        });
+
+        const filterChips = document.querySelectorAll('.chip');
+        filterChips.forEach(c => c.classList.remove('active'));
+        const allChip = document.querySelector('.chip[data-category="all"]');
+        if (allChip) allChip.classList.add('active');
+        if (fanStatsBtn) fanStatsBtn.classList.remove('active');
+
+        activeStorylineArc = null;
+        currentPage = 1;
+        stateVersion++;
+        
+        // Show main view, hide dashboard
+        const episodesView = document.getElementById('episodes-view');
+        const dashboardView = document.getElementById('fan-dashboard-view');
+        if (episodesView) episodesView.style.display = 'block';
+        if (dashboardView) dashboardView.style.display = 'none';
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        renderPage();
+    });
+}
+
 // Search Bar Handlers (Always Visible)
 if (searchForm) {
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         searchQuery = searchInput.value.trim().toLowerCase();
         currentPage = 1;
+        stateVersion++;
         renderPage(false);
     });
 }
@@ -258,6 +319,7 @@ if (searchInput) {
     searchInput.addEventListener('input', () => {
         searchQuery = searchInput.value.trim().toLowerCase();
         currentPage = 1;
+        stateVersion++;
         renderPage(false);
     });
 
@@ -312,6 +374,7 @@ if (sortDropdownContainer && sortTrigger && sortMenu) {
             sortMenu.classList.remove('show');
             
             currentPage = 1;
+            stateVersion++;
             renderPage(false);
         }
     });
@@ -342,12 +405,34 @@ filterChips.forEach(chip => {
         sessionStorage.setItem('currentCategory', currentCategory);
 
         currentPage = 1;
+        stateVersion++;
         renderPage(false);
     });
 });
 
+// Throttle utility for scroll performance
+function throttle(func, limit) {
+    let inThrottle;
+    let lastArgs;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => {
+                inThrottle = false;
+                if (lastArgs) {
+                    func.apply(this, lastArgs);
+                    lastArgs = null;
+                }
+            }, limit);
+        } else {
+            lastArgs = args;
+        }
+    };
+}
+
 // Infinite Scroll Listener
-window.addEventListener('scroll', () => {
+window.addEventListener('scroll', throttle(() => {
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
         const filteredArticles = getFilteredAndRankedArticles();
 
@@ -356,7 +441,7 @@ window.addEventListener('scroll', () => {
             renderPage(true);
         }
     }
-});
+}, 200));
 
 // Run Init
 init();
