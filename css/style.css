@@ -746,13 +746,13 @@ a:hover, a:visited, a:focus, a:active {
   outline: none;
   transition: all var(--transition-fast);
   background: #f3f4f6;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--border-color);
   color: #111827;
 }
 
 [data-theme="dark"] .static-search-form input {
   background: #1e1e1e;
-  border: 1.5px solid #3f3f46;
+  border: 1.5px solid var(--border-color);
   color: #ffffff;
 }
 
