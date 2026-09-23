@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="css/variables.css?v=1.0.2">
     <link rel="stylesheet" href="css/layout.css?v=1.0.2">
     <link rel="stylesheet" href="css/style.css?v=1.0.2">
+    <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.0">
 </head>
 <body>
 
@@ -115,61 +116,65 @@
 
     <!-- Full-Page Fan Dashboard View (Hidden by default) -->
     <section id="fan-dashboard-view" class="container" style="display: none; margin-top: 2rem; padding-bottom: 4rem;">
-        <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px;">
-            
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: linear-gradient(135deg, #818cf8, #4f46e5); color: white; padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 11px; letter-spacing: 1px;">DASHBOARD</div>
-                    <h2 style="color: var(--text-primary); font-size: 24px; font-weight: 900; margin: 0; letter-spacing: -0.5px;">TMKOC Fan Stats & Leaderboard</h2>
+        <div class="fan-dashboard">
+
+            <!-- Dashboard Header -->
+            <div class="dash-header dash-animate">
+                <div class="dash-header__left">
+                    <div class="dash-badge">DASHBOARD</div>
+                    <h2 class="dash-title">Fan Stats & Leaderboard</h2>
                 </div>
-            </div>
-            
-            <!-- User Handle Section -->
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <label style="font-size: 12px; font-weight: 700; color: var(--text-primary); opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Your Superfan Handle</label>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="position: relative; flex: 1;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-primary); opacity: 0.5;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        <input type="text" id="user-handle-input" placeholder="e.g. Jethalal123" style="width: 100%; padding: 14px 16px 14px 44px; border-radius: 12px; border: 2px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 15px; font-weight: 600; outline: none; transition: border-color 0.2s;">
-                    </div>
-                    <button id="save-handle-btn" onclick="saveUserHandle()" style="padding: 14px 24px; border-radius: 12px; background: var(--text-primary); color: var(--bg-primary); border: none; cursor: pointer; font-weight: 800; font-size: 14px; transition: transform 0.1s, opacity 0.2s;">Save</button>
+                <div class="dash-live-indicator">
+                    <span class="dash-live-dot"></span>
+                    Live
                 </div>
             </div>
 
-            <!-- Stats Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                <div style="background: var(--bg-secondary); padding: 24px; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden;">
-                    <div style="background: rgba(129, 140, 248, 0.1); color: #818cf8; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+            <!-- Handle Input Bar -->
+            <div class="handle-bar dash-animate">
+                <svg class="handle-bar__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span class="handle-bar__label">Your Handle</span>
+                <input type="text" id="user-handle-input" class="handle-bar__input" placeholder="e.g. Jethalal123">
+                <button id="save-handle-btn" class="handle-bar__save" onclick="saveUserHandle()">Save</button>
+            </div>
+
+            <!-- Bento Stats Grid -->
+            <div class="stats-bento dash-animate">
+                <!-- Episodes Watched -->
+                <div class="stat-card stat-card--episodes">
+                    <div class="stat-card__icon stat-card__icon--episodes">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
                     </div>
-                    <div id="stat-episodes-count" style="font-size: 36px; font-weight: 900; color: var(--text-primary); line-height: 1;">0</div>
-                    <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); opacity: 0.8; margin-top: 10px;">Episodes Watched</div>
-                    <div style="font-size: 11px; opacity: 0.5; margin-top: 4px; color: var(--text-primary);">≥ 90% Completed</div>
-                </div>
-                
-                <div style="background: var(--bg-secondary); padding: 24px; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden;">
-                    <div style="background: rgba(52, 211, 153, 0.1); color: #34d399; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    </div>
-                    <div id="stat-watch-hours" style="font-size: 36px; font-weight: 900; color: var(--text-primary); line-height: 1;">0h 0m</div>
-                    <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); opacity: 0.8; margin-top: 10px;">Exact Watch Time</div>
-                    <div style="font-size: 11px; opacity: 0.5; margin-top: 4px; color: var(--text-primary);">Active Playback Only</div>
+                    <div id="stat-episodes-count" class="stat-card__value">0</div>
+                    <div class="stat-card__label">Episodes Watched</div>
+                    <div class="stat-card__sub">≥ 90% Completed</div>
                 </div>
 
-                <div style="background: var(--bg-secondary); padding: 24px; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden;">
-                    <div style="background: rgba(251, 191, 36, 0.1); color: #fbbf24; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                <!-- Watch Time -->
+                <div class="stat-card stat-card--hours">
+                    <div class="stat-card__icon stat-card__icon--hours">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </div>
+                    <div id="stat-watch-hours" class="stat-card__value">0h 0m</div>
+                    <div class="stat-card__label">Exact Watch Time</div>
+                    <div class="stat-card__sub">Active Playback Only</div>
+                </div>
+
+                <!-- Fan Level -->
+                <div class="stat-card stat-card--level">
+                    <div class="stat-card__icon stat-card__icon--level">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
                     </div>
-                    <div id="stat-fan-level" style="font-size: 20px; font-weight: 900; color: var(--text-primary); line-height: 1.2; margin-top: auto; margin-bottom: auto;">Gokuldham Resident</div>
-                    <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); opacity: 0.8; margin-top: 10px;">Fan Level Tier</div>
+                    <div id="stat-fan-level" class="stat-card__value stat-card__value--level">Gokuldham Resident</div>
+                    <div class="stat-card__label">Fan Level Tier</div>
                 </div>
             </div>
 
-            <!-- Theme-Matching Visual Share Card -->
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 13px; font-weight: 800; color: var(--text-primary); letter-spacing: 0.5px;">SOCIAL SHARE CARD</span>
-                    <button onclick="copyShareCardText()" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 16px; font-size: 12px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 8px; transition: background 0.2s;">
+            <!-- Share Card Section -->
+            <div class="share-section dash-animate">
+                <div class="share-section__header">
+                    <span class="share-section__title">Social Share Card</span>
+                    <button class="share-section__copy-btn" onclick="copyShareCardText()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                         Copy Details
                     </button>
@@ -199,22 +204,23 @@
                 </div>
             </div>
 
-            <!-- Community Leaderboard Section -->
-            <div style="background: var(--bg-secondary); border-radius: 16px; padding: 24px; border: 1px solid var(--border-color);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h4 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0;">Global Superfan Leaderboard</h4>
-                    <span style="font-size: 12px; font-weight: 700; color: var(--text-primary); opacity: 0.6; display: flex; align-items: center; gap: 6px;">
+            <!-- Leaderboard Section -->
+            <div class="leaderboard-section dash-animate">
+                <div class="leaderboard-header">
+                    <h4 class="leaderboard-header__title">Global Superfan Leaderboard</h4>
+                    <span class="leaderboard-header__live">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                         Live
                     </span>
                 </div>
-                <div id="leaderboard-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <div id="leaderboard-list">
                     <!-- Rendered by JS -->
                 </div>
             </div>
-            
+
         </div>
     </section>
+
 
     <footer>
         <div class="container">
