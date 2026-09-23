@@ -1012,13 +1012,23 @@ export async function updateFanDashboard() {
 
     // Sidebar: Quick Stats
     const qsEpisodes = document.getElementById('qs-episodes');
+    const qsUnique = document.getElementById('qs-unique');
     const qsWatchTime = document.getElementById('qs-watch-time');
     const qsStreak = document.getElementById('qs-streak');
     const qsLevel = document.getElementById('qs-level');
+    const statUniqueSub = document.getElementById('stat-unique-episodes');
+    
+    const uniqueStartedCount = Object.keys(getTimestamps()).length;
+    
     if (qsEpisodes) qsEpisodes.textContent = watchedCount;
+    if (qsUnique) qsUnique.textContent = uniqueStartedCount;
     if (qsWatchTime) qsWatchTime.textContent = `${decimalHours} hrs`;
     if (qsStreak) qsStreak.textContent = `${currentStreak} days`;
     if (qsLevel) qsLevel.textContent = level.title;
+    
+    if (statUniqueSub) {
+        statUniqueSub.innerHTML = `≥ 90% Completed <span style="opacity: 0.7; margin-left: 4px;">(of ${uniqueStartedCount} started)</span>`;
+    }
 
     // Sidebar: Continue Watching / Brand Card
     const lastEp = getLastWatchedEpisode();
