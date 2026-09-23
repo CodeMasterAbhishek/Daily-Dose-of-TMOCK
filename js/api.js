@@ -84,10 +84,12 @@ export async function fetchNewsData() {
             const status = (parts[3] || 'Found').trim();
             const csvDate = (parts[4] || '').trim();
             const csvDuration = (parts[5] || '').trim();
+            const csvFallbackUrl = (parts[6] || '').trim();
 
             if (epNum > 0) {
                 const realEpNum = extractRealEpNumber(title, epNum);
                 const videoId = extractVideoId(url);
+                const fallbackId = extractVideoId(csvFallbackUrl);
                 const category = getCategoryForEp(realEpNum);
                 const airDate = csvDate ? csvDate : extractRealDate(title, realEpNum);
                 const image = videoId 
@@ -108,6 +110,7 @@ export async function fetchNewsData() {
                     source: 'SONY SAB',
                     url: url,
                     videoId: videoId,
+                    fallbackId: fallbackId,
                     image: image,
                     airDate: airDate,
                     durationText: durationText,
