@@ -1,6 +1,11 @@
 import csv
-from scripts.config import CSV_FILE
-from scripts.utils import get_minutes
+import sys
+if sys.platform == 'win32':
+    try: sys.stdout.reconfigure(encoding='utf-8')
+    except Exception: pass
+
+from config import CSV_FILE
+from utils import get_minutes
 
 short_eps = []
 long_eps = []

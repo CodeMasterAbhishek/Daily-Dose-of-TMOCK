@@ -30,7 +30,7 @@ def check_video(url):
     except Exception as e:
         return 'Error', False
 
-from scripts.config import CSV_FILE
+from config import CSV_FILE
 episodes = []
 with open(CSV_FILE, 'r', encoding='utf-8') as f:
     reader = csv.reader(f)
