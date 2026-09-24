@@ -1111,9 +1111,11 @@ function createPodiumCardHTML(item) {
     `;
 }
 
-function createLeaderboardRowHTML(item) {
+function createLeaderboardRowHTML(item, isHidden = false) {
+    const hiddenStyle = isHidden ? ' style="display:none;"' : '';
+    const extraClass = isHidden ? ' lb-row-hidden' : '';
     return `
-        <div class="lb-row${item.isUser ? ' lb-row--you' : ''}">
+        <div class="lb-row${item.isUser ? ' lb-row--you' : ''}${extraClass}"${hiddenStyle}>
             <div class="lb-row__left">
                 <span class="lb-row__rank">#${item.rank}</span>
                 <div class="lb-row__info">
@@ -1188,14 +1190,19 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
                 rowsHtml += '</div>';
             }
 
-            // Remaining rows
             if (restFans.length > 0) {
                 rowsHtml += '<div class="lb-rows">';
-                restFans.forEach(item => {
+                restFans.forEach((item, index) => {
                     if (item.isUser) userFoundInList = true;
-                    rowsHtml += createLeaderboardRowHTML(item);
+                    // Hide after 7 rows (so 3 podium + 7 rows = 10 visible by default)
+                    const isHidden = index >= 7;
+                    rowsHtml += createLeaderboardRowHTML(item, isHidden);
                 });
                 rowsHtml += '</div>';
+
+                if (restFans.length > 7) {
+                    rowsHtml += `<button id="lb-load-more" style="width: 100%; margin-top: 12px; border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Load More (Show Top 50)</button>`;
+                }
             }
 
             // If user has watch progress but didn't make top 50, show user card at bottom
@@ -1216,6 +1223,16 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
             }
 
             leaderboardEl.innerHTML = rowsHtml;
+            
+            const loadMoreBtn = document.getElementById('lb-load-more');
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', () => {
+                    document.querySelectorAll('.lb-row-hidden').forEach(el => {
+                        el.style.display = 'flex';
+                    });
+                    loadMoreBtn.style.display = 'none';
+                });
+            }
             return;
         } else if (leaderboardData && leaderboardData.fans && leaderboardData.fans.length === 0) {
             leaderboardEl.innerHTML = `
