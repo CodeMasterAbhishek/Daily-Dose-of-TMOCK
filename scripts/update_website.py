@@ -404,22 +404,56 @@ def main():
         json.dump(state, f, indent=2)
 
     if added_details or upgraded_details:
-        log_entry = f"### Auto-Sync Run: {datetime.datetime.now().strftime('%d %b %Y %H:%M')}\n"
+        now_str = datetime.datetime.now().strftime('%d %b %Y (%H:%M)')
+        
+        log_entry = f"## 🔄 Sync Report: {now_str}\n\n"
+        log_entry += "### 📊 Insights & Summary\n"
+        
         if added_details:
-            log_entry += f"- **New Episodes Found:** {', '.join(added_details)}\n"
+            log_entry += f"- **New Episodes Added:** {len(added_details)} (Latest: Ep {last_ep})\n"
+        else:
+            log_entry += f"- **New Episodes Added:** 0 (Latest remains Ep {last_ep})\n"
+            
         if upgraded_details:
-            log_entry += f"- **Episodes Upgraded:** {', '.join(upgraded_details)}\n"
+            log_entry += f"- **Links Upgraded:** {len(upgraded_details)} (Replaced promos or dead links with full episodes)\n"
+        else:
+            log_entry += f"- **Links Upgraded:** 0\n"
+            
         log_entry += "\n"
+        
+        if added_details:
+            log_entry += "### ✨ New Episodes\n"
+            for ep in added_details:
+                log_entry += f"- {ep}\n"
+            log_entry += "\n"
+            
+        if upgraded_details:
+            log_entry += f"### 📈 Upgrades ({len(upgraded_details)})\n"
+            log_entry += "<details>\n<summary>Click to view all upgraded episodes</summary>\n\n"
+            for up in upgraded_details:
+                clean_up = up.replace("->", "➡️")
+                parts = clean_up.split(' (')
+                if len(parts) == 2:
+                    log_entry += f"- **{parts[0]}**: {parts[1][:-1]}\n"
+                else:
+                    log_entry += f"- {clean_up}\n"
+            log_entry += "\n</details>\n\n"
+            
+        log_entry += "---\n\n"
         
         log_content = ""
         if os.path.exists("activity_logs.md"):
             with open("activity_logs.md", "r", encoding="utf-8") as f:
                 log_content = f.read()
                 
-        entries = log_content.split("### Auto-Sync Run:")
+        import re
+        entries = re.split(r'## 🔄 Sync Report:|### Auto-Sync Run:', log_content)
+        
         new_content = log_entry
         for e in entries[1:20]: # Keep last ~20 runs (about 5 days)
-            new_content += "### Auto-Sync Run:" + e
+            if e.strip():
+                # Re-attach the header for previous entries
+                new_content += "## 🔄 Sync Report:" + e
             
         with open("activity_logs.md", "w", encoding="utf-8") as f:
             f.write(new_content)
