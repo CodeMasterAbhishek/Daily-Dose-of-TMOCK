@@ -337,6 +337,8 @@ def main():
                     
                     if old_is_promo and not new_is_promo:
                         should_upgrade = True
+                    elif not old_is_promo and new_is_promo:
+                        should_upgrade = False
                     elif old_is_geoblocked and not new_is_geoblocked and new_mins >= 18:
                         should_upgrade = True
                     elif not old_is_geoblocked and new_is_geoblocked:
@@ -358,7 +360,24 @@ def main():
                         upgraded_count += 1
                         upgraded_details.append(f"Ep {ep_num} ({current_mins}m -> {new_mins}m)")
                     else:
-                        print(f"  [KEPT] Existing version is optimal.")
+                        current_fallback = row[6] if len(row) > 6 else ""
+                        current_short = row[7] if len(row) > 7 else ""
+                        
+                        updated_fallbacks = False
+                        if fallback_url and not current_fallback and fallback_url != row[2]:
+                            current_fallback = fallback_url
+                            updated_fallbacks = True
+                        if short_url and not current_short and short_url != row[2]:
+                            current_short = short_url
+                            updated_fallbacks = True
+                            
+                        if updated_fallbacks:
+                            print(f"  [UPDATED FALLBACKS] Ep {ep_num}")
+                            rows[i] = [ep_num, row[1], row[2], row[3], row[4], row[5], current_fallback, current_short]
+                            upgraded_count += 1
+                        else:
+                            print(f"  [KEPT] Existing version is optimal.")
+
 
     if upgraded_count > 0:
         import tempfile
