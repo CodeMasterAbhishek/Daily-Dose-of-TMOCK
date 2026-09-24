@@ -412,8 +412,8 @@ def main():
         log_entry += "\n"
         
         log_content = ""
-        if os.path.exists("UPDATE_LOG.md"):
-            with open("UPDATE_LOG.md", "r", encoding="utf-8") as f:
+        if os.path.exists("activity_logs.md"):
+            with open("activity_logs.md", "r", encoding="utf-8") as f:
                 log_content = f.read()
                 
         entries = log_content.split("### Auto-Sync Run:")
@@ -421,7 +421,7 @@ def main():
         for e in entries[1:20]: # Keep last ~20 runs (about 5 days)
             new_content += "### Auto-Sync Run:" + e
             
-        with open("UPDATE_LOG.md", "w", encoding="utf-8") as f:
+        with open("activity_logs.md", "w", encoding="utf-8") as f:
             f.write(new_content)
 
     print("\n=======================================================")
