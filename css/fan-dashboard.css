@@ -411,7 +411,7 @@
   background: linear-gradient(180deg, rgba(180, 83, 9, 0.06) 0%, var(--bg-primary) 100%);
 }
 
-.lb-podium-card--you { border-color: var(--text-primary); border-width: 2px; }
+.lb-podium-card--you { border-color: var(--text-primary);  }
 
 .lb-podium__rank { font-size: 26px; font-weight: 900; line-height: 1; }
 
@@ -462,7 +462,7 @@
 
 .lb-row:hover { background: var(--border-color); transform: translateX(2px); }
 
-.lb-row--you { border-color: var(--text-primary); border-width: 2px; }
+.lb-row--you { border-color: var(--text-primary);  }
 .lb-row--you::before {
   content: '';
   position: absolute;

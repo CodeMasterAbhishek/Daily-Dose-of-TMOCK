@@ -1141,18 +1141,20 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
     const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
     const statusBanner = `
-        <div class="lb-status">
-            <span class="lb-status__mode">
-                <span class="lb-status__dot ${isConfigured ? 'lb-status__dot--live' : 'lb-status__dot--local'}"></span>
-                ${isConfigured ? 'Live Global Sync' : 'Local Storage Mode'}
-            </span>
-            <span class="lb-status__date">${nowStr}</span>
-        </div>
+        <span style="display:flex; align-items:center; gap:6px;">
+            <span class="lb-status__dot ${isConfigured ? 'lb-status__dot--live' : 'lb-status__dot--local'}"></span>
+            ${isConfigured ? 'Live Global Sync' : 'Local'}
+            <span style="opacity: 0.5; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border-color); font-weight: normal;">${nowStr}</span>
+        </span>
     `;
+    const statusEl = document.getElementById('leaderboard-status');
+    if (statusEl) {
+        statusEl.innerHTML = statusBanner;
+    }
 
     // Attempt cloud leaderboard fetch if Supabase is configured
     if (isConfigured) {
-        leaderboardEl.innerHTML = statusBanner + `<div class="lb-loading">Syncing live global rankings...</div>`;
+        leaderboardEl.innerHTML = `<div class="lb-loading">Syncing live global rankings...</div>`;
 
         const leaderboardData = await fetchGlobalLeaderboard(50);
         if (leaderboardData && leaderboardData.fans && leaderboardData.fans.length > 0) {
@@ -1208,10 +1210,10 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
                 `;
             }
 
-            leaderboardEl.innerHTML = statusBanner + rowsHtml;
+            leaderboardEl.innerHTML = rowsHtml;
             return;
         } else if (leaderboardData && leaderboardData.fans && leaderboardData.fans.length === 0) {
-            leaderboardEl.innerHTML = statusBanner + `
+            leaderboardEl.innerHTML = `
                 <div class="lb-empty">
                     No fans on the Global Leaderboard yet.<br>Save your handle or watch an episode to claim Rank #1!
                 </div>
@@ -1234,7 +1236,7 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
     }
 
     if (realEntries.length === 0) {
-        leaderboardEl.innerHTML = statusBanner + `
+        leaderboardEl.innerHTML = `
             <div class="lb-empty">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.5;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><br>
                 No watched episodes logged yet.<br>Start watching episodes to claim your spot on the Leaderboard!
@@ -1242,7 +1244,7 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
         `;
     } else {
         // Single user — show as podium card
-        leaderboardEl.innerHTML = statusBanner + '<div class="lb-podium" style="grid-template-columns: 1fr;">' + realEntries.map(item => createPodiumCardHTML(item)).join('') + '</div>';
+        leaderboardEl.innerHTML = '<div class="lb-podium" style="grid-template-columns: 1fr;">' + realEntries.map(item => createPodiumCardHTML(item)).join('') + '</div>';
     }
 }
 
