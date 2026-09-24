@@ -1199,7 +1199,7 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
                 });
                 rowsHtml += '</div>';
 
-                rowsHtml += `<button id="lb-load-more" style="width: 100%; margin-top: 12px; border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Load More (Show Top 50)</button>`;
+                rowsHtml += `<button id="lb-load-more" style="width: 100%; margin-top: auto; border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Load More (Show Top 50)</button>`;
             }
 
             // If user has watch progress but didn't make top 50, show user card at bottom
@@ -1236,10 +1236,17 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
                         i++;
                     }
                     
-                    // Reveal more dynamically until left height matches right height (with ~50px buffer)
-                    // This creates the perfect alignment the user requested.
-                    while (i < hiddenRows.length && lbSection.offsetHeight < (sidebar.offsetHeight - 50)) {
+                    // Because CSS stretches the left panel to match the right panel,
+                    // we can unhide rows as long as there is empty space inside lbSection.
+                    // A row is approx 58px. We check if unhiding one would exceed the sidebar height.
+                    const targetHeight = sidebar.offsetHeight;
+                    while (i < hiddenRows.length) {
                         hiddenRows[i].style.display = 'flex';
+                        // If adding this row made the left section push the grid taller than the sidebar's natural height, revert it
+                        if (lbSection.offsetHeight > targetHeight + 5) {
+                            hiddenRows[i].style.display = 'none';
+                            break;
+                        }
                         hiddenRows[i].classList.remove('lb-row-hidden');
                         i++;
                     }
