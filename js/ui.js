@@ -1161,12 +1161,17 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
             const globalFans = leaderboardData.fans;
             const totalCount = leaderboardData.totalCount;
 
-            let rowsHtml = `
-                <div class="lb-top-info">
-                    <span class="lb-top-info__title">Top 50 Global Fans</span>
-                    <span class="lb-top-info__count">Total Users: ${totalCount}</span>
-                </div>
-            `;
+            if (statusEl) {
+                statusEl.innerHTML = `
+                    <span style="display:flex; align-items:center; gap:6px;">
+                        <span style="opacity: 0.8; margin-right: 4px; padding-right: 8px; border-right: 1px solid var(--border-color); font-weight: 600;">Total Users: ${totalCount}</span>
+                        <span class="lb-status__dot lb-status__dot--live"></span>
+                        Live Global Sync
+                        <span style="opacity: 0.5; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border-color); font-weight: normal;">${nowStr}</span>
+                    </span>
+                `;
+            }
+            let rowsHtml = '';
 
             // Split into podium (top 3) and remaining rows
             const podiumFans = globalFans.slice(0, 3);
