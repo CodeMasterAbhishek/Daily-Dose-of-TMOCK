@@ -1194,15 +1194,12 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
                 rowsHtml += '<div class="lb-rows">';
                 restFans.forEach((item, index) => {
                     if (item.isUser) userFoundInList = true;
-                    // Hide after 7 rows (so 3 podium + 7 rows = 10 visible by default)
-                    const isHidden = index >= 7;
-                    rowsHtml += createLeaderboardRowHTML(item, isHidden);
+                    // Initially hide ALL rows, we will dynamically reveal them based on sidebar height
+                    rowsHtml += createLeaderboardRowHTML(item, true);
                 });
                 rowsHtml += '</div>';
 
-                if (restFans.length > 7) {
-                    rowsHtml += `<button id="lb-load-more" style="width: 100%; margin-top: 12px; border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Load More (Show Top 50)</button>`;
-                }
+                rowsHtml += `<button id="lb-load-more" style="width: 100%; margin-top: 12px; border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Load More (Show Top 50)</button>`;
             }
 
             // If user has watch progress but didn't make top 50, show user card at bottom
@@ -1226,9 +1223,36 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
             
             const loadMoreBtn = document.getElementById('lb-load-more');
             if (loadMoreBtn) {
+                const hiddenRows = Array.from(document.querySelectorAll('.lb-row-hidden'));
+                const sidebar = document.querySelector('.dash-sidebar');
+                const lbSection = document.querySelector('.leaderboard-section');
+                
+                if (sidebar && lbSection) {
+                    let i = 0;
+                    // Show at least 3 rows to guarantee some content under podium
+                    while (i < 3 && i < hiddenRows.length) {
+                        hiddenRows[i].style.display = 'flex';
+                        hiddenRows[i].classList.remove('lb-row-hidden');
+                        i++;
+                    }
+                    
+                    // Reveal more dynamically until left height matches right height (with ~50px buffer)
+                    // This creates the perfect alignment the user requested.
+                    while (i < hiddenRows.length && lbSection.offsetHeight < (sidebar.offsetHeight - 50)) {
+                        hiddenRows[i].style.display = 'flex';
+                        hiddenRows[i].classList.remove('lb-row-hidden');
+                        i++;
+                    }
+                    
+                    if (i >= hiddenRows.length) {
+                        loadMoreBtn.style.display = 'none';
+                    }
+                }
+
                 loadMoreBtn.addEventListener('click', () => {
                     document.querySelectorAll('.lb-row-hidden').forEach(el => {
                         el.style.display = 'flex';
+                        el.classList.remove('lb-row-hidden');
                     });
                     loadMoreBtn.style.display = 'none';
                 });
