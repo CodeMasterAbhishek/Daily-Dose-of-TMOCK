@@ -1,3 +1,6 @@
+### Auto-Sync Run: 24 Sep 2026 02:08
+- **Episodes Upgraded:** Ep 4746 (21m -> 17m), Ep 4775 (23m -> 20m), Ep 4731 (21m -> 20m), Ep 4738 (21m -> 20m), Ep 4764 (22m -> 21m), Ep 4769 (21m -> 20m), Ep 4761 (23m -> 22m), Ep 4726 (21m -> 22m), Ep 4731 (20m -> 21m), Ep 4732 (20m -> 21m), Ep 4736 (21m -> 20m), Ep 4738 (20m -> 21m), Ep 4746 (17m -> 21m), Ep 4753 (21m -> 20m), Ep 4761 (22m -> 23m), Ep 4769 (20m -> 21m), Ep 4775 (20m -> 23m), Ep 4794 (20m -> 21m)
+
 ### Auto-Sync Run: 24 Sep 2026 01:58
 - **New Episodes Found:** Ep 4824
 - **Episodes Upgraded:** Ep 326 (19m -> 20m), Ep 4693 (22m -> 22m), Ep 4775 (23m -> 20m), Ep 4783 (22m -> 21m), Ep 4731 (21m -> 20m), Ep 4738 (21m -> 20m), Ep 4719 (21m -> 21m), Ep 4769 (21m -> 20m), Ep 4764 (22m -> 21m), Ep 157 (19m -> 19m), Ep 218 (18m -> 19m), Ep 163 (17m -> 18m), Ep 2 (18m -> 19m), Ep 235 (21m -> 22m), Ep 4731 (20m -> 21m), Ep 4736 (20m -> 21m), Ep 4738 (20m -> 21m), Ep 4761 (22m -> 23m), Ep 4764 (21m -> 22m), Ep 4769 (20m -> 21m), Ep 4770 (20m -> 19m), Ep 4775 (20m -> 23m)
@@ -60,7 +63,4 @@
 
 ### Auto-Sync Run: 16 Sep 2026 10:22
 - **Episodes Upgraded:** Ep 4816 (9m -> 20m)
-
-### Auto-Sync Run: 15 Sep 2026 20:32
-- **New Episodes Found:** Ep 4817
 
