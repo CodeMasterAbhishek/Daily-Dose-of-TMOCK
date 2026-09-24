@@ -441,22 +441,8 @@ def main():
             
         log_entry += "---\n\n"
         
-        log_content = ""
-        if os.path.exists("activity_logs.md"):
-            with open("activity_logs.md", "r", encoding="utf-8") as f:
-                log_content = f.read()
-                
-        import re
-        entries = re.split(r'## 🔄 Sync Report:|### Auto-Sync Run:', log_content)
-        
-        new_content = log_entry
-        for e in entries[1:20]: # Keep last ~20 runs (about 5 days)
-            if e.strip():
-                # Re-attach the header for previous entries
-                new_content += "## 🔄 Sync Report:" + e
-            
         with open("activity_logs.md", "w", encoding="utf-8") as f:
-            f.write(new_content)
+            f.write(log_entry)
 
     print("\n=======================================================")
     print(f" Website Update Complete! {episodes_added} new episode(s) added, {upgraded_count} promo(s) upgraded.")
