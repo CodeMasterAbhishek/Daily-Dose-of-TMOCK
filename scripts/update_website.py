@@ -399,6 +399,11 @@ def main():
     state["last_episode"] = last_ep
     state["last_updated"] = today_str
     state["total_found"] = state.get("total_found", 4778) + episodes_added
+    state["latest_sync_log"] = {
+        "timestamp": datetime.datetime.now().strftime('%d %b %Y %H:%M'),
+        "added": added_details,
+        "upgraded": upgraded_details
+    }
 
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)

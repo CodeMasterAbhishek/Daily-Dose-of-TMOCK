@@ -1,4 +1,4 @@
-import { fetchNewsData, fetchStorylines } from './api.js';
+import { fetchNewsData, fetchStorylines, fetchStateLog } from './api.js';
 import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, getCompletedWatchedList, syncCurrentUserStats } from './ui.js';
 
 // Setup current year in footer
@@ -84,6 +84,31 @@ async function init() {
         
         registerMasterArticles(allArticles);
         renderPage();
+
+        // Load sync log
+        fetchStateLog().then(stateLog => {
+            if (stateLog && stateLog.latest_sync_log) {
+                const contentEl = document.getElementById('sync-log-content');
+                if (contentEl) {
+                    const log = stateLog.latest_sync_log;
+                    let html = `<div style="margin-bottom: 16px;"><strong style="color: var(--text-primary);">Last Sync:</strong> ${log.timestamp}</div>`;
+                    if (log.added && log.added.length > 0) {
+                        html += `<div style="margin-bottom: 12px;"><strong style="color: #3b82f6;">New Episodes Added:</strong><ul style="margin: 4px 0 0 20px; padding: 0;">`;
+                        log.added.forEach(item => html += `<li>${item}</li>`);
+                        html += `</ul></div>`;
+                    }
+                    if (log.upgraded && log.upgraded.length > 0) {
+                        html += `<div><strong style="color: #10b981;">Episodes Upgraded:</strong><ul style="margin: 4px 0 0 20px; padding: 0;">`;
+                        log.upgraded.forEach(item => html += `<li>${item}</li>`);
+                        html += `</ul></div>`;
+                    }
+                    if ((!log.added || log.added.length === 0) && (!log.upgraded || log.upgraded.length === 0)) {
+                        html += `<div style="opacity: 0.7;">No new episodes or upgrades in the latest run. Database is completely up to date!</div>`;
+                    }
+                    contentEl.innerHTML = html;
+                }
+            }
+        });
 
         // Silently sync existing watched episodes to the Global Leaderboard in the background
         syncCurrentUserStats();

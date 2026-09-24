@@ -166,3 +166,14 @@ export async function fetchStorylines() {
         return [];
     }
 }
+
+export async function fetchStateLog() {
+    try {
+        const response = await fetch('data/state.json?t=' + Date.now());
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (e) {
+        console.error('Failed to fetch state log:', e);
+        return null;
+    }
+}
