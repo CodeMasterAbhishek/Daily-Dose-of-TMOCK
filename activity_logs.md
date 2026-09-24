@@ -1,58 +1,41 @@
-## 🔄 Sync Report: 24 Sep 2026 (10:36)
+## 🔄 Sync Report: 24 Sep 2026 (16:01)
 
 ### 📊 Insights & Summary
 - **New Episodes Added:** 0 (Latest remains Ep 4824)
-- **Links Upgraded:** 45 (Replaced promos or dead links with full episodes)
+- **Links Upgraded:** 28 (Replaced promos or dead links with full episodes)
 
-### 📈 Upgrades (45)
+### 📈 Upgrades (28)
 <details>
 <summary>Click to view all upgraded episodes</summary>
 
-- **Ep 4823**: 10m ➡️ 21m
-- **Ep 4794**: 21m ➡️ 20m
+- **Ep 330**: 17m ➡️ 41m
 - **Ep 4775**: 23m ➡️ 20m
-- **Ep 4474**: 22m ➡️ 22m
-- **Ep 4758**: 21m ➡️ 20m
-- **Ep 33**: 20m ➡️ 20m
-- **Ep 4769**: 21m ➡️ 20m
-- **Ep 22**: 20m ➡️ 21m
+- **Ep 4797**: 23m ➡️ 22m
+- **Ep 4783**: 22m ➡️ 21m
 - **Ep 4781**: 21m ➡️ 20m
+- **Ep 3151**: 20m ➡️ 51m
 - **Ep 4731**: 21m ➡️ 20m
-- **Ep 1644**: 19m ➡️ 20m
-- **Ep 158**: 19m ➡️ 20m
-- **Ep 285**: 20m ➡️ 20m
-- **Ep 99**: 19m ➡️ 20m
-- **Ep 290**: 20m ➡️ 18m
-- **Ep 288**: 20m ➡️ 21m
-- **Ep 315**: 17m ➡️ 19m
-- **Ep 96**: 18m ➡️ 18m
-- **Ep 317**: 22m ➡️ 42m
-- **Ep 313**: 20m ➡️ 20m
-- **Ep 181**: 20m ➡️ 20m
-- **Ep 13**: 18m ➡️ 20m
-- **Ep 241**: 21m ➡️ 21m
-- **Ep 53**: 19m ➡️ 20m
-- **Ep 98**: 18m ➡️ 19m
-- **Ep 214**: 17m ➡️ 19m
-- **Ep 9**: 19m ➡️ 21m
-- **Ep 260**: 21m ➡️ 22m
-- **Ep 83**: 18m ➡️ 19m
-- **Ep 1191**: 29m ➡️ 41m
+- **Ep 4726**: 22m ➡️ 21m
+- **Ep 4738**: 21m ➡️ 20m
+- **Ep 4769**: 21m ➡️ 20m
+- **Ep 4764**: 22m ➡️ 21m
+- **Ep 4701**: 22m ➡️ 22m
+- **Ep 4746**: 21m ➡️ 17m
 - **Ep 4726**: 21m ➡️ 22m
 - **Ep 4731**: 20m ➡️ 21m
-- **Ep 4736**: 21m ➡️ 20m
+- **Ep 4736**: 20m ➡️ 21m
 - **Ep 4738**: 20m ➡️ 21m
-- **Ep 4753**: 20m ➡️ 21m
-- **Ep 4758**: 20m ➡️ 21m
-- **Ep 4759**: 20m ➡️ 21m
-- **Ep 4764**: 21m ➡️ 22m
+- **Ep 4746**: 17m ➡️ 21m
+- **Ep 4758**: 21m ➡️ 20m
+- **Ep 4761**: 23m ➡️ 22m
 - **Ep 4769**: 20m ➡️ 21m
-- **Ep 4770**: 20m ➡️ 19m
 - **Ep 4775**: 20m ➡️ 23m
 - **Ep 4781**: 20m ➡️ 21m
+- **Ep 4782**: 19m ➡️ 20m
 - **Ep 4783**: 21m ➡️ 22m
-- **Ep 4794**: 20m ➡️ 21m
 - **Ep 4797**: 22m ➡️ 23m
+- **Ep 4805**: 21m ➡️ 22m
+- **Ep 4824**: 0m ➡️ 10m
 
 </details>
 
