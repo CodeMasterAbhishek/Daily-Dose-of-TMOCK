@@ -142,9 +142,9 @@ export async function fetchUserGlobalRank(watchedCount, watchHours) {
     if (!isSupabaseConfigured()) return null;
     const cleanBaseUrl = getCleanBaseUrl();
     try {
-        const headers = { 'apikey': SUPABASE_CONFIG.anonKey, 'Authorization': 'Bearer ', 'Prefer': 'count=exact', 'Range-Unit': 'items', 'Range': '0-0' };
-        const res1 = await fetch(${cleanBaseUrl}/rest/v1/leaderboard?select=user_id&watched_count=gt., { headers });
-        const res2 = await fetch(${cleanBaseUrl}/rest/v1/leaderboard?select=user_id&watched_count=eq.&watch_hours=gt., { headers });
+        const headers = { 'apikey': SUPABASE_CONFIG.anonKey, 'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`, 'Prefer': 'count=exact', 'Range-Unit': 'items', 'Range': '0-0' };
+        const res1 = await fetch(`${cleanBaseUrl}/rest/v1/leaderboard?select=user_id&watched_count=gt.${watchedCount}`, { headers });
+        const res2 = await fetch(`${cleanBaseUrl}/rest/v1/leaderboard?select=user_id&watched_count=eq.${watchedCount}&watch_hours=gt.${watchHours}`, { headers });
         const getCount = (r) => { const cr = r.headers.get('Content-Range'); return cr ? parseInt(cr.split('/')[1], 10) : 0; };
         return getCount(res1) + getCount(res2) + 1;
     } catch (e) { return null; }
