@@ -377,7 +377,7 @@ def main():
         result = find_episode(next_ep)
 
         if result:
-            vid_id, title, url, date_str, duration_str, fallback_url, short_url = result
+            vid_id, title, url, date_str, duration_str, channel, fallback_url, short_url = result
             print(f"[FOUND] Ep {next_ep}: {title} ({url})")
 
             with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
