@@ -1,7 +1,7 @@
 /**
  * UI module for DailyDose TMKOC, Episode Badges, Exact Ranking Search, Real Leaderboard Data, and Clean Theme Card Design.
  */
-import { syncUserToCloud, fetchGlobalLeaderboard, isSupabaseConfigured, getOrCreateUserId } from './supabase.js';
+import { syncUserToCloud, fetchGlobalLeaderboard, fetchUserGlobalRank, isSupabaseConfigured, getOrCreateUserId } from './supabase.js';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -1204,11 +1204,17 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
 
             // If user has watch progress but didn't make top 50, show user card at bottom
             if (!userFoundInList && (userCount > 0 || userHours > 0)) {
+                let userRank = '-';
+                try {
+                    const fetchedRank = await fetchUserGlobalRank(userCount, userHours);
+                    if (fetchedRank) userRank = fetchedRank.toLocaleString();
+                } catch(e) {}
+
                 rowsHtml += `
-                    <div class="lb-your-standing">
-                        <div class="lb-your-standing__label">Your Standing</div>
+                    <div class="lb-your-standing" style="border-top: 1px solid var(--border-color); margin-top: 16px; padding-top: 16px;">
+                        <div class="lb-your-standing__label" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px;">Your Global Standing</div>
                         ${createLeaderboardRowHTML({
-                            rank: '-',
+                            rank: userRank,
                             handle: userHandle || '@TMKOCSuperfan',
                             count: userCount,
                             hours: userHours,
