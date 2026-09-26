@@ -810,12 +810,15 @@ a:focus-visible {
     border-radius: 19px;
     justify-content: center;
   }
-  #sort-selected-text, .chevron-icon {
+  .desktop-only {
     display: none !important;
   }
-  .sort-icon-mobile {
+  .mobile-only {
     display: block !important;
   }
+}
+.mobile-only {
+  display: none;
 }
 
 [data-theme="dark"] .static-search-form input {
