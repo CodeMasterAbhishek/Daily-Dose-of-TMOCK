@@ -398,6 +398,7 @@ filterChips.forEach(chip => {
         if (dashboardView) dashboardView.style.display = 'none';
 
         filterChips.forEach(c => c.classList.remove('active'));
+        if (fanStatsBtn) fanStatsBtn.classList.remove('active');
         chip.classList.add('active');
 
         activeStorylineArc = null;
