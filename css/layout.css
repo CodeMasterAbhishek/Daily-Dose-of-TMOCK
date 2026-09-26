@@ -111,19 +111,25 @@ footer {
     gap: 16px;
   }
   .header-middle-wrap {
-    max-width: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .filters {
+    flex: 1;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding-bottom: 2px;
+    min-width: 0;
   }
-  .header-middle-wrap::-webkit-scrollbar {
+  .filters::-webkit-scrollbar {
     display: none;
   }
-  .header-middle-wrap > * {
+  .filters > * {
     flex-shrink: 0;
   }
-  .filters > * {
+  .custom-dropdown {
     flex-shrink: 0;
   }
 }

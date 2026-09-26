@@ -780,8 +780,8 @@ a:focus-visible {
     border-radius: 19px;
     color: transparent !important;
     cursor: pointer;
-    background: transparent !important;
-    border-color: transparent !important;
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
   }
   .static-search-form input::placeholder {
     color: transparent !important;
