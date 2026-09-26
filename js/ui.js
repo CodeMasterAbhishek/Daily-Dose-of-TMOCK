@@ -266,7 +266,14 @@ export function getCompletedWatchedList() {
 
 function getExactWatchSeconds() {
     try {
-        return parseInt(localStorage.getItem(STORAGE_EXACT_WATCH_SECONDS) || '0');
+        let secs = parseInt(localStorage.getItem(STORAGE_EXACT_WATCH_SECONDS) || '0');
+        const completed = getCompletedWatchedList();
+        const minSecs = completed.length * 1260 * 0.90; // minimum 90% of 21 mins per ep
+        if (secs < minSecs) {
+            secs = Math.round(minSecs);
+            localStorage.setItem(STORAGE_EXACT_WATCH_SECONDS, secs);
+        }
+        return secs;
     } catch(e) {
         return 0;
     }
