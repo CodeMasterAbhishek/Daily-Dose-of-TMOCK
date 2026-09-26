@@ -18,6 +18,27 @@ function escapeHTML(str) {
     });
 }
 
+function formatWatchTime(decimalHours) {
+    const totalSeconds = Math.round(decimalHours * 3600);
+    if (totalSeconds === 0) return '0s';
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    
+    let parts = [];
+    if (h > 0) {
+        parts.push(`${h}h`);
+        parts.push(`${m}m`);
+        parts.push(`${s}s`);
+    } else if (m > 0) {
+        parts.push(`${m}m`);
+        parts.push(`${s}s`);
+    } else {
+        parts.push(`${s}s`);
+    }
+    return parts.join(' ');
+}
+
 let allArticlesMap = {};
 let masterEpNumberMap = {};
 let currentModalEpNum = null;
@@ -367,7 +388,7 @@ export async function syncCurrentUserStats() {
         const completed = getCompletedWatchedList();
         const count = completed.length;
         const totalSecs = getExactWatchSeconds();
-        const hours = parseFloat((totalSecs / 3600).toFixed(1));
+        const hours = totalSecs / 3600;
         const savedHandle = localStorage.getItem(STORAGE_HANDLE);
 
         // Only sync if user has actually watched episodes OR explicitly saved a handle
@@ -995,14 +1016,14 @@ export async function updateFanDashboard() {
     if (cardUserBadge) cardUserBadge.textContent = savedHandle;
     if (cardTierBadge) cardTierBadge.textContent = level.title;
     if (cardMainStat) cardMainStat.textContent = `${watchedCount} Episodes Watched`;
-    if (cardSubStat) cardSubStat.textContent = `${watchHours} Hours ${watchMins} Mins Exact Watch Time`;
+    if (cardSubStat) cardSubStat.textContent = `${formatWatchTime(totalWatchSecs / 3600)} Exact Watch Time`;
 
     // Streak card
     const streakData = getStreakData();
     const currentStreak = streakData.currentStreak || 0;
 
     // Decimal hours for sidebar + leaderboard
-    const decimalHours = parseFloat((totalWatchSecs / 3600).toFixed(2));
+    const decimalHours = totalWatchSecs / 3600;
 
     // Sidebar: Quick Stats
     const qsEpisodes = document.getElementById('qs-episodes');
@@ -1015,7 +1036,7 @@ export async function updateFanDashboard() {
     
     if (qsEpisodes) qsEpisodes.textContent = watchedCount;
     if (qsUnique) qsUnique.textContent = uniqueStartedCount;
-    if (qsWatchTime) qsWatchTime.textContent = `${decimalHours} hrs`;
+    if (qsWatchTime) qsWatchTime.textContent = formatWatchTime(decimalHours);
     if (qsStreak) qsStreak.textContent = `${currentStreak} days`;
     if (qsLevel) qsLevel.textContent = level.title;
 
@@ -1106,7 +1127,7 @@ function createPodiumCardHTML(item) {
             </div>
             <div class="lb-podium__level">${item.level}</div>
             <div class="lb-podium__stats">${item.count} Eps</div>
-            <div class="lb-podium__hours">${item.hours} hrs</div>
+            <div class="lb-podium__hours">${formatWatchTime(item.hours)}</div>
         </div>
     `;
 }
@@ -1128,7 +1149,7 @@ function createLeaderboardRowHTML(item, isHidden = false) {
             </div>
             <div class="lb-row__right">
                 <div class="lb-row__count">${item.count} Eps</div>
-                <div class="lb-row__hours">${item.hours} hrs</div>
+                <div class="lb-row__hours">${formatWatchTime(item.hours)}</div>
             </div>
         </div>
     `;
@@ -1351,10 +1372,10 @@ window.copyShareCardText = function() {
     const completedList = getCompletedWatchedList();
     const count = completedList.length;
     const totalSecs = getExactWatchSeconds();
-    const hours = parseFloat((totalSecs / 3600).toFixed(1));
+    const hours = totalSecs / 3600;
     const level = getFanLevel(count);
 
-    const shareText = `I've watched ${count} episodes (${hours} Hours) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/`;
+    const shareText = `I've watched ${count} episodes (${formatWatchTime(hours)}) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/`;
 
     navigator.clipboard.writeText(shareText).then(() => {
         alert('Copied Social Share Card text to clipboard!');

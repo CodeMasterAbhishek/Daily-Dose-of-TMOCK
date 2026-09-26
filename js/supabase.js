@@ -126,7 +126,7 @@ export async function fetchGlobalLeaderboard(limit = 50) {
             rank: (index + 1).toString(),
             handle: row.handle,
             count: Number(row.watched_count) || 0,
-            hours: Math.floor(Number(row.watch_hours) || 0),
+            hours: Number(row.watch_hours) || 0,
             level: row.fan_tier,
             isUser: row.user_id === myUserId
         }));

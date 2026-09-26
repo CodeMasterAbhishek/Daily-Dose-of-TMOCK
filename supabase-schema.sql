@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS public.leaderboard (
     user_id TEXT PRIMARY KEY,
     handle TEXT NOT NULL,
     watched_count INTEGER DEFAULT 0 CHECK (watched_count >= 0),
-    watch_hours NUMERIC(10, 2) DEFAULT 0 CHECK (watch_hours >= 0),
+    watch_hours NUMERIC(10, 6) DEFAULT 0 CHECK (watch_hours >= 0),
     fan_tier TEXT DEFAULT 'Gokuldham Resident',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
