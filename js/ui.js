@@ -549,7 +549,14 @@ function createCardHTML(article) {
 
     const timestamps = getTimestamps();
     const savedTimeSec = timestamps[article.id] || 0;
-    const progressPercent = savedTimeSec ? Math.min(100, Math.round((savedTimeSec / 1260) * 100)) : 0;
+    
+    let expectedDurationSecs = 1260; // fallback 21 mins
+    if (article.durationText) {
+        const parts = article.durationText.split(':');
+        if (parts.length === 3) expectedDurationSecs = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+        else if (parts.length === 2) expectedDurationSecs = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    }
+    const progressPercent = savedTimeSec ? Math.min(100, Math.round((savedTimeSec / expectedDurationSecs) * 100)) : 0;
     
     return `
         <article class="card ${readClass} ${unavailableClass}" data-id="${article.id}" data-category="${escapeHTML(article.category).toLowerCase()}">
@@ -720,7 +727,11 @@ function startActiveWatchTracker(articleId) {
             timestamps[articleId] = currentEpSecs;
             pendingTimestamps = timestamps;
 
-            const totalEpSecs = 1260; // 21 mins
+            let totalEpSecs = 1260; // fallback to 21 mins
+            if (typeof ytPlayer.getDuration === 'function') {
+                const duration = ytPlayer.getDuration();
+                if (duration > 0) totalEpSecs = duration;
+            }
             if (currentEpSecs >= totalEpSecs * 0.90) {
                 saveCompletedEpisode(articleId);
             }
