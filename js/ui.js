@@ -1084,12 +1084,10 @@ export async function updateFanDashboard() {
             activityEl.innerHTML = '<div class="activity-empty">No activity yet. Watch an episode to get started!</div>';
         } else {
             activityEl.innerHTML = activities.map(a => {
-                const iconClass = a.type === 'watch' ? 'activity-icon--watch' :
-                                  a.type === 'streak' ? 'activity-icon--streak' :
-                                  a.type === 'level' ? 'activity-icon--level' : 'activity-icon--watch';
-                const icon = a.type === 'watch' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>' :
-                             a.type === 'streak' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2c0 4-4 6-4 10a4 4 0 0 0 8 0c0-4-4-6-4-10z"></path></svg>' :
-                             a.type === 'level' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>' : '';
+                const iconClass = '';
+                const icon = a.type === 'watch' ? '<span style="font-size: 16px;">▶️</span>' :
+                             a.type === 'streak' ? '<span style="font-size: 16px;">🔥</span>' :
+                             a.type === 'level' ? '<span style="font-size: 16px;">⭐</span>' : '<span style="font-size: 16px;">▶️</span>';
                 let watchText = `Watched ${a.title}`;
                 if (a.type === 'watch' && a.duration) {
                     const dur = parseInt(a.duration);
@@ -1106,7 +1104,7 @@ export async function updateFanDashboard() {
                 const sub = a.type === 'streak' ? a.title : getRelativeTime(a.date);
                 return `
                     <div class="activity-item">
-                        <div class="activity-icon ${iconClass}">${icon}</div>
+                        <div class="activity-icon ${iconClass}" style="background: transparent; display: flex; justify-content: center; align-items: center;">${icon}</div>
                         <div class="activity-info">
                             <div class="activity-label">${escapeHTML(label)}</div>
                             <div class="activity-time">${escapeHTML(sub)}</div>
