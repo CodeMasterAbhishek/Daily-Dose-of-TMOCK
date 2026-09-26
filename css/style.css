@@ -771,6 +771,12 @@ a:focus-visible {
   color: #111827;
 }
 
+@media (max-width: 768px) {
+  .static-search-form input {
+    width: 140px;
+  }
+}
+
 [data-theme="dark"] .static-search-form input {
   background: #1e1e1e;
   border: 1.5px solid var(--border-color);
