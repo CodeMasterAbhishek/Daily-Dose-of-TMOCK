@@ -111,7 +111,8 @@ footer {
     gap: 16px;
   }
   .header-middle-wrap {
-    width: 100%;
+    flex: 1 1 auto;
+    max-width: 100%;
     display: flex;
     align-items: center;
     gap: 8px;
