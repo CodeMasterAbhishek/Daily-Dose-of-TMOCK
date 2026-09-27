@@ -45,42 +45,9 @@ export function getOrCreateUserId() {
  * Upsert current user's statistics to Supabase via standard REST API
  */
 export async function syncUserToCloud({ handle, watchedCount, watchHours, fanTier }) {
-    if (!isSupabaseConfigured()) return { success: false, reason: 'unconfigured' };
-
-    const userId = getOrCreateUserId();
-    const cleanHandle = (handle || '@TMKOCSuperfan').trim();
-    const cleanBaseUrl = getCleanBaseUrl();
-
-    try {
-        const response = await fetch(`${cleanBaseUrl}/rest/v1/leaderboard`, {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_CONFIG.anonKey,
-                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'resolution=merge-duplicates'
-            },
-            body: JSON.stringify({
-                user_id: userId,
-                handle: cleanHandle,
-                watched_count: Number(watchedCount) || 0,
-                watch_hours: Number(watchHours) || 0,
-                fan_tier: fanTier || 'Gokuldham Resident',
-                updated_at: new Date().toISOString()
-            })
-        });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.warn('Leaderboard sync returned HTTP status:', response.status, errText);
-            return { success: false, error: errText };
-        }
-
-        return { success: true };
-    } catch (err) {
-        console.warn('Network error syncing stats:', err);
-        return { success: false, error: err.message };
-    }
+    // Public clients cannot prove ownership of a user_id. Keep writes disabled
+    // until leaderboard updates use authenticated identities and owner-only RLS.
+    return { success: false, reason: 'read_only' };
 }
 
 /**

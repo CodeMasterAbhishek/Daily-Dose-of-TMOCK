@@ -1141,7 +1141,7 @@ function createPodiumCardHTML(item) {
                 ${escapeHTML(item.handle)}
                 ${item.isUser ? '<span class="lb-you-badge">YOU</span>' : ''}
             </div>
-            <div class="lb-podium__level">${item.level}</div>
+            <div class="lb-podium__level">${escapeHTML(item.level)}</div>
             <div class="lb-podium__stats">${item.count} Eps</div>
             <div class="lb-podium__hours">${formatWatchTime(item.hours)}</div>
         </div>
@@ -1160,7 +1160,7 @@ function createLeaderboardRowHTML(item, isHidden = false) {
                         ${escapeHTML(item.handle)}
                         ${item.isUser ? '<span class="lb-you-badge">YOU</span>' : ''}
                     </div>
-                    <div class="lb-row__level">${item.level}</div>
+                    <div class="lb-row__level">${escapeHTML(item.level)}</div>
                 </div>
             </div>
             <div class="lb-row__right">
@@ -1182,7 +1182,7 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
     const statusBanner = `
         <span style="display:flex; align-items:center; gap:6px;">
             <span class="lb-status__dot ${isConfigured ? 'lb-status__dot--live' : 'lb-status__dot--local'}"></span>
-            ${isConfigured ? 'Live Global Sync' : 'Local'}
+            ${isConfigured ? 'Live Global Rankings · Read Only' : 'Local'}
             <span style="opacity: 0.5; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border-color); font-weight: normal;">${nowStr}</span>
         </span>
     `;
@@ -1193,7 +1193,7 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
 
     // Attempt cloud leaderboard fetch if Supabase is configured
     if (isConfigured) {
-        leaderboardEl.innerHTML = `<div class="lb-loading">Syncing live global rankings...</div>`;
+        leaderboardEl.innerHTML = `<div class="lb-loading">Loading global rankings...</div>`;
 
         const leaderboardData = await fetchGlobalLeaderboard(50);
         if (leaderboardData && leaderboardData.fans && leaderboardData.fans.length > 0) {
@@ -1205,7 +1205,7 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
                     <span style="display:flex; align-items:center; gap:6px;">
                         <span style="opacity: 0.8; margin-right: 4px; padding-right: 8px; border-right: 1px solid var(--border-color); font-weight: 600;">Total Users: ${totalCount}</span>
                         <span class="lb-status__dot lb-status__dot--live"></span>
-                        Live Global Sync
+                        Live Global Rankings · Read Only
                         <span style="opacity: 0.5; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border-color); font-weight: normal;">${nowStr}</span>
                     </span>
                 `;
@@ -1373,7 +1373,7 @@ window.saveUserHandle = async function() {
         await syncCurrentUserStats();
         await updateFanDashboard();
         if (btn) {
-            btn.textContent = 'Saved!';
+            btn.textContent = 'Saved Locally';
             setTimeout(() => {
                 btn.textContent = 'Save';
                 btn.disabled = false;
