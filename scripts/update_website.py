@@ -40,7 +40,11 @@ def is_promo(title: str) -> bool:
 
 def is_geoblocked_title(title: str) -> bool:
     title_lower = title.lower()
-    return "new episode available" in title_lower or "new episode premieres" in title_lower
+    if "new episode available" in title_lower or "new episode premieres" in title_lower:
+        return True
+    if "| new episode" in title_lower or "|new episode" in title_lower:
+        return True
+    return False
 
 def is_single_episode(title: str, description: str, channel: str, ep_num: int, require_full: bool = False) -> bool:
     if channel.lower() not in VALID_CHANNELS:
