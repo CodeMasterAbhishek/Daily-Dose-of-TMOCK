@@ -186,6 +186,8 @@ def find_episode(ep_num: int, require_full: bool = False):
                         continue
                         
                     mins = get_minutes(duration_str)
+                    if require_full and mins < 15:
+                        continue
                     if mins > 55:  # Increased from 30 to 55 to allow Maha Episodes
                         continue
                         
@@ -286,6 +288,15 @@ def reverse_global_scan(rows, upgraded_details):
     return upgraded_count
 
 
+def reconcile_state_with_csv(state, rows):
+    """Use the committed catalogue, not a stale counter, to find the next episode."""
+    episode_numbers = [int(row[0]) for row in rows[1:] if row and row[0].isdigit()]
+    last_ep = max(episode_numbers, default=0)
+    state["last_episode"] = last_ep
+    state["total_found"] = len(episode_numbers)
+    return last_ep
+
+
 def main():
     print("=======================================================")
     print("  TMKOC Website & DB Auto-Updater (Zero Quota Mode)")
@@ -301,14 +312,17 @@ def main():
     with open(STATE_FILE, "r", encoding="utf-8") as f:
         state = json.load(f)
 
-    last_ep = state.get("last_episode", 4778)
-    print(f"Checking for new TMKOC episodes after Ep {last_ep}...")
-
     rows = []
     if os.path.exists(CSV_FILE):
         with open(CSV_FILE, "r", encoding="utf-8") as f:
             reader = csv.reader(f)
             rows = list(reader)
+
+    previous_last_ep = state.get("last_episode")
+    last_ep = reconcile_state_with_csv(state, rows)
+    if previous_last_ep != last_ep:
+        print(f"Corrected stale state: Ep {previous_last_ep} -> Ep {last_ep}")
+    print(f"Checking for new TMKOC episodes after Ep {last_ep}...")
 
     # 1. Reverse Global Scan (Catch extremely old re-uploads and promos)
     upgraded_count = reverse_global_scan(rows, upgraded_details)
@@ -397,7 +411,7 @@ def main():
 
     while True:
         print(f"Searching for Episode {next_ep}...")
-        result = find_episode(next_ep)
+        result = find_episode(next_ep, require_full=True)
 
         if result:
             vid_id, title, url, date_str, duration_str, channel, fallback_url, short_url = result
@@ -421,7 +435,7 @@ def main():
     today_str = time.strftime("%Y-%m-%d")
     state["last_episode"] = last_ep
     state["last_updated"] = today_str
-    state["total_found"] = state.get("total_found", 4778) + episodes_added
+    state["total_found"] += episodes_added
 
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
