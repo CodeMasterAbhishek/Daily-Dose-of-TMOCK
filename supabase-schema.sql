@@ -36,19 +36,9 @@ ON public.leaderboard
 FOR SELECT
 USING (true);
 
--- 4. Policy: Allow visitors to insert their stats record (INSERT)
-CREATE POLICY "Allow public insert access"
-ON public.leaderboard
-FOR INSERT
-WITH CHECK (true);
-
--- 5. Policy: Allow visitors to update their own stats record (UPDATE)
--- Security Note: Since this is a client-side app, users can update any row. Ensure non-negative stats.
-CREATE POLICY "Allow public update access"
-ON public.leaderboard
-FOR UPDATE
-USING (true)
-WITH CHECK (watched_count >= 0 AND watch_hours >= 0);
+-- 4. The public leaderboard is read only. An anonymous browser cannot prove
+-- ownership of the user_id it supplies, so public write policies are unsafe.
+REVOKE INSERT, UPDATE, DELETE ON public.leaderboard FROM anon, authenticated;
 
 -- 6. Create performance index for fast ranking retrieval
 CREATE INDEX IF NOT EXISTS idx_leaderboard_rank 
