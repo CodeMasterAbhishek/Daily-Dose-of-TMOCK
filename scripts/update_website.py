@@ -258,6 +258,9 @@ def reverse_global_scan(rows, upgraded_details):
                     if new_mins < 5 or new_mins > 55:
                         continue # Skip tiny promos under 5 mins and compilations over 55 mins
                         
+                    if not is_single_episode(title, description, channel, ep_num):
+                        continue # Strictly validate single-episode, title-number, range, promo, etc.
+                        
                     old_mins = get_minutes(row[5])
                     
                     # We don't know the exact old channel, but we assume it's "Unknown" (0 channel score)
@@ -302,13 +305,29 @@ def main():
         state = json.load(f)
 
     last_ep = state.get("last_episode", 4778)
-    print(f"Checking for new TMKOC episodes after Ep {last_ep}...")
-
+    
     rows = []
     if os.path.exists(CSV_FILE):
         with open(CSV_FILE, "r", encoding="utf-8") as f:
             reader = csv.reader(f)
             rows = list(reader)
+            
+    # Reconcile state with CSV to prevent desync bugs
+    max_csv_ep = 0
+    if len(rows) > 1:
+        for r in rows[1:]:
+            try:
+                ep = int(r[0])
+                if ep > max_csv_ep:
+                    max_csv_ep = ep
+            except: pass
+            
+    if max_csv_ep > 0 and max_csv_ep != last_ep:
+        print(f"Reconciling state: state.json says {last_ep}, but CSV max is {max_csv_ep}. Using {max_csv_ep}.")
+        last_ep = max_csv_ep
+        state["last_episode"] = max_csv_ep
+
+    print(f"Checking for new TMKOC episodes after Ep {last_ep}...")
 
     # 1. Reverse Global Scan (Catch extremely old re-uploads and promos)
     upgraded_count = reverse_global_scan(rows, upgraded_details)
@@ -397,7 +416,7 @@ def main():
 
     while True:
         print(f"Searching for Episode {next_ep}...")
-        result = find_episode(next_ep)
+        result = find_episode(next_ep, require_full=True)
 
         if result:
             vid_id, title, url, date_str, duration_str, channel, fallback_url, short_url = result

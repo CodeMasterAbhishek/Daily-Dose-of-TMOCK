@@ -1147,7 +1147,7 @@ function createPodiumCardHTML(item) {
                 ${escapeHTML(item.handle)}
                 ${item.isUser ? '<span class="lb-you-badge">YOU</span>' : ''}
             </div>
-            <div class="lb-podium__level">${item.level}</div>
+            <div class="lb-podium__level">${escapeHTML(item.level)}</div>
             <div class="lb-podium__stats">${item.count} Eps</div>
             <div class="lb-podium__hours">${formatWatchTime(item.hours)}</div>
         </div>
@@ -1166,7 +1166,7 @@ function createLeaderboardRowHTML(item, isHidden = false) {
                         ${escapeHTML(item.handle)}
                         ${item.isUser ? '<span class="lb-you-badge">YOU</span>' : ''}
                     </div>
-                    <div class="lb-row__level">${item.level}</div>
+                    <div class="lb-row__level">${escapeHTML(item.level)}</div>
                 </div>
             </div>
             <div class="lb-row__right">
