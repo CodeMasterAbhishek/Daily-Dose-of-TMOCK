@@ -119,6 +119,8 @@ export async function fetchNewsData() {
                 source: 'SONY SAB',
                 url: data.yt_main ? `https://www.youtube.com/watch?v=${data.yt_main}` : '',
                 videoId: data.yt_main || '',
+                startTime: data.startTime || 0,
+                endTime: data.endTime || null,
                 robustFallbacks: data.yt_backups || [],
                 robustShorts: data.yt_shorts || [],
                 image: image,
