@@ -107,5 +107,10 @@ Contributions are always welcome. To get started:
 4. Push to the branch (\git push origin feature/AmazingFeature\)
 5. Open a Pull Request
 
+## Disclaimer
+This project is a non-commercial, fan-made directory. All "Taarak Mehta Ka Ooltah Chashmah" (TMKOC) episodes, characters, videos, and trademarks are the exclusive property of **Sony Pictures Networks India**, **SAB TV**, **Neela Film Productions Pvt. Ltd.**, and their respective copyright owners. 
+
+This repository does not host or pirate any video content. All videos are embedded directly from official YouTube channels using the authorized YouTube IFrame Player API.
+
 ## License
-All rights reserved. You may not use, copy, modify, distribute, or sell this software without prior explicit written permission from the owner. See `LICENSE` for more information.
+All rights reserved for the software source code. You may not use, copy, modify, distribute, or sell this software code without prior explicit written permission from the owner. See `LICENSE` for more information.
