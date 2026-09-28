@@ -976,7 +976,7 @@ function openCleanPlayer(article) {
                         
                         if (modalWarning) {
                             modalWarning.style.display = 'block';
-                            modalWarning.innerHTML = `⚠️ <strong>Video Unavailable:</strong> YouTube refused to play this video. It may be geo-blocked, made private, or Sony disabled embedding. <a href="https://www.youtube.com/results?search_query=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" target="_blank" style="color: #d97706; text-decoration: underline;">Search for Ep ${article.epNumber} on YouTube</a>. (Code: ${event.data})`;
+                            modalWarning.innerHTML = `⚠️ <strong>Embedding Disabled by Sony:</strong> This official episode exists, but Sony has strictly blocked third-party apps from playing it. You must watch it directly on YouTube.<br><br><a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="display:inline-block; margin-top:8px; padding: 8px 16px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">↗️ Watch Ep ${article.epNumber} on YouTube.com</a>`;
                         }
                         try {
                             verifiedVideos.add(article.id);
