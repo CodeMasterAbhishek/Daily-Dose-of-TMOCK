@@ -109,7 +109,23 @@ def main():
                 data = response.json()
                 enriched_count += try_enrich(data, db, missing_set)
                 if enriched_count > 0:
-                    save_db(db)
+                
+    save_db(db)
+
+    # AUTO-PUSH TO GITHUB
+    import subprocess
+    if enriched_count > 0:
+        print('Pushing new SonyLIV data to GitHub...')
+        try:
+            subprocess.run(['git', 'add', 'data/episodes.json'], check=True)
+            subprocess.run(['git', 'commit', '-m', f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'], check=True)
+            subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+            print('Successfully pushed to GitHub!')
+        except Exception as e:
+            print(f"Failed to push to GitHub: {e}")
+    else:
+        print('No new data to push.')
+
             except:
                 pass
 
@@ -143,7 +159,23 @@ def main():
                 if next_data:
                     enriched_count += try_enrich(next_data, db, missing_set)
                     if enriched_count > before:
-                        save_db(db)
+                    
+    save_db(db)
+
+    # AUTO-PUSH TO GITHUB
+    import subprocess
+    if enriched_count > 0:
+        print('Pushing new SonyLIV data to GitHub...')
+        try:
+            subprocess.run(['git', 'add', 'data/episodes.json'], check=True)
+            subprocess.run(['git', 'commit', '-m', f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'], check=True)
+            subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+            print('Successfully pushed to GitHub!')
+        except Exception as e:
+            print(f"Failed to push to GitHub: {e}")
+    else:
+        print('No new data to push.')
+
                         print(f"  Extracted {enriched_count - before} episodes from initial page data")
             except Exception as e:
                 print(f"  Could not extract __NEXT_DATA__: {e}")
@@ -186,7 +218,23 @@ def main():
 
         browser.close()
 
+
     save_db(db)
+
+    # AUTO-PUSH TO GITHUB
+    import subprocess
+    if enriched_count > 0:
+        print('Pushing new SonyLIV data to GitHub...')
+        try:
+            subprocess.run(['git', 'add', 'data/episodes.json'], check=True)
+            subprocess.run(['git', 'commit', '-m', f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'], check=True)
+            subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+            print('Successfully pushed to GitHub!')
+        except Exception as e:
+            print(f"Failed to push to GitHub: {e}")
+    else:
+        print('No new data to push.')
+
 
     remaining = len(missing_set)
     print("\n==================================================")
