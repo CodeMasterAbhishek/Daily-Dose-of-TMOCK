@@ -148,23 +148,32 @@ def main():
             except Exception as e:
                 print(f"  Could not extract __NEXT_DATA__: {e}")
 
+            # Figure out exactly which episodes we are still missing on THIS specific page
+            chunk_missing = {ep for ep in missing_set if chunk_start <= ep <= chunk_end}
+            if not chunk_missing:
+                print("  All missing episodes for this page found instantly. Moving to next page.")
+                continue
+
             # PHASE 2: Scroll to trigger lazy-loaded XHR responses for remaining episodes
             stuck = 0
             last_count = enriched_count
-            while missing_set:
+            while chunk_missing:
                 for _ in range(3):
                     page.keyboard.press("End")
                     time.sleep(1)
-                time.sleep(3)
+                time.sleep(2)
 
                 for selector in ["text=View More", "text=Load More", "text=VIEW MORE", "text=LOAD MORE"]:
                     try:
                         btn = page.locator(selector).first
                         if btn.is_visible(timeout=500):
                             btn.click()
-                            time.sleep(3)
+                            time.sleep(2)
                     except:
                         pass
+
+                # Update our list of what's still missing on this page
+                chunk_missing = {ep for ep in missing_set if chunk_start <= ep <= chunk_end}
 
                 if enriched_count > last_count:
                     last_count = enriched_count
@@ -172,7 +181,7 @@ def main():
                 else:
                     stuck += 1
 
-                if stuck > 12:
+                if stuck > 8:
                     break
 
         browser.close()
