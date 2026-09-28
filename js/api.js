@@ -50,12 +50,23 @@ function extractRealDate(title, epNum) {
 export async function fetchNewsData() {
     try {
         const cacheBuster = Math.floor(Date.now() / 600000); // 10 minutes cache for episodes
-        const response = await fetch(`data/episodes.csv?t=${cacheBuster}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const [csvResponse, fallbacksResponse] = await Promise.all([
+            fetch(`data/episodes.csv?t=${cacheBuster}`),
+            fetch(`data/fallbacks_min.json?t=${cacheBuster}`).catch(() => ({ ok: false }))
+        ]);
+
+        if (!csvResponse.ok) {
+            throw new Error(`HTTP error! status: ${csvResponse.status}`);
         }
-        const text = await response.text();
+        
+        const text = await csvResponse.text();
         const lines = text.split('\n');
+        
+        let robustDb = {};
+        if (fallbacksResponse.ok) {
+            robustDb = await fallbacksResponse.json().catch(() => ({}));
+        }
 
         const articles = [];
         for (let i = 1; i < lines.length; i++) {
@@ -125,6 +136,22 @@ export async function fetchNewsData() {
                         }
                     }
                 }
+                
+                const robustData = robustDb[realEpNum] || {};
+                let robustFallbacks = robustData.f || [];
+                let robustShorts = robustData.s || [];
+                
+                // Exclude primary videoId from fallbacks to avoid pointless reloading
+                robustFallbacks = robustFallbacks.filter(id => id !== videoId);
+                robustShorts = robustShorts.filter(id => id !== videoId);
+                
+                // Include CSV fallback if it's not already in the robust list
+                if (fallbackId && fallbackId !== videoId && !robustFallbacks.includes(fallbackId)) {
+                    robustFallbacks.unshift(fallbackId);
+                }
+                if (shortId && shortId !== videoId && !robustShorts.includes(shortId)) {
+                    robustShorts.unshift(shortId);
+                }
 
                 articles.push({
                     id: `ep_${realEpNum}`,
@@ -135,8 +162,10 @@ export async function fetchNewsData() {
                     source: 'SONY SAB',
                     url: url,
                     videoId: videoId,
-                    fallbackId: fallbackId,
+                    fallbackId: fallbackId, // Keep for backward compatibility 
                     shortId: shortId,
+                    robustFallbacks: robustFallbacks,
+                    robustShorts: robustShorts,
                     image: image,
                     airDate: airDate,
                     durationText: durationText,

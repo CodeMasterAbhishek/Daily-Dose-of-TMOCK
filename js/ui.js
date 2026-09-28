@@ -201,13 +201,13 @@ function handleCheckerResult(article, isUnavailable) {
         
         const card = document.querySelector(`.card[data-id="${article.id}"]`);
         if (card) {
-            if (isUnavailable && !article.fallbackId && !article.shortId) {
+            if (isUnavailable && !(article.robustFallbacks && article.robustFallbacks.length) && !(article.robustShorts && article.robustShorts.length)) {
                 card.classList.add('ep-unavailable');
             } else {
                 card.classList.remove('ep-unavailable');
             }
             
-            if (isUnavailable && !article.fallbackId && article.shortId) {
+            if (isUnavailable && !(article.robustFallbacks && article.robustFallbacks.length) && (article.robustShorts && article.robustShorts.length)) {
                 const durationBadge = card.querySelector('.card-duration-badge');
                 if (durationBadge) durationBadge.innerHTML = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
             }
@@ -235,9 +235,9 @@ function initIntersectionObserver() {
                         if (cache[article.videoId]) {
                             verifiedVideos.add(article.id);
                             if (cache[article.videoId].isUnavailable) {
-                                if (!article.fallbackId && !article.shortId) {
+                                if (!(article.robustFallbacks && article.robustFallbacks.length) && !(article.robustShorts && article.robustShorts.length)) {
                                     card.classList.add('ep-unavailable');
-                                } else if (!article.fallbackId && article.shortId) {
+                                } else if (!(article.robustFallbacks && article.robustFallbacks.length) && (article.robustShorts && article.robustShorts.length)) {
                                     const durationBadge = card.querySelector('.card-duration-badge');
                                     if (durationBadge) durationBadge.innerHTML = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
                                 }
@@ -547,9 +547,9 @@ function createCardHTML(article) {
     let displayDuration = article.durationText;
     
     if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
-        if (!article.fallbackId && !article.shortId) {
+        if (!(article.robustFallbacks && article.robustFallbacks.length) && !(article.robustShorts && article.robustShorts.length)) {
             unavailableClass = 'ep-unavailable';
-        } else if (!article.fallbackId && article.shortId) {
+        } else if (!(article.robustFallbacks && article.robustFallbacks.length) && (article.robustShorts && article.robustShorts.length)) {
             displayDuration = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
         }
     }
@@ -830,16 +830,18 @@ function openCleanPlayer(article) {
         try {
             const cache = getCheckerCache();
             if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
-                if (article.fallbackId) {
-                    videoIdToPlay = article.fallbackId;
-                    if (!window._playbackAttempts) window._playbackAttempts = {};
+                if (!window._playbackAttempts) window._playbackAttempts = {};
+                const fallbacks = article.robustFallbacks || [];
+                const shorts = article.robustShorts || [];
+                
+                if (fallbacks.length > 0) {
+                    videoIdToPlay = fallbacks[0];
                     window._playbackAttempts[article.id] = 1;
-                    initialMsg = `⚠️ <strong>Switched to Backup Stream</strong>: The main video was blocked in your region, so we automatically pre-loaded the backup full episode!`;
-                } else if (article.shortId) {
-                    videoIdToPlay = article.shortId;
-                    if (!window._playbackAttempts) window._playbackAttempts = {};
-                    window._playbackAttempts[article.id] = 2;
-                    initialMsg = `⚠️ <strong>Switched to Short Version</strong>: The full episode is geo-blocked, so we automatically pre-loaded the 10-minute promo/short version instead!`;
+                    initialMsg = `⚠️ <strong>Switched to Backup Stream</strong>: The main video was blocked in your region, so we automatically pre-loaded a backup full episode!`;
+                } else if (shorts.length > 0) {
+                    videoIdToPlay = shorts[0];
+                    window._playbackAttempts[article.id] = fallbacks.length + 1;
+                    initialMsg = `⚠️ <strong>Switched to Short Version</strong>: The full episode is geo-blocked, so we automatically pre-loaded the promo/short version instead!`;
                 }
             }
         } catch(e) {}
@@ -871,12 +873,16 @@ function openCleanPlayer(article) {
                             
                             let nextVideoId = null;
                             let msg = "";
-                            if (attempts === 0 && article.fallbackId) {
-                                nextVideoId = article.fallbackId;
-                                msg = `⚠️ <strong>Switched to Backup Stream</strong>: The main video was blocked in your region, attempting to load a backup full episode...`;
-                            } else if (attempts <= 1 && article.shortId) {
-                                nextVideoId = article.shortId;
-                                msg = `⚠️ <strong>Switched to Short Version</strong>: The full episode is geo-blocked, so we automatically loaded the 10-minute promo/short version instead.`;
+                            const fallbacks = article.robustFallbacks || [];
+                            const shorts = article.robustShorts || [];
+                            
+                            if (attempts < fallbacks.length) {
+                                nextVideoId = fallbacks[attempts];
+                                msg = `⚠️ <strong>Switched to Backup Stream (${attempts + 1}/${fallbacks.length})</strong>: Attempting to load another backup full episode...`;
+                            } else if (attempts < fallbacks.length + shorts.length) {
+                                const shortIdx = attempts - fallbacks.length;
+                                nextVideoId = shorts[shortIdx];
+                                msg = `⚠️ <strong>Switched to Short Version (${shortIdx + 1}/${shorts.length})</strong>: The full episodes are blocked, attempting to load a promo/short version instead.`;
                             }
                             
                             if (nextVideoId) {
