@@ -10,7 +10,6 @@ Usage: python scripts/enrich_from_sonyliv.py
 import os
 import json
 import time
-import math
 from playwright.sync_api import sync_playwright
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,10 +32,35 @@ def find_missing_episodes(db):
         if not ep_key.isdigit():
             continue
         desc = data.get("description", "").strip()
-        # If description is empty or is our generic placeholder, it needs enrichment
         if not desc or desc.startswith("Watch full single episode") or desc.startswith("Special Event"):
             missing.append(int(ep_key))
     return sorted(missing)
+
+def try_enrich(obj, db, missing_set):
+    """Recursively search a JSON object for episode data and enrich the DB."""
+    count = 0
+    if isinstance(obj, dict):
+        if "episodeNumber" in obj and ("title" in obj or "name" in obj) and "duration" in obj:
+            ep_num = int(obj.get("episodeNumber", 0))
+            ep_key = str(ep_num)
+            if ep_num in missing_set and ep_key in db:
+                desc = obj.get("longDescription") or obj.get("description", "")
+                duration = obj.get("duration", 0)
+                if desc or duration:
+                    if desc:
+                        db[ep_key]["description"] = desc
+                    if duration and int(duration) > 0:
+                        db[ep_key]["durationSeconds"] = int(duration)
+                    missing_set.discard(ep_num)
+                    count += 1
+                    short_desc = (desc[:55] + "...") if desc and len(desc) > 55 else desc
+                    print(f"  ✅ Enriched Ep {ep_num}: {short_desc}")
+        for v in obj.values():
+            count += try_enrich(v, db, missing_set)
+    elif isinstance(obj, list):
+        for item in obj:
+            count += try_enrich(item, db, missing_set)
+    return count
 
 def main():
     print("==================================================")
@@ -74,6 +98,7 @@ def main():
         )
         page = context.new_page()
 
+        # Intercept XHR/fetch responses (catches episodes loaded by scrolling)
         def handle_response(response):
             nonlocal enriched_count
             if "sonyliv.com" not in response.url:
@@ -82,33 +107,9 @@ def main():
                 return
             try:
                 data = response.json()
-                def extract(obj):
-                    nonlocal enriched_count
-                    if isinstance(obj, dict):
-                        if "episodeNumber" in obj and "title" in obj and "duration" in obj:
-                            ep_num = int(obj.get("episodeNumber", 0))
-                            ep_key = str(ep_num)
-                            if ep_num in missing_set and ep_key in db:
-                                desc = obj.get("longDescription") or obj.get("description", "")
-                                duration = obj.get("duration", 0)
-                                
-                                # Only update if we actually got better data
-                                if desc or duration:
-                                    if desc:
-                                        db[ep_key]["description"] = desc
-                                    if duration and duration > 0:
-                                        db[ep_key]["durationSeconds"] = int(duration)
-                                    
-                                    enriched_count += 1
-                                    missing_set.discard(ep_num)
-                                    save_db(db)
-                                    print(f"  ✅ Enriched Ep {ep_num}: {desc[:60]}..." if desc else f"  ✅ Enriched Ep {ep_num}: duration={duration}s")
-                        for v in obj.values():
-                            extract(v)
-                    elif isinstance(obj, list):
-                        for item in obj:
-                            extract(item)
-                extract(data)
+                enriched_count += try_enrich(data, db, missing_set)
+                if enriched_count > 0:
+                    save_db(db)
             except:
                 pass
 
@@ -129,20 +130,41 @@ def main():
                 print(f"  Failed to load: {e}")
                 continue
 
-            # Scroll to load all episodes
+            # PHASE 1: Extract __NEXT_DATA__ from the initial page HTML
+            # SonyLIV is a Next.js app — the first batch of episodes is embedded
+            # in a <script id="__NEXT_DATA__"> tag, not sent as XHR.
+            before = enriched_count
+            try:
+                next_data = page.evaluate("""() => {
+                    const el = document.getElementById('__NEXT_DATA__');
+                    if (el) return JSON.parse(el.textContent);
+                    return null;
+                }""")
+                if next_data:
+                    enriched_count += try_enrich(next_data, db, missing_set)
+                    if enriched_count > before:
+                        save_db(db)
+                        print(f"  Extracted {enriched_count - before} episodes from initial page data")
+            except Exception as e:
+                print(f"  Could not extract __NEXT_DATA__: {e}")
+
+            # PHASE 2: Scroll to trigger lazy-loaded XHR responses for remaining episodes
             stuck = 0
             last_count = enriched_count
-            while True:
-                page.keyboard.press("End")
+            while missing_set:
+                for _ in range(3):
+                    page.keyboard.press("End")
+                    time.sleep(1)
                 time.sleep(3)
 
-                try:
-                    btn = page.locator("text=View More").first
-                    if btn.is_visible():
-                        btn.click()
-                        time.sleep(3)
-                except:
-                    pass
+                for selector in ["text=View More", "text=Load More", "text=VIEW MORE", "text=LOAD MORE"]:
+                    try:
+                        btn = page.locator(selector).first
+                        if btn.is_visible(timeout=500):
+                            btn.click()
+                            time.sleep(3)
+                    except:
+                        pass
 
                 if enriched_count > last_count:
                     last_count = enriched_count
@@ -150,12 +172,11 @@ def main():
                 else:
                     stuck += 1
 
-                if stuck > 8:
+                if stuck > 12:
                     break
 
         browser.close()
 
-    # Final save
     save_db(db)
 
     remaining = len(missing_set)
