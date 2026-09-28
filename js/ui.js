@@ -741,11 +741,21 @@ function startActiveWatchTracker(articleId) {
             pendingTimestamps = timestamps;
 
             let totalEpSecs = 1260; // fallback to 21 mins
-            if (typeof ytPlayer.getDuration === 'function') {
+            let segmentOffset = 0;
+            
+            const currentArticle = masterEpNumberMap[articleId];
+            if (currentArticle && currentArticle.startTime) {
+                segmentOffset = currentArticle.startTime;
+                if (currentArticle.endTime) {
+                    totalEpSecs = currentArticle.endTime - currentArticle.startTime;
+                }
+            } else if (typeof ytPlayer.getDuration === 'function') {
                 const duration = ytPlayer.getDuration();
                 if (duration > 0) totalEpSecs = duration;
             }
-            if (currentEpSecs >= totalEpSecs * 0.90) {
+            
+            const effectiveWatchedSecs = currentEpSecs - segmentOffset;
+            if (effectiveWatchedSecs >= totalEpSecs * 0.90) {
                 saveCompletedEpisode(articleId);
             }
         }
@@ -825,7 +835,9 @@ function openCleanPlayer(article) {
     }
 
     const timestamps = getTimestamps();
-    const resumeSeconds = timestamps[article.id] || 0;
+    let resumeSeconds = timestamps[article.id] || 0;
+    if (article.startTime && resumeSeconds < article.startTime) resumeSeconds = article.startTime;
+    if (article.endTime && resumeSeconds > article.endTime) resumeSeconds = article.startTime;
 
     const viewport = document.querySelector('.tmkoc-video-viewport');
     
@@ -860,18 +872,21 @@ function openCleanPlayer(article) {
         } catch(e) {}
         
         if (videoIdToPlay) {
+            let pVars = { 
+                'autoplay': 1, 
+                'rel': 0, 
+                'controls': 1,
+                'start': resumeSeconds,
+                'modestbranding': 1,
+                'iv_load_policy': 3,
+                'color': 'white',
+                'playsinline': 1
+            };
+            if (article.endTime) pVars['end'] = article.endTime;
+
             ytPlayer = new window.YT.Player('clean-iframe-container', {
                 videoId: videoIdToPlay,
-                playerVars: { 
-                    'autoplay': 1, 
-                    'rel': 0, 
-                    'controls': 1,
-                    'start': resumeSeconds,
-                    'modestbranding': 1,
-                    'iv_load_policy': 3,
-                    'color': 'white',
-                    'playsinline': 1
-                },
+                playerVars: pVars,
                 events: {
                     'onReady': function(event) {
                         if (initialMsg && modalWarning) {
@@ -969,9 +984,12 @@ function openCleanPlayer(article) {
         }
     } else {
         // Fallback if YT API fails to load
-        const startParam = resumeSeconds > 5 ? `&start=${resumeSeconds}` : '';
+        let startParam = resumeSeconds > 5 ? `&start=${resumeSeconds}` : '';
+        if (article.startTime && resumeSeconds < article.startTime) startParam = `&start=${article.startTime}`;
+        let endParam = article.endTime ? `&end=${article.endTime}` : '';
+        
         if (article.videoId) {
-            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${article.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${startParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${article.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${startParam}${endParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         } else {
             viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         }
