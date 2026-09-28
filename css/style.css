@@ -973,54 +973,53 @@ a:focus-visible {
    ========================================================================== */
 .ticker-wrap {
     width: 100%;
-    background-color: #dc2626; /* Bright warning red */
+    background-color: #ff0000; /* Pure vibrant railway red */
     overflow: hidden;
-    height: 32px;
+    height: 36px;
     display: flex;
     align-items: center;
-    box-shadow: 0 2px 10px rgba(220, 38, 38, 0.2);
-    border-bottom: 1px solid #b91c1c;
+    box-shadow: 0 2px 10px rgba(255, 0, 0, 0.4);
+    border-bottom: 2px solid #cc0000;
     position: relative;
-    z-index: 90; /* Just below header */
+    z-index: 90;
 }
 
 .ticker {
     display: flex;
+    align-items: center;
     white-space: nowrap;
     animation: ticker-scroll 45s linear infinite;
 }
 
 .ticker:hover {
-    animation-play-state: paused; /* Pause on hover so users can read it */
+    animation-play-state: paused;
 }
 
 .ticker-item {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     padding: 0 50px;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
     color: #ffffff;
     font-family: var(--font-sans);
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
 }
 
 .ticker-item strong {
-    font-weight: 800;
-    color: #fef08a; /* Yellow highlight for emphasis */
+    font-weight: 900;
+    color: #ffff00; /* Pure bright yellow */
 }
 
 @keyframes ticker-scroll {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%); /* Moves exactly half the width to create seamless loop */
-    }
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
 }
 
-/* Dark mode adjustment */
+/* Dark mode adjustment - keep it vibrant! */
 [data-theme="dark"] .ticker-wrap {
-    background-color: #991b1b;
-    border-bottom: 1px solid #7f1d1d;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    background-color: #ff0000; /* Keep it pure red in dark mode too so it pops */
+    border-bottom: 2px solid #990000;
+    box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
 }
