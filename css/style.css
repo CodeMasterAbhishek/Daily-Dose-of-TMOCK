@@ -968,3 +968,59 @@ a:focus-visible {
 }
 
 
+/* ==========================================================================
+   LED Ticker (Disclaimer)
+   ========================================================================== */
+.ticker-wrap {
+    width: 100%;
+    background-color: #dc2626; /* Bright warning red */
+    overflow: hidden;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(220, 38, 38, 0.2);
+    border-bottom: 1px solid #b91c1c;
+    position: relative;
+    z-index: 90; /* Just below header */
+}
+
+.ticker {
+    display: flex;
+    white-space: nowrap;
+    animation: ticker-scroll 45s linear infinite;
+}
+
+.ticker:hover {
+    animation-play-state: paused; /* Pause on hover so users can read it */
+}
+
+.ticker-item {
+    display: inline-block;
+    padding: 0 50px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #ffffff;
+    font-family: var(--font-sans);
+    letter-spacing: 0.3px;
+}
+
+.ticker-item strong {
+    font-weight: 800;
+    color: #fef08a; /* Yellow highlight for emphasis */
+}
+
+@keyframes ticker-scroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%); /* Moves exactly half the width to create seamless loop */
+    }
+}
+
+/* Dark mode adjustment */
+[data-theme="dark"] .ticker-wrap {
+    background-color: #991b1b;
+    border-bottom: 1px solid #7f1d1d;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
