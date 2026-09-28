@@ -100,13 +100,10 @@ export async function fetchNewsData() {
                 }
             }
 
-            // Image fallback: Use SonyLIV high-res if available, otherwise YouTube HQ, otherwise placeholder
-            let image = `https://img.youtube.com/vi/${data.yt_main}/hqdefault.jpg`;
-            if (data.thumbnail && data.thumbnail.startsWith('http')) {
-                image = data.thumbnail;
-            } else if (!data.yt_main) {
-                image = 'https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode';
-            }
+            // Always use YouTube thumbnails (SonyLIV CDN blocks cross-origin browser requests)
+            let image = data.yt_main
+                ? `https://img.youtube.com/vi/${data.yt_main}/hqdefault.jpg`
+                : 'https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode';
 
             // Description fallback
             const desc = data.description && data.description.trim() !== '' 
