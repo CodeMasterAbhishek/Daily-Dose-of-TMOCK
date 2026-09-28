@@ -112,6 +112,10 @@ This project is a non-commercial, fan-made directory. All "Taarak Mehta Ka Oolta
 
 This repository does not host or pirate any video content. All videos are embedded directly from official YouTube channels using the authorized YouTube IFrame Player API.
 
+**Notice for Copyright Holders (Sony / SAB TV / Neela Film Productions):**
+This project was built strictly out of love and respect for TMKOC to help fans easily find official episodes. If you represent the copyright holders and have any questions, concerns, or requests regarding this directory, please feel free to reach out directly:
+**Email:** codemasterabhishek@gmail.com
+
 ## License
 **All rights reserved.** This software is proprietary and is not open-source. You may not use, copy, modify, distribute, or sell this software code without prior explicit written permission from the owner. 
 
