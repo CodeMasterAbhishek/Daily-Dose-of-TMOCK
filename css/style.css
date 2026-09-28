@@ -473,7 +473,7 @@ a:focus-visible {
 
 .card-progress-bar {
   height: 100%;
-  background: #6366f1;
+  background: #ef4444;
   width: 0%;
   transition: width 0.3s ease;
 }
