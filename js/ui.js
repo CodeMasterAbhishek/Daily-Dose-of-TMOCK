@@ -156,14 +156,20 @@ export async function initializeIpCache() {
     try {
         const res = await fetch('https://api.ipify.org?format=json');
         const data = await res.json();
-        const currentIp = data.ip;
+        // Hash IP to detect VPN changes without storing raw PII
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data.ip));
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const ipHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         
-        const lastIp = localStorage.getItem("tmkoc_last_ip");
-        if (lastIp && lastIp !== currentIp) {
-            // IP changed (VPN toggled). Invalidate the geo cache.
+        const lastHash = localStorage.getItem("tmkoc_last_ip_hash");
+        if (lastHash && lastHash !== ipHash) {
+            // Network changed (VPN toggled). Invalidate the geo cache.
             localStorage.removeItem("tmkoc_checker_cache");
         }
-        localStorage.setItem("tmkoc_last_ip", currentIp);
+        localStorage.setItem("tmkoc_last_ip_hash", ipHash);
+        // Clean up old raw IP if it exists from before this fix
+        localStorage.removeItem("tmkoc_last_ip");
     } catch (e) {}
 }
 
@@ -889,10 +895,11 @@ function openCleanPlayer(article) {
                                 window._playbackAttempts[article.id] = attempts + 1;
                                 
                                 // YouTube's iframe often breaks completely (black screen) after a 150 error,
-                                // so we must fully destroy and recreate the player with the new videoId
-                                article.videoId = nextVideoId;
+                                // so we must fully destroy and recreate the player with the new videoId.
+                                // Use a shallow copy to avoid mutating the original article in allArticlesMap.
+                                const retryArticle = Object.assign({}, article, { videoId: nextVideoId });
                                 setTimeout(() => {
-                                    openCleanPlayer(article);
+                                    openCleanPlayer(retryArticle);
                                     
                                     // Show the warning banner on the newly created player
                                     setTimeout(() => {

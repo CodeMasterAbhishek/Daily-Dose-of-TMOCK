@@ -1,10 +1,10 @@
 import csv
 import json
 import time
-import urllib.request
 import re
 import sys
 import os
+import tempfile
 
 try:
     import scrapetube
@@ -12,23 +12,30 @@ except ImportError:
     print("scrapetube not found. Please install it.")
     sys.exit(1)
 
-CSV_FILE = 'data/episodes.csv'
+# Import shared config to avoid drift (P2 #18)
+try:
+    from config import CSV_FILE, VALID_CHANNELS
+    from utils import get_minutes
+except ImportError:
+    # Fallback for standalone execution outside scripts/
+    CSV_FILE = 'data/episodes.csv'
+    VALID_CHANNELS = [
+        'sony sab', 'sony pal',
+        'taarak mehta ka ooltah chashmah',
+        'taarak mehta ka ooltah chashmah episodes',
+        'taarak mehta ka ooltah chashmah movies',
+        'liv comedy'
+    ]
+    def get_minutes(duration_str):
+        try:
+            parts = duration_str.split(':')
+            if len(parts) == 3: return int(parts[0]) * 60 + int(parts[1])
+            elif len(parts) == 2: return int(parts[0])
+        except (ValueError, TypeError, AttributeError):
+            pass
+        return 0
+
 ROBUST_DB_FILE = 'data/robust_fallbacks.json'
-
-VALID_CHANNELS = [
-    'sony sab', 
-    'sony pal', 
-    'taarak mehta ka ooltah chashmah', 
-    'taarak mehta ka ooltah chashmah episodes',
-    'taarak mehta ka ooltah chashmah movies',
-    'liv comedy'
-]
-
-def get_minutes(duration_str: str) -> int:
-    parts = duration_str.split(':')
-    if len(parts) == 3: return int(parts[0]) * 60 + int(parts[1])
-    elif len(parts) == 2: return int(parts[0])
-    return 0
 
 def score_video(mins, channel):
     c = channel.lower()
@@ -65,8 +72,8 @@ def search_robust(ep_num):
                 duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
                 mins = get_minutes(duration_str)
                 
-                # Verify episode number is in title
-                if str(ep_num) not in title:
+                # Verify episode number with word-boundary regex (P2 #12 fix)
+                if not re.search(rf'\b0*{ep_num}\b', title):
                     continue
                     
                 cat = "full" if mins >= 15 else ("short" if mins >= 8 else "skip")
@@ -84,7 +91,7 @@ def search_robust(ep_num):
                     "score": score
                 })
         except Exception as e:
-            pass
+            print(f"  [WARN] Search failed: {e}")
 
     found_videos.sort(key=lambda x: x['score'], reverse=True)
     
@@ -97,15 +104,30 @@ def search_robust(ep_num):
             
     return result
 
+def atomic_json_write(filepath, data):
+    """Write JSON atomically via tempfile to prevent corruption on crash (P1 #11)."""
+    dir_name = os.path.dirname(filepath) or "."
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', dir=dir_name, suffix='.tmp', delete=False, encoding='utf-8') as tmp:
+            json.dump(data, tmp, indent=2)
+            tmp_path = tmp.name
+        os.replace(tmp_path, filepath)
+    except Exception as e:
+        print(f"[WARN] Atomic write failed ({e}), falling back to direct write")
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+
 def main():
     print("Starting robust local scraper for all episodes...")
     
     db = {}
     if os.path.exists(ROBUST_DB_FILE):
         try:
-            with open(ROBUST_DB_FILE, 'r') as f:
+            with open(ROBUST_DB_FILE, 'r', encoding='utf-8') as f:
                 db = json.load(f)
-        except: pass
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"[WARN] Could not load existing fallback DB: {e}. Starting fresh.")
+            db = {}
 
     # Read all episodes from CSV to know max episodes
     episodes = []
@@ -113,7 +135,11 @@ def main():
         reader = csv.reader(f)
         header = next(reader)
         for row in reader:
-            if row: episodes.append(int(row[0]))
+            if row:
+                try:
+                    episodes.append(int(row[0]))
+                except ValueError:
+                    continue
             
     episodes.sort(reverse=True) # Scrape newest first
     
@@ -138,16 +164,14 @@ def main():
         
         db[str(ep)] = res
         
-        # Save every 5 episodes
-        if ep % 5 == 0:
-            with open(ROBUST_DB_FILE, 'w') as f:
-                json.dump(db, f, indent=2)
+        # Save every 5 processed episodes (P3 #37 fix — count-based, not ep-number-based)
+        if total_episodes_processed % 5 == 0:
+            atomic_json_write(ROBUST_DB_FILE, db)
                 
         time.sleep(1) # Prevent aggressive rate limits
 
-    with open(ROBUST_DB_FILE, 'w') as f:
-        json.dump(db, f, indent=2)
-    print("Scraping complete.")
+    atomic_json_write(ROBUST_DB_FILE, db)
+    print(f"Scraping complete. Processed {total_episodes_processed} episodes. Found {total_full_found} full, {total_short_found} short videos.")
 
 if __name__ == '__main__':
     main()

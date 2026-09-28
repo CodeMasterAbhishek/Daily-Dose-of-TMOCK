@@ -180,7 +180,7 @@ def find_episode(ep_num: int, require_full: bool = False):
                     url = f"https://www.youtube.com/watch?v={vid_id}"
                     time_text = vid.get('publishedTimeText', {}).get('simpleText', '')
                     date_str = parse_relative_date(time_text)
-                    duration_str = vid.get('lengthText', {}).get('simpleText', '21:45')
+                    duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
                     
                     if require_full and is_promo(title):
                         continue
@@ -206,7 +206,8 @@ def find_episode(ep_num: int, require_full: bool = False):
                             fallback_url = url
                         elif not short_url and 8 <= mins < 15:
                             short_url = url
-        except Exception:
+        except Exception as e:
+            print(f"  [WARN] Search query failed: {e}")
             continue
             
         if best_mins > 15 and fallback_url and short_url:
@@ -414,6 +415,8 @@ def main():
     episodes_added = 0
     next_ep = last_ep + 1
 
+    new_episodes = []
+
     while True:
         print(f"Searching for Episode {next_ep}...")
         result = find_episode(next_ep, require_full=True)
@@ -422,13 +425,7 @@ def main():
             vid_id, title, url, date_str, duration_str, channel, fallback_url, short_url = result
             print(f"[FOUND] Ep {next_ep}: {title} ({url})")
 
-            with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                if date_str:
-                    writer.writerow([next_ep, title, url, "Found", date_str, duration_str, fallback_url, short_url])
-                else:
-                    writer.writerow([next_ep, title, url, "Found", "", duration_str, fallback_url, short_url])
-
+            new_episodes.append([next_ep, title, url, "Found", date_str if date_str else "", duration_str, fallback_url, short_url])
             added_details.append(f"Ep {next_ep}")
             last_ep = next_ep
             episodes_added += 1
@@ -437,16 +434,48 @@ def main():
             print(f"[UP TO DATE] Ep {next_ep} is not available on YouTube yet.")
             break
 
+    # Sanitize all CSV cells to prevent formula injection (P0 CSV injection fix)
+    def sanitize_csv_cell(value):
+        s = str(value)
+        if s and s[0] in ('=', '+', '-', '@', '\t', '\r', '\n'):
+            return "'" + s
+        return s
+
+    # Append new episodes atomically
+    if new_episodes:
+        with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            for row in new_episodes:
+                writer.writerow([sanitize_csv_cell(cell) for cell in row])
+
+    # Update state atomically (P1 atomic write fix)
     today_str = time.strftime("%Y-%m-%d")
     state["last_episode"] = last_ep
     state["last_updated"] = today_str
-    state["total_found"] = state.get("total_found", 4778) + episodes_added
+    # Compute total_found from actual CSV row count to prevent drift (P2 fix)
+    try:
+        with open(CSV_FILE, "r", encoding="utf-8") as f:
+            actual_rows = sum(1 for line in f if line.strip()) - 1  # minus header
+        state["total_found"] = max(actual_rows, 0)
+    except Exception:
+        state["total_found"] = state.get("total_found", 4778) + episodes_added
 
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2)
+    # Atomic state.json write via tempfile
+    import tempfile
+    state_dir = os.path.dirname(STATE_FILE) or "."
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=state_dir, suffix=".tmp", delete=False, encoding="utf-8") as tmp:
+            json.dump(state, tmp, indent=2)
+            tmp_path = tmp.name
+        os.replace(tmp_path, STATE_FILE)
+    except Exception as e:
+        print(f"[ERROR] Failed to write state.json atomically: {e}")
+        # Fallback to direct write
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2)
 
     if added_details or upgraded_details:
-        now_str = datetime.datetime.now().strftime('%d %b %Y (%H:%M)')
+        now_str = datetime.datetime.now(datetime.timezone.utc).strftime('%d %b %Y (%H:%M UTC)')
         
         log_entry = f"## 🔄 Sync Report: {now_str}\n\n"
         log_entry += "### 📊 Insights & Summary\n"
@@ -483,8 +512,16 @@ def main():
             
         log_entry += "---\n\n"
         
-        with open("activity_logs.md", "w", encoding="utf-8") as f:
-            f.write(log_entry)
+        # Prepend new log entry instead of overwriting (P2 fix)
+        log_file = os.path.join(os.path.dirname(CSV_FILE), "..", "activity_logs.md")
+        existing_log = ""
+        try:
+            with open(log_file, "r", encoding="utf-8") as f:
+                existing_log = f.read()
+        except FileNotFoundError:
+            pass
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write(log_entry + existing_log)
 
     print("\n=======================================================")
     print(f" Website Update Complete! {episodes_added} new episode(s) added, {upgraded_count} promo(s) upgraded.")
@@ -494,3 +531,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
