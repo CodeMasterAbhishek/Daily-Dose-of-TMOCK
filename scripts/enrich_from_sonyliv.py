@@ -112,19 +112,47 @@ def main():
                 
     save_db(db)
 
-    # AUTO-PUSH TO GITHUB
+    # AUTO-PUSH TO GITHUB AND LOGGING
     import subprocess
-    if enriched_count > 0:
-        print('Pushing new SonyLIV data to GitHub...')
-        try:
-            subprocess.run(['git', 'add', 'data/episodes.json'], check=True)
-            subprocess.run(['git', 'commit', '-m', f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'], check=True)
-            subprocess.run(['git', 'push', 'origin', 'main'], check=True)
-            print('Successfully pushed to GitHub!')
-        except Exception as e:
-            print(f"Failed to push to GitHub: {e}")
-    else:
-        print('No new data to push.')
+    from datetime import datetime
+    import os
+
+    # 1. Create/Update the log file
+    log_path = 'data/scraper_log.md'
+    now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
+    log_entry = f'- **{now}**: Scraper ran successfully. Enriched: **{enriched_count}**. Still Missing: **{remaining}**.\n'
+    
+    # Read existing logs, keep only last 50 lines to prevent infinite growth
+    existing_logs = []
+    if os.path.exists(log_path):
+        with open(log_path, 'r', encoding='utf-8') as lf:
+            existing_logs = lf.readlines()
+            # Remove title if present
+            if existing_logs and existing_logs[0].startswith('# '):
+                existing_logs = existing_logs[1:]
+    
+    # Prepend new log and keep top 50
+    existing_logs.insert(0, log_entry)
+    existing_logs = existing_logs[:50]
+    
+    with open(log_path, 'w', encoding='utf-8') as lf:
+        lf.write('# SonyLIV Scraper Activity Log\n\n')
+        lf.writelines(existing_logs)
+
+    # 2. Push to GitHub
+    print('Pushing logs and data to GitHub...')
+    try:
+        subprocess.run(['git', 'add', 'data/episodes.json', 'data/scraper_log.md'], check=True)
+        
+        commit_msg = 'chore: Daily SonyLIV Scraper Log (No new episodes)'
+        if enriched_count > 0:
+            commit_msg = f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'
+            
+        subprocess.run(['git', 'commit', '-m', commit_msg], check=True)
+        subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+        print('Successfully pushed to GitHub!')
+    except Exception as e:
+        print(f"Failed to push to GitHub: {e}")
 
             except:
                 pass
@@ -162,19 +190,47 @@ def main():
                     
     save_db(db)
 
-    # AUTO-PUSH TO GITHUB
+    # AUTO-PUSH TO GITHUB AND LOGGING
     import subprocess
-    if enriched_count > 0:
-        print('Pushing new SonyLIV data to GitHub...')
-        try:
-            subprocess.run(['git', 'add', 'data/episodes.json'], check=True)
-            subprocess.run(['git', 'commit', '-m', f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'], check=True)
-            subprocess.run(['git', 'push', 'origin', 'main'], check=True)
-            print('Successfully pushed to GitHub!')
-        except Exception as e:
-            print(f"Failed to push to GitHub: {e}")
-    else:
-        print('No new data to push.')
+    from datetime import datetime
+    import os
+
+    # 1. Create/Update the log file
+    log_path = 'data/scraper_log.md'
+    now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
+    log_entry = f'- **{now}**: Scraper ran successfully. Enriched: **{enriched_count}**. Still Missing: **{remaining}**.\n'
+    
+    # Read existing logs, keep only last 50 lines to prevent infinite growth
+    existing_logs = []
+    if os.path.exists(log_path):
+        with open(log_path, 'r', encoding='utf-8') as lf:
+            existing_logs = lf.readlines()
+            # Remove title if present
+            if existing_logs and existing_logs[0].startswith('# '):
+                existing_logs = existing_logs[1:]
+    
+    # Prepend new log and keep top 50
+    existing_logs.insert(0, log_entry)
+    existing_logs = existing_logs[:50]
+    
+    with open(log_path, 'w', encoding='utf-8') as lf:
+        lf.write('# SonyLIV Scraper Activity Log\n\n')
+        lf.writelines(existing_logs)
+
+    # 2. Push to GitHub
+    print('Pushing logs and data to GitHub...')
+    try:
+        subprocess.run(['git', 'add', 'data/episodes.json', 'data/scraper_log.md'], check=True)
+        
+        commit_msg = 'chore: Daily SonyLIV Scraper Log (No new episodes)'
+        if enriched_count > 0:
+            commit_msg = f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'
+            
+        subprocess.run(['git', 'commit', '-m', commit_msg], check=True)
+        subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+        print('Successfully pushed to GitHub!')
+    except Exception as e:
+        print(f"Failed to push to GitHub: {e}")
 
                         print(f"  Extracted {enriched_count - before} episodes from initial page data")
             except Exception as e:
@@ -221,19 +277,47 @@ def main():
 
     save_db(db)
 
-    # AUTO-PUSH TO GITHUB
+    # AUTO-PUSH TO GITHUB AND LOGGING
     import subprocess
-    if enriched_count > 0:
-        print('Pushing new SonyLIV data to GitHub...')
-        try:
-            subprocess.run(['git', 'add', 'data/episodes.json'], check=True)
-            subprocess.run(['git', 'commit', '-m', f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'], check=True)
-            subprocess.run(['git', 'push', 'origin', 'main'], check=True)
-            print('Successfully pushed to GitHub!')
-        except Exception as e:
-            print(f"Failed to push to GitHub: {e}")
-    else:
-        print('No new data to push.')
+    from datetime import datetime
+    import os
+
+    # 1. Create/Update the log file
+    log_path = 'data/scraper_log.md'
+    now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
+    log_entry = f'- **{now}**: Scraper ran successfully. Enriched: **{enriched_count}**. Still Missing: **{remaining}**.\n'
+    
+    # Read existing logs, keep only last 50 lines to prevent infinite growth
+    existing_logs = []
+    if os.path.exists(log_path):
+        with open(log_path, 'r', encoding='utf-8') as lf:
+            existing_logs = lf.readlines()
+            # Remove title if present
+            if existing_logs and existing_logs[0].startswith('# '):
+                existing_logs = existing_logs[1:]
+    
+    # Prepend new log and keep top 50
+    existing_logs.insert(0, log_entry)
+    existing_logs = existing_logs[:50]
+    
+    with open(log_path, 'w', encoding='utf-8') as lf:
+        lf.write('# SonyLIV Scraper Activity Log\n\n')
+        lf.writelines(existing_logs)
+
+    # 2. Push to GitHub
+    print('Pushing logs and data to GitHub...')
+    try:
+        subprocess.run(['git', 'add', 'data/episodes.json', 'data/scraper_log.md'], check=True)
+        
+        commit_msg = 'chore: Daily SonyLIV Scraper Log (No new episodes)'
+        if enriched_count > 0:
+            commit_msg = f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'
+            
+        subprocess.run(['git', 'commit', '-m', commit_msg], check=True)
+        subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+        print('Successfully pushed to GitHub!')
+    except Exception as e:
+        print(f"Failed to push to GitHub: {e}")
 
 
     remaining = len(missing_set)
