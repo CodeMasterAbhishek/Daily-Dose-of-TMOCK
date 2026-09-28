@@ -11,6 +11,9 @@ except ImportError:
     print("Please pip install scrapetube")
     sys.exit(1)
 
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from config import CSV_FILE, VALID_CHANNELS
 from utils import get_minutes
 import logging

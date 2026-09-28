@@ -30,6 +30,9 @@ def check_video(url):
     except Exception as e:
         return 'Error', False
 
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from config import CSV_FILE
 episodes = []
 with open(CSV_FILE, 'r', encoding='utf-8') as f:

@@ -4,6 +4,9 @@ if sys.platform == 'win32':
     try: sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
 
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from config import CSV_FILE
 from utils import get_minutes
 

@@ -5,6 +5,9 @@ import re
 from datetime import datetime
 import os
 
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from config import CSV_FILE, DATES_CACHE_FILE as CACHE_FILE
 
 TEMP_CSV_FILE = os.path.join(os.path.dirname(CSV_FILE), 'episodes_patch.csv')
