@@ -11,9 +11,6 @@
   <a href="https://CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/badge/Platform-GitHub%20Pages-success.svg" alt="GitHub Pages">
   </a>
-  <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
-  </a>
 
   <h3><a href="https://CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/" target="_blank" rel="noopener noreferrer">View Live Website</a></h3>
 </div>
@@ -111,4 +108,4 @@ Contributions are always welcome. To get started:
 5. Open a Pull Request
 
 ## License
-Distributed under the MIT License. See \LICENSE\ for more information.
+All rights reserved. You may not use, copy, modify, distribute, or sell this software without prior explicit written permission from the owner. See `LICENSE` for more information.
