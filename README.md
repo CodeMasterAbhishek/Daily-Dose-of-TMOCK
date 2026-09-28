@@ -79,33 +79,7 @@ Because YouTube heavily geo-blocks certain TMKOC episodes in specific countries 
 - **Curated "Storylines":** Dedicated section grouping multi-episode arcs for binge-watching. Episodes inside a storyline strictly override global sorting mechanisms to force chronological viewing.
 - **$0 Running Costs:** Completely hosted and automated on GitHub's ecosystem.
 
----
 
-## How the Automation Works
-
-The synchronization process is fully automated and runs every 6 hours.
-
-`mermaid
-sequenceDiagram
-    participant SAB as 6 Official YouTube Channels
-    participant Action as GitHub Actions Bot
-    participant DB as episodes.csv & state.json
-    participant Site as GitHub Pages Web App
-
-    Note over Action: Triggered via cron (Every 6 hours)
-    Action->>SAB: Run update_website.py & scrape releases
-    Action->>DB: Append new episodes & fallback links to CSV
-    Action->>Action: Auto-Commit changes
-    DB-->>Site: Instantly deploy new data via Pages CDN
-`
-
-## Contributing
-Contributions are always welcome. To get started:
-1. Fork the repository
-2. Create your feature branch (\git checkout -b feature/AmazingFeature\)
-3. Commit your changes (\git commit -m 'Add some AmazingFeature'\)
-4. Push to the branch (\git push origin feature/AmazingFeature\)
-5. Open a Pull Request
 
 ## Disclaimer
 This project is a non-commercial, fan-made directory. All "Taarak Mehta Ka Ooltah Chashmah" (TMKOC) episodes, characters, videos, and trademarks are the exclusive property of **Sony Pictures Networks India**, **SAB TV**, **Neela Film Productions Pvt. Ltd.**, and their respective copyright owners. 
