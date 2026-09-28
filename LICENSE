@@ -1,19 +1,37 @@
+PROPRIETARY SOFTWARE LICENSE AGREEMENT
+======================================
+
 Copyright (c) 2024-2026 CodeMasterAbhishek. All Rights Reserved.
 
-This source code and repository software are the exclusive property of CodeMasterAbhishek. 
+1. DEFINITIONS
+"Software" refers to the source code, scripts, markup, stylesheets, assets, and documentation contained in this repository.
+"Author" refers to CodeMasterAbhishek.
 
-You may not use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of this software code, or any part thereof, without prior explicit written permission from the copyright holder. 
+2. OWNERSHIP AND INTELLECTUAL PROPERTY
+This Software is the exclusive intellectual property of the Author. The Software is protected by copyright laws and international copyright treaties, as well as other intellectual property laws and treaties. The Software is restricted and is not open-source.
 
-To request permission for usage, please open an issue in this repository or contact the owner directly.
+3. LICENSE GRANT & RESTRICTIONS
+You are NOT granted any rights or licenses to the Software by default. Without prior, explicit, written permission from the Author, you are strictly prohibited from:
+  a. Copying, duplicating, or reproducing the Software in any manner.
+  b. Modifying, adapting, altering, translating, or creating derivative works of the Software.
+  c. Distributing, publishing, transferring, selling, renting, or sublicensing the Software.
+  d. Using the Software for any commercial or non-commercial purpose outside of viewing it on GitHub.
+  e. Reverse-engineering, decompiling, or disassembling the Software.
 
-By default, standard GitHub Terms of Service apply, which allow users to view and fork the repository, but do not grant any rights to modify, distribute, or use the code for any purpose without permission.
+4. PERMISSION REQUESTS
+If you wish to use, modify, or distribute this Software in any way, you must obtain a written agreement from the Author prior to such use. 
+To request permission, please contact the Author directly at:
+Email: codemasterabhishek@gmail.com
 
----
+5. GITHUB TERMS OF SERVICE
+As this repository is hosted publicly on GitHub, you are granted the minimum rights required by the GitHub Terms of Service. Specifically, you may view the repository and fork it within the GitHub platform. However, this does not grant you the right to copy, publish, or distribute the Software outside of GitHub, nor does it grant you permission to modify or build upon the Software for your own projects.
 
-### CONTENT DISCLAIMER
-
-This project is a non-commercial, fan-made directory. The software code is copyrighted by CodeMasterAbhishek, but the actual video content, show name, characters, and related media are NOT owned by the repository author.
+6. CONTENT DISCLAIMER (THIRD-PARTY INTELLECTUAL PROPERTY)
+This project is a non-commercial, fan-made directory. The Software code is copyrighted by the Author, but the actual video content, show name, characters, and related media are NOT owned by the Author.
 
 All "Taarak Mehta Ka Ooltah Chashmah" (TMKOC) episodes, characters, videos, and trademarks are the exclusive property of Sony Pictures Networks India, SAB TV, Neela Film Productions Pvt. Ltd., and their respective copyright owners.
 
 This repository does not host, upload, or pirate any video content. All video playback is routed exclusively through the official YouTube IFrame Player API to officially uploaded videos on authorized YouTube channels.
+
+7. DISCLAIMER OF WARRANTY AND LIMITATION OF LIABILITY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

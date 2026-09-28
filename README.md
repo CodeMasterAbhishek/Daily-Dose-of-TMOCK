@@ -113,4 +113,8 @@ This project is a non-commercial, fan-made directory. All "Taarak Mehta Ka Oolta
 This repository does not host or pirate any video content. All videos are embedded directly from official YouTube channels using the authorized YouTube IFrame Player API.
 
 ## License
-All rights reserved for the software source code. You may not use, copy, modify, distribute, or sell this software code without prior explicit written permission from the owner. See `LICENSE` for more information.
+**All rights reserved.** This software is proprietary and is not open-source. You may not use, copy, modify, distribute, or sell this software code without prior explicit written permission from the owner. 
+
+To request permission for usage, please contact: **codemasterabhishek@gmail.com**
+
+See the `LICENSE` file for full legal details and restrictions.
