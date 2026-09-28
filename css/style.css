@@ -138,6 +138,9 @@ html {
   width: 100%;
   height: 100%;
   text-decoration: none;
+  background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-glow) 50%, var(--skeleton-base) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
 }
 
 .hero-img {
@@ -313,11 +316,22 @@ html {
   border-color: transparent;
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .card-img-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: var(--border-color);
+  background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-glow) 50%, var(--skeleton-base) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
   overflow: hidden;
 }
 

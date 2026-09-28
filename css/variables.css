@@ -7,6 +7,8 @@
   --accent: #000000;
   --accent-hover: #374151;
   --border-color: #D1D5DB;
+  --skeleton-base: #E5E7EB;
+  --skeleton-glow: #F3F4F6;
   --glass-bg: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(255, 255, 255, 0.6);
   
@@ -53,6 +55,8 @@
   --accent: #FFFFFF;
   --accent-hover: #D4D4D8;
   --border-color: rgba(255, 255, 255, 0.22);
+  --skeleton-base: #1F2937;
+  --skeleton-glow: #374151;
   --glass-bg: rgba(0, 0, 0, 0.85);
   --glass-border: rgba(255, 255, 255, 0.15);
   
