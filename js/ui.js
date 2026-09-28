@@ -852,14 +852,17 @@ function openCleanPlayer(article) {
             ytPlayer.destroy();
         }
         viewport.innerHTML = `
-            <div id="player-loading-spinner" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; background:#000; z-index:10; color:#fff; flex-direction:column;">
-                <div class="spinner" style="border: 4px solid rgba(255,255,255,0.1); border-left-color: #ef4444; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
-                <div style="margin-top: 15px; font-family: sans-serif; font-size: 14px; opacity: 0.8;" id="player-loading-text">Loading Episode...</div>
+            <div id="player-loading-spinner" style="position:absolute; top:0; left:0; width:100%; height:100%; background-image: url('${article.image}'); background-size: cover; background-position: center; display:flex; justify-content:center; align-items:center; z-index:10; color:#fff; flex-direction:column;">
+                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);"></div>
+                <div style="z-index: 11; display: flex; flex-direction: column; align-items: center;">
+                    <div class="spinner" style="border: 3px solid rgba(255,255,255,0.1); border-left-color: #ef4444; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite;"></div>
+                    <div style="margin-top: 12px; font-family: sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.9;" id="player-loading-text">Fetching...</div>
+                </div>
                 <style>
                     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
                 </style>
             </div>
-            <div id="clean-iframe-container"></div>
+            <div id="clean-iframe-container" style="position:relative; z-index:1; width:100%; height:100%;"></div>
         `;
         
         let videoIdToPlay = article.videoId || '';
@@ -913,7 +916,7 @@ function openCleanPlayer(article) {
                     },
                     'onError': function(event) {
                         const loadingText = document.getElementById('player-loading-text');
-                        if (loadingText) loadingText.innerText = "Searching for working backup link...";
+                        if (loadingText) loadingText.innerText = "Fetching backup...";
                         
                         if (event.data === 150 || event.data === 101 || event.data === 2) {
                             if (!window._playbackAttempts) window._playbackAttempts = {};

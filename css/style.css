@@ -604,7 +604,7 @@ a:focus-visible {
   border-color: transparent;
 }
 
-.tmkoc-video-viewport {
+.tmkoc-video-viewport { position: relative;
   width: 100%;
   aspect-ratio: 16/9;
   background: #000000;
