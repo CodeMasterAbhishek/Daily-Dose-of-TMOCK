@@ -732,8 +732,14 @@ function startActiveWatchTracker(articleId) {
 
     activeWatchTrackerTimer = setInterval(() => {
         if (typeof ytPlayer !== 'undefined' && ytPlayer && typeof ytPlayer.getPlayerState === 'function' && ytPlayer.getPlayerState() === window.YT.PlayerState.PLAYING) {
-            totalSecs += 1;
-            currentEpSecs += 1;
+            totalSecs += 1; // Global Fan Dashboard watch time
+            
+            // Sync to exactly where they are in the video (absolute time)
+            if (typeof ytPlayer.getCurrentTime === 'function') {
+                currentEpSecs = Math.floor(ytPlayer.getCurrentTime());
+            } else {
+                currentEpSecs += 1;
+            }
             
             pendingExactWatchSeconds = totalSecs;
             
