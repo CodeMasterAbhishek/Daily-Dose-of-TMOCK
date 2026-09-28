@@ -146,11 +146,22 @@ def parse_relative_date(time_text: str) -> str:
 
 
 def get_video_score(mins: int, channel: str, title: str) -> int:
-    channel_lower = channel.lower()
+    channel_lower = channel.lower().strip()
+    
+    # EXACT whitelist to prevent ANY random channels
+    official_channels = [
+        'sony sab', 'taarak mehta ka ooltah chashmah', 'sony pal',
+        'taarak mehta ka ooltah chashmah episodes', 'liv comedy',
+        'taarak mehta ka ooltah chashmah movies'
+    ]
+    
+    if channel_lower not in official_channels:
+        return -9999999  # INSTANTLY REJECT ANY UNOFFICIAL CHANNEL
+        
     c_score = 0
     if channel_lower == 'sony sab':
         c_score = 100
-    elif 'taarak mehta ka ooltah chashmah' in channel_lower:
+    elif 'taarak mehta' in channel_lower:
         c_score = 80
     elif channel_lower == 'sony pal':
         c_score = 20

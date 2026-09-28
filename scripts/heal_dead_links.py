@@ -54,6 +54,12 @@ def scrape_new_link(ep_number):
     query = f"Taarak Mehta Ka Ooltah Chashmah Episode {ep_number}"
     videos = scrapetube.get_search(query, sort_by="relevance")
     
+    OFFICIAL_CHANNELS = [
+        "Sony SAB", "Taarak Mehta Ka Ooltah Chashmah", "Sony PAL", 
+        "Taarak Mehta Ka Ooltah Chashmah Episodes", "LIV Comedy", 
+        "Taarak Mehta ka Ooltah Chashmah Movies"
+    ]
+    
     for count, video in enumerate(videos):
         if count >= 30:
             break
@@ -67,6 +73,16 @@ def scrape_new_link(ep_number):
             title = video['title']['runs'][0]['text']
         except:
             pass
+            
+        channel_name = ""
+        try:
+            channel_name = video.get('ownerText', {}).get('runs', [{}])[0].get('text', '')
+        except:
+            pass
+            
+        # VERY STRICT WHITELIST
+        if channel_name not in OFFICIAL_CHANNELS:
+            continue
             
         # Basic validation: ensure it's not a compilation and is roughly ~20 mins
         duration_str = ""
