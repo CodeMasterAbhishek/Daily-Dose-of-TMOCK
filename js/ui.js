@@ -976,7 +976,10 @@ function openCleanPlayer(article) {
                         
                         if (modalWarning) {
                             modalWarning.style.display = 'block';
-                            modalWarning.innerHTML = `⚠️ <strong>Embedding is off:</strong> This episode is available, but Sony has disabled embedding.<br><br><a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="display:inline-block; margin-top:8px; padding: 8px 16px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">↗️ Click here to redirect to YouTube</a>`;
+                            modalWarning.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                                <span>⚠️ <strong>Embedding is off:</strong> This episode is available, but Sony has disabled embedding.</span>
+                                <a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">↗️ Click here to redirect to YouTube</a>
+                            </div>`;
                         }
                         try {
                             verifiedVideos.add(article.id);
