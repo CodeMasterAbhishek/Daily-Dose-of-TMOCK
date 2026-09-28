@@ -53,6 +53,36 @@ export async function syncUserToCloud({ handle, watchedCount, watchHours, fanTie
 }
 
 /**
+ * Report a dead/blocked YouTube link to the backend for Auto-Healing.
+ * This table is only read securely by the Python GitHub Action, avoiding XSS risks.
+ */
+export async function reportDeadLinkToCloud(epNumber, videoId) {
+    if (!isSupabaseConfigured()) return { success: false };
+    
+    try {
+        const baseUrl = getCleanBaseUrl();
+        const response = await fetch(`${baseUrl}/rest/v1/dead_links`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_CONFIG.anonKey,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+                episode_number: epNumber,
+                video_id: videoId
+            })
+        });
+        
+        return { success: response.ok };
+    } catch (e) {
+        console.error('Failed to report dead link:', e);
+        return { success: false };
+    }
+}
+
+/**
  * Fetch top fans for the global leaderboard via standard REST API
  */
 export async function fetchGlobalLeaderboard(limit = 50) {

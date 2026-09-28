@@ -531,6 +531,14 @@ def main():
             pass
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(log_entry + existing_log)
+            
+    # CRITICAL: Compile the modified CSV into the master JSON database
+    try:
+        print("\nRecompiling master JSON database...")
+        from merge_databases import merge
+        merge()
+    except Exception as e:
+        print(f"[ERROR] Failed to compile JSON database: {e}")
 
     print("\n=======================================================")
     print(f" Website Update Complete! {episodes_added} new episode(s) added, {upgraded_count} promo(s) upgraded.")

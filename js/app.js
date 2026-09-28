@@ -124,8 +124,13 @@ function getFilteredAndRankedArticles() {
         let searchMatch = true;
         if (searchQuery) {
             const epStr = article.epNumber.toString();
-            const titleStr = article.title.toLowerCase();
-            searchMatch = epStr === searchQuery || epStr.startsWith(searchQuery) || epStr.includes(searchQuery) || titleStr.includes(searchQuery);
+            const titleStr = article.title ? article.title.toLowerCase() : '';
+            const descStr = article.description ? article.description.toLowerCase() : '';
+            searchMatch = epStr === searchQuery || 
+                          epStr.startsWith(searchQuery) || 
+                          epStr.includes(searchQuery) || 
+                          titleStr.includes(searchQuery) ||
+                          descStr.includes(searchQuery);
         }
 
         return categoryMatch && searchMatch;

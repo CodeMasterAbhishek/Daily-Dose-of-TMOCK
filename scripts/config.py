@@ -1,7 +1,8 @@
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CSV_FILE = os.path.join(BASE_DIR, 'data', 'episodes.csv')
+CSV_FILE = os.path.join(BASE_DIR, 'data', 'archive', 'episodes.csv')
+JSON_DB_FILE = os.path.join(BASE_DIR, 'data', 'episodes.json')
 STATE_FILE = os.path.join(BASE_DIR, 'data', 'state.json')
 DATES_CACHE_FILE = os.path.join(BASE_DIR, 'data', 'dates_cache.json')
 

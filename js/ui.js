@@ -1,7 +1,7 @@
 /**
  * UI module for DailyDose TMKOC, Episode Badges, Exact Ranking Search, Real Leaderboard Data, and Clean Theme Card Design.
  */
-import { syncUserToCloud, fetchGlobalLeaderboard, fetchUserGlobalRank, isSupabaseConfigured, getOrCreateUserId } from './supabase.js';
+import { syncUserToCloud, fetchGlobalLeaderboard, fetchUserGlobalRank, isSupabaseConfigured, getOrCreateUserId, reportDeadLinkToCloud } from './supabase.js';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -793,6 +793,7 @@ function openCleanPlayer(article) {
                 <div class="tmkoc-video-viewport">
                     <div id="clean-iframe-container"></div>
                 </div>
+                <div id="clean-description" class="tmkoc-modal-desc" style="padding: 16px 20px; color: var(--text-secondary, #a1a1aa); font-size: 14px; line-height: 1.5; border-bottom: 1px solid var(--border-color, #27272a); max-height: 100px; overflow-y: auto;"></div>
                 <div class="tmkoc-modal-footer" style="justify-content: space-between; align-items: center; display: flex;">
                     <button class="tmkoc-nav-btn" onclick="navCleanEp(-1)">◀ Previous Ep</button>
                     <div style="display: flex; align-items: center;">
@@ -816,6 +817,12 @@ function openCleanPlayer(article) {
 
     document.getElementById('clean-title').textContent = article.title;
     document.getElementById('clean-badge').textContent = `EP ${article.epNumber}`;
+    
+    const descEl = document.getElementById('clean-description');
+    if (descEl) {
+        descEl.textContent = article.description || '';
+        descEl.style.display = article.description ? 'block' : 'none';
+    }
 
     const timestamps = getTimestamps();
     const resumeSeconds = timestamps[article.id] || 0;
@@ -877,6 +884,11 @@ function openCleanPlayer(article) {
                             if (!window._playbackAttempts) window._playbackAttempts = {};
                             const attempts = window._playbackAttempts[article.id] || 0;
                             
+                            // Report dead link to our backend for the Nightly Auto-Healer
+                            if (attempts === 0) {
+                                reportDeadLinkToCloud(article.epNumber, videoIdToPlay).catch(() => {});
+                            }
+                            
                             let nextVideoId = null;
                             let msg = "";
                             const fallbacks = article.robustFallbacks || [];
@@ -894,28 +906,32 @@ function openCleanPlayer(article) {
                             if (nextVideoId) {
                                 window._playbackAttempts[article.id] = attempts + 1;
                                 
-                                // YouTube's iframe often breaks completely (black screen) after a 150 error,
-                                // so we must fully destroy and recreate the player with the new videoId.
-                                // Use a shallow copy to avoid mutating the original article in allArticlesMap.
-                                const retryArticle = Object.assign({}, article, { videoId: nextVideoId });
-                                setTimeout(() => {
-                                    openCleanPlayer(retryArticle);
-                                    
-                                    // Show the warning banner on the newly created player
-                                    setTimeout(() => {
-                                        const newWarning = document.getElementById('clean-modal-warning');
-                                        if (newWarning) {
-                                            newWarning.style.display = 'block';
-                                            newWarning.innerHTML = msg;
-                                        }
-                                    }, 100);
-                                }, 50);
-                               
+                                // Instead of destroying the entire player (which causes race conditions and a black screen),
+                                // we seamlessly instruct the existing YouTube player to load the fallback video.
+                                if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+                                    ytPlayer.loadVideoById({
+                                        'videoId': nextVideoId,
+                                        'startSeconds': resumeSeconds
+                                    });
+                                }
+                                
+                                // Show the warning banner
+                                if (modalWarning) {
+                                    modalWarning.style.display = 'block';
+                                    modalWarning.innerHTML = msg;
+                                }
+                                
+                                // Mark the original video as unavailable in cache so future clicks bypass instantly
                                 try {
-                                    verifiedVideos.add(article.id);
+                                    const cache = getCheckerCache();
+                                    cache[article.videoId] = { isUnavailable: true, timestamp: Date.now() };
+                                    localStorage.setItem('tmkoc_yt_cache', JSON.stringify(cache));
+                                    
+                                    // Make the card red to visually indicate the main link died
                                     const card = document.querySelector(`.card[data-id="${article.id}"]`);
-                                    if (card) card.classList.remove('ep-unavailable');
+                                    if (card) card.classList.add('ep-unavailable');
                                 } catch(e) {}
+                                
                                 return;
                             }
                         }

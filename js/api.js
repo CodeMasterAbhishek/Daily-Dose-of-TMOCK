@@ -49,78 +49,40 @@ function extractRealDate(title, epNum) {
 
 export async function fetchNewsData() {
     try {
-        const cacheBuster = Math.floor(Date.now() / 600000); // 10 minutes cache for episodes
+        const cacheBuster = Math.floor(Date.now() / 600000); // 10 minutes cache
         
-        const [csvResponse, fallbacksResponse] = await Promise.all([
-            fetch(`data/episodes.csv?t=${cacheBuster}`),
-            fetch(`data/fallbacks_min.json?t=${cacheBuster}`).catch(() => ({ ok: false }))
-        ]);
-
-        if (!csvResponse.ok) {
-            throw new Error(`HTTP error! status: ${csvResponse.status}`);
+        const response = await fetch(`data/episodes.json?t=${cacheBuster}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const text = await csvResponse.text();
-        const lines = text.split('\n');
-        
-        let robustDb = {};
-        if (fallbacksResponse.ok) {
-            robustDb = await fallbacksResponse.json().catch(() => ({}));
-        }
-
+        const db = await response.json();
         const articles = [];
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
 
-            const parts = [];
-            let current = '';
-            let inQuotes = false;
-            for (let j = 0; j < line.length; j++) {
-                const char = line[j];
-                if (char === '"') {
-                    if (inQuotes && line[j + 1] === '"') {
-                        current += '"';
-                        j++; // skip the escaped quote
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === ',' && !inQuotes) {
-                    parts.push(current);
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            parts.push(current);
+        // Helper to format seconds to MM:SS
+        const formatTime = (totalSeconds) => {
+            if (!totalSeconds) return '21:45';
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        };
+
+        for (const epKey in db) {
+            const data = db[epKey];
+            const realEpNum = data.epNumber;
+            const category = getCategoryForEp(realEpNum);
             
-            const epNum = parseInt(parts[0] || '0');
-            const title = (parts[1] || '').trim();
-            const url = (parts[2] || '').trim();
-            const status = (parts[3] || 'Found').trim();
-            const csvDate = (parts[4] || '').trim();
-            const csvDuration = (parts[5] || '').trim();
-            const csvFallbackUrl = (parts[6] || '').trim();
-            const csvShortUrl = (parts[7] || '').trim();
-
-            if (epNum > 0) {
-                const realEpNum = extractRealEpNumber(title, epNum);
-                const videoId = extractVideoId(url);
-                const fallbackId = extractVideoId(csvFallbackUrl);
-                const shortId = extractVideoId(csvShortUrl);
-                const category = getCategoryForEp(realEpNum);
-                const airDate = csvDate ? csvDate : extractRealDate(title, realEpNum);
-                const image = videoId 
-                    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-                    : 'https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode';
-
-                const durationText = csvDuration ? csvDuration : (realEpNum === 4778 ? '09:48' : '21:45');
-
-                const monthLookup = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
-                let pubDateStr = new Date().toISOString();
-                if (airDate) {
+            // Format AirDate
+            const airDate = data.releaseDate || getAirDateForEp(realEpNum);
+            let pubDateStr = new Date().toISOString();
+            if (airDate) {
+                // If it looks like YYYY-MM-DD
+                if (airDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    pubDateStr = new Date(airDate).toISOString();
+                } else {
                     const dateParts = airDate.split(/\s+/);
                     if (dateParts.length >= 3) {
+                        const monthLookup = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
                         let dayStr = dateParts[0].replace(/,/g, '');
                         let monthStr = dateParts[1].replace(/,/g, '');
                         if (isNaN(parseInt(dayStr, 10))) {
@@ -136,48 +98,43 @@ export async function fetchNewsData() {
                         }
                     }
                 }
-                
-                const robustData = robustDb[realEpNum] || {};
-                let robustFallbacks = robustData.f || [];
-                let robustShorts = robustData.s || [];
-                
-                // Exclude primary videoId from fallbacks to avoid pointless reloading
-                robustFallbacks = robustFallbacks.filter(id => id !== videoId);
-                robustShorts = robustShorts.filter(id => id !== videoId);
-                
-                // Include CSV fallback if it's not already in the robust list
-                if (fallbackId && fallbackId !== videoId && !robustFallbacks.includes(fallbackId)) {
-                    robustFallbacks.unshift(fallbackId);
-                }
-                if (shortId && shortId !== videoId && !robustShorts.includes(shortId)) {
-                    robustShorts.unshift(shortId);
-                }
-
-                articles.push({
-                    id: `ep_${realEpNum}`,
-                    epNumber: realEpNum,
-                    title: title || `Episode ${realEpNum} - Taarak Mehta Ka Ooltah Chashmah`,
-                    description: `Watch full single episode ${realEpNum} of Gokuldham Society adventures.`,
-                    category: category,
-                    source: 'SONY SAB',
-                    url: url,
-                    videoId: videoId,
-                    fallbackId: fallbackId, // Keep for backward compatibility 
-                    shortId: shortId,
-                    robustFallbacks: robustFallbacks,
-                    robustShorts: robustShorts,
-                    image: image,
-                    airDate: airDate,
-                    durationText: durationText,
-                    publishedAt: pubDateStr
-                });
             }
+
+            // Image fallback: Use SonyLIV high-res if available, otherwise YouTube HQ, otherwise placeholder
+            let image = `https://img.youtube.com/vi/${data.yt_main}/hqdefault.jpg`;
+            if (data.thumbnail && data.thumbnail.startsWith('http')) {
+                image = data.thumbnail;
+            } else if (!data.yt_main) {
+                image = 'https://via.placeholder.com/480x270/18181b/818cf8?text=TMKOC+Episode';
+            }
+
+            // Description fallback
+            const desc = data.description && data.description.trim() !== '' 
+                         ? data.description 
+                         : `Watch full single episode ${realEpNum} of Gokuldham Society adventures.`;
+
+            articles.push({
+                id: `ep_${realEpNum}`,
+                epNumber: realEpNum,
+                title: data.title || `Episode ${realEpNum} - Taarak Mehta Ka Ooltah Chashmah`,
+                description: desc,
+                category: category,
+                source: 'SONY SAB',
+                url: data.yt_main ? `https://www.youtube.com/watch?v=${data.yt_main}` : '',
+                videoId: data.yt_main || '',
+                robustFallbacks: data.yt_backups || [],
+                robustShorts: data.yt_shorts || [],
+                image: image,
+                airDate: airDate,
+                durationText: formatTime(data.durationSeconds),
+                publishedAt: pubDateStr
+            });
         }
 
         return articles.sort((a, b) => b.epNumber - a.epNumber);
 
     } catch (error) {
-        console.error("Could not fetch TMKOC dataset:", error);
+        console.error("Could not fetch TMKOC JSON dataset:", error);
         return [];
     }
 }
