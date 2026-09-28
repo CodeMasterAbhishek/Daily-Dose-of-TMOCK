@@ -15,8 +15,6 @@
   <h3><a href="https://CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/" target="_blank" rel="noopener noreferrer">View Live Website</a></h3>
 </div>
 
----
-
 ## What is this?
 
 **Daily Dose of TMKOC** is a serverless web application built to organize and stream all 4,500+ episodes of the iconic Indian sitcom *Taarak Mehta Ka Ooltah Chashmah*. 
@@ -24,8 +22,6 @@
 With thousands of episodes spanning over a decade, official YouTube playlists often become fragmented, incomplete, or difficult to navigate for specific storylines. Relying on traditional backend servers and databases to track this massive catalogue would incur constant hosting costs. 
 
 This project solves these issues by acting as a highly optimized, specialized streaming frontend. It utilizes a **100% free, serverless architecture** where GitHub serves as both the automation backend (via Actions) and the database/CDN (via Pages and static files). A custom Python scraper natively fetches new episodes daily, updates a flat-file database, and triggers live deployments instantly.
-
----
 
 ## Built With
 
@@ -44,8 +40,6 @@ The project embraces a lightweight, no-framework philosophy, leaning heavily on 
     *   <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener noreferrer">GitHub Actions</a> for the scheduled cron job orchestrator.
     *   <a href="https://pages.github.com/" target="_blank" rel="noopener noreferrer">GitHub Pages</a> for free, globally distributed static hosting.
     *   <a href="https://www.ipify.org/" target="_blank" rel="noopener noreferrer">ipify API</a> for retrieving the user's public IP address to manage smart geo-caching.
-
----
 
 ## Architecture & Detailed Explanation
 ### 1. The "Zero-Cost" Database Layer
@@ -69,8 +63,6 @@ Because YouTube heavily geo-blocks certain TMKOC episodes in specific countries 
 *   **Instant Cascading Fallbacks**: If a user clicks an episode where the primary link is blocked, the custom UI instantly destroys the main player, bypasses the dead link, and reroutes them to the Fallback or Short version without any black screens or loading delays. The video duration badge dynamically updates to reflect the shorter runtime (\~10:00 (Short)\).
 *   **IP-Aware Caching**: Results are stored in \localStorage\. Using the <a href="https://www.ipify.org/" target="_blank" rel="noopener noreferrer">ipify API</a>, if the user toggles a VPN or changes networks, the cache is instantly invalidated and episodes are re-verified for the new region.
 
----
-
 ## Core Features
 
 - **Cascading Smart Routing:** Automatically falls back to alternative uploads or 10-minute short versions instantly if an episode is geo-blocked in your country.
@@ -78,8 +70,6 @@ Because YouTube heavily geo-blocks certain TMKOC episodes in specific countries 
 - **Custom Video Player:** A bespoke player built on top of the <a href="https://developers.google.com/youtube/iframe_api_reference" target="_blank" rel="noopener noreferrer">YouTube IFrame API</a> featuring custom scrubbing, speed adjustments (0.75x to 2x), and instant Next/Previous navigation.
 - **Curated "Storylines":** Dedicated section grouping multi-episode arcs for binge-watching. Episodes inside a storyline strictly override global sorting mechanisms to force chronological viewing.
 - **$0 Running Costs:** Completely hosted and automated on GitHub's ecosystem.
-
-
 
 ## Disclaimer
 This project is a non-commercial, fan-made directory. All "Taarak Mehta Ka Ooltah Chashmah" (TMKOC) episodes, characters, videos, and trademarks are the exclusive property of **Sony Pictures Networks India**, **SAB TV**, **Neela Film Productions Pvt. Ltd.**, and their respective copyright owners. 
@@ -96,3 +86,4 @@ This project was built strictly out of love and respect for TMKOC to help fans e
 To request permission for usage, please contact: **codemasterabhishek@gmail.com**
 
 See the `LICENSE` file for full legal details and restrictions.
+
