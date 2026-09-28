@@ -851,7 +851,16 @@ function openCleanPlayer(article) {
         if (ytPlayer) {
             ytPlayer.destroy();
         }
-        viewport.innerHTML = '<div id="clean-iframe-container"></div>';
+        viewport.innerHTML = `
+            <div id="player-loading-spinner" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; justify-content:center; align-items:center; background:#000; z-index:10; color:#fff; flex-direction:column;">
+                <div class="spinner" style="border: 4px solid rgba(255,255,255,0.1); border-left-color: #ef4444; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+                <div style="margin-top: 15px; font-family: sans-serif; font-size: 14px; opacity: 0.8;" id="player-loading-text">Loading Episode...</div>
+                <style>
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            </div>
+            <div id="clean-iframe-container"></div>
+        `;
         
         let videoIdToPlay = article.videoId || '';
         let initialMsg = "";
@@ -895,13 +904,18 @@ function openCleanPlayer(article) {
                 playerVars: pVars,
                 events: {
                     'onReady': function(event) {
+                        const spinner = document.getElementById('player-loading-spinner');
+                        if (spinner) spinner.style.display = 'none';
                         if (initialMsg && modalWarning) {
                             modalWarning.style.display = 'block';
                             modalWarning.innerHTML = initialMsg;
                         }
                     },
                     'onError': function(event) {
-                        if (event.data === 150 || event.data === 101) {
+                        const loadingText = document.getElementById('player-loading-text');
+                        if (loadingText) loadingText.innerText = "Searching for working backup link...";
+                        
+                        if (event.data === 150 || event.data === 101 || event.data === 2) {
                             if (!window._playbackAttempts) window._playbackAttempts = {};
                             const attempts = window._playbackAttempts[article.id] || 0;
                             
@@ -957,6 +971,9 @@ function openCleanPlayer(article) {
                             }
                         }
                         
+                        const spinner = document.getElementById('player-loading-spinner');
+                        if (spinner) spinner.style.display = 'none';
+                        
                         if (modalWarning) {
                             modalWarning.style.display = 'block';
                             modalWarning.innerHTML = `⚠️ <strong>Video Unavailable:</strong> YouTube refused to play this video. It may be geo-blocked, made private, or Sony disabled embedding. <a href="https://www.youtube.com/results?search_query=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}" target="_blank" style="color: #d97706; text-decoration: underline;">Search for Ep ${article.epNumber} on YouTube</a>. (Code: ${event.data})`;
@@ -971,6 +988,9 @@ function openCleanPlayer(article) {
                     },
                     'onStateChange': function(event) {
                         if (event.data === window.YT.PlayerState.PLAYING) {
+                            const spinner = document.getElementById('player-loading-spinner');
+                            if (spinner) spinner.style.display = 'none';
+                            
                             currentActiveEpId = article.id;
                             try {
                                 verifiedVideos.add(article.id);
