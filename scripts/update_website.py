@@ -1,15 +1,15 @@
 """
 Update Website & Episodes DB (Zero YouTube Data API Quota Consumed)
-Detects new TMKOC episode uploads using scrapetube and updates episodes.csv & state.json.
+Detects new TMKOC episode uploads using scrapetube and updates episodes.json & state.json directly.
 """
 
-import csv
 import json
 import os
 import re
 import sys
 import time
 import datetime
+import tempfile
 
 try:
     import scrapetube
@@ -24,7 +24,7 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-from config import STATE_FILE, CSV_FILE, VALID_CHANNELS
+from config import STATE_FILE, JSON_DB_FILE, BASE_DIR, VALID_CHANNELS
 from utils import get_minutes, is_compilation
 
 RE_EPISODE_RANGE = re.compile(r'\b(?:ep|episode|episodes|ep\.|एपिसोड)?\s*(\d{2,4})\s*(?:-|–|—|to|से)\s*(\d{2,4})\b')
@@ -32,11 +32,29 @@ RE_EP_EXTRACT = re.compile(r'(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d+)
 RE_RELATIVE_DATE = re.compile(r'(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago')
 RE_EP_PATTERN = re.compile(r"(?i)(?:ep|episode)\s*[-:]?\s*(\d+)")
 
+
+# ───────────────────────────── Helpers ─────────────────────────────
+
+def extract_video_id(url):
+    if not url: return None
+    match = re.search(r'(?:v=|youtu\.be/|/v/|/embed/)([^&?]+)', url)
+    return match.group(1) if match else None
+
+def duration_str_to_seconds(duration_str):
+    """Convert '21:45' or '1:02:30' to total seconds."""
+    try:
+        parts = duration_str.split(':')
+        if len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+        elif len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+    except (ValueError, TypeError, AttributeError):
+        pass
+    return 0
+
 def is_promo(title: str) -> bool:
     title_lower = title.lower()
-    if any(k in title_lower for k in ['teaser', 'promo', 'precap', 'coming up next']):
-        return True
-    return False
+    return any(k in title_lower for k in ['teaser', 'promo', 'precap', 'coming up next'])
 
 def is_geoblocked_title(title: str) -> bool:
     title_lower = title.lower()
@@ -54,7 +72,6 @@ def is_single_episode(title: str, description: str, channel: str, ep_num: int, r
     desc_lower = description.lower()
     combined_text = title_lower + " " + desc_lower
 
-    # Reject multi-episode compilations
     m = RE_EPISODE_RANGE.search(combined_text)
     if m and int(m.group(1)) != int(m.group(2)):
         n1, n2 = int(m.group(1)), int(m.group(2))
@@ -68,7 +85,6 @@ def is_single_episode(title: str, description: str, channel: str, ep_num: int, r
         if any(k in combined_text for k in ['teaser', 'promo', 'precap', 'coming up next']):
             return False
 
-    # Check if a different episode number is explicitly in title
     ep_extract = RE_EP_EXTRACT.search(title_lower)
     if ep_extract:
         found_ep = int(ep_extract.group(1))
@@ -116,23 +132,16 @@ def parse_relative_date(time_text: str) -> str:
     val = int(match.group(1))
     unit = match.group(2)
     
-    if unit == 'minute':
-        delta = datetime.timedelta(minutes=val)
-    elif unit == 'hour':
-        delta = datetime.timedelta(hours=val)
-    elif unit == 'day':
-        delta = datetime.timedelta(days=val)
-    elif unit == 'week':
-        delta = datetime.timedelta(weeks=val)
-    elif unit == 'month':
-        delta = datetime.timedelta(days=val * 30)
-    elif unit == 'year':
-        delta = datetime.timedelta(days=val * 365)
-    else:
-        delta = datetime.timedelta(0)
-        
-    target_date = now - delta
-    # Return as "DD MMM YYYY" (e.g. 14 Aug 2026)
+    deltas = {
+        'minute': datetime.timedelta(minutes=val),
+        'hour': datetime.timedelta(hours=val),
+        'day': datetime.timedelta(days=val),
+        'week': datetime.timedelta(weeks=val),
+        'month': datetime.timedelta(days=val * 30),
+        'year': datetime.timedelta(days=val * 365),
+    }
+    
+    target_date = now - deltas.get(unit, datetime.timedelta(0))
     return target_date.strftime("%d %b %Y")
 
 
@@ -147,17 +156,40 @@ def get_video_score(mins: int, channel: str, title: str) -> int:
         c_score = 20
         
     is_full = 1000 if mins >= 15 else 0
-    # Original specials are long, so long videos get a boost...
     is_double = 1000 if mins >= 35 else 0
-    
-    # ...UNLESS the title says it's a compilation/movie/marathon.
-    # We heavily penalize compilations so the single 20-min episode wins out!
     compilation_penalty = -5000 if is_compilation(title) else 0
     
     return is_full + is_double + compilation_penalty + c_score * 10 + mins
 
 
+# ───────────────────────────── JSON I/O ─────────────────────────────
+
+def load_db():
+    """Load the master episodes.json database."""
+    if not os.path.exists(JSON_DB_FILE):
+        print(f"Error: {JSON_DB_FILE} not found!")
+        sys.exit(1)
+    with open(JSON_DB_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_db(db):
+    """Atomically save the master episodes.json database."""
+    db_dir = os.path.dirname(JSON_DB_FILE) or "."
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=db_dir, suffix=".tmp", delete=False, encoding="utf-8") as tmp:
+            json.dump(db, tmp, separators=(',', ':'), ensure_ascii=False)
+            tmp_path = tmp.name
+        os.replace(tmp_path, JSON_DB_FILE)
+    except Exception as e:
+        print(f"[ERROR] Atomic write failed, falling back to direct write: {e}")
+        with open(JSON_DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(db, f, separators=(',', ':'), ensure_ascii=False)
+
+
+# ───────────────────────────── YouTube Search ─────────────────────────────
+
 def find_episode(ep_num: int, require_full: bool = False):
+    """Search YouTube for a specific episode and return the best match + fallbacks."""
     search_queries = [
         f"Ep {ep_num} Taarak Mehta Ka Ooltah Chashmah",
         f"Taarak Mehta Ka Ooltah Chashmah Episode {ep_num}",
@@ -168,8 +200,8 @@ def find_episode(ep_num: int, require_full: bool = False):
     best_match = None
     best_score = -1
     best_mins = -1
-    fallback_url = ""
-    short_url = ""
+    fallback_id = None
+    short_id = None
 
     for query in search_queries:
         try:
@@ -182,7 +214,6 @@ def find_episode(ep_num: int, require_full: bool = False):
                 description = extract_description_text(vid)
 
                 if vid_id and is_single_episode(title, description, channel, ep_num, require_full):
-                    url = f"https://www.youtube.com/watch?v={vid_id}"
                     time_text = vid.get('publishedTimeText', {}).get('simpleText', '')
                     date_str = parse_relative_date(time_text)
                     duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
@@ -191,113 +222,154 @@ def find_episode(ep_num: int, require_full: bool = False):
                         continue
                         
                     mins = get_minutes(duration_str)
-                    if mins > 55:  # Increased from 30 to 55 to allow Maha Episodes
+                    if mins > 55:
                         continue
                         
                     score = get_video_score(mins, channel, title)
                         
                     if score > best_score:
-                        # If we already had a best match, save it as fallback or short
-                        if best_match and best_match[2] != url:
+                        # Demote old best to fallback
+                        if best_match and best_match['vid_id'] != vid_id:
                             if best_mins >= 15:
-                                fallback_url = best_match[2]
-                            elif best_mins >= 8 and not short_url:
-                                short_url = best_match[2]
+                                fallback_id = best_match['vid_id']
+                            elif best_mins >= 8 and not short_id:
+                                short_id = best_match['vid_id']
                         best_score = score
                         best_mins = mins
-                        best_match = (vid_id, title, url, date_str, duration_str, channel)
-                    elif best_match and url != best_match[2]:
-                        if not fallback_url and mins >= 15:
-                            fallback_url = url
-                        elif not short_url and 8 <= mins < 15:
-                            short_url = url
+                        best_match = {
+                            'vid_id': vid_id,
+                            'title': title,
+                            'date_str': date_str,
+                            'duration_str': duration_str,
+                            'duration_secs': duration_str_to_seconds(duration_str),
+                            'channel': channel,
+                        }
+                    elif best_match and vid_id != best_match['vid_id']:
+                        if not fallback_id and mins >= 15:
+                            fallback_id = vid_id
+                        elif not short_id and 8 <= mins < 15:
+                            short_id = vid_id
         except Exception as e:
             print(f"  [WARN] Search query failed: {e}")
             continue
             
-        if best_mins > 15 and fallback_url and short_url:
+        if best_mins > 15 and fallback_id and short_id:
             break
 
     if best_match:
-        # best_match is (vid_id, title, url, date_str, duration_str, channel)
-        return (best_match[0], best_match[1], best_match[2], best_match[3], best_match[4], best_match[5], fallback_url, short_url)
+        best_match['fallback_id'] = fallback_id
+        best_match['short_id'] = short_id
+        return best_match
     return None
 
-def reverse_global_scan(rows, upgraded_details):
-    print("Running Reverse Global Scan for recent Sony uploads...")
+
+# ───────────────────────────── Upgrade Scan ─────────────────────────────
+
+def upgrade_existing_episodes(db, upgraded_details):
+    """Scan recent and weak episodes for better YouTube links."""
     upgraded_count = 0
-    try:
-        videos = scrapetube.get_search("Taarak Mehta Ka Ooltah Chashmah Full Episode", sort_by="upload_date", limit=300)
+    ep_nums = sorted([int(k) for k in db.keys()], reverse=True)
+    max_ep = ep_nums[0] if ep_nums else 0
+    
+    for ep_num in ep_nums:
+        ep_key = str(ep_num)
+        ep_data = db[ep_key]
         
-        ep_map = {int(r[0]): (i, r) for i, r in enumerate(rows) if len(r) >= 6}
+        title = ep_data.get('title', '')
+        current_secs = ep_data.get('durationSeconds', 0)
+        current_mins = current_secs // 60 if current_secs else 0
+        current_vid = ep_data.get('yt_main', '')
         
-        for vid in videos:
-            channel = vid.get('ownerText', {}).get('runs', [{}])[0].get('text', '').lower()
-            if channel not in VALID_CHANNELS:
-                continue
-                
-            title_runs = vid.get('title', {}).get('runs', [])
-            title = "".join([r.get('text', '') for r in title_runs]).strip()
-            description = extract_description_text(vid)
+        is_recent = (ep_num > max_ep - 100)
+        
+        # Only check episodes that are promos, too short, too long, or recent
+        if not (is_promo(title) or current_mins < 16 or current_mins > 55 or is_recent):
+            continue
             
-            # Extract episode number from title or description
-            match = RE_EP_PATTERN.search(title)
-            if not match:
-                match = RE_EP_PATTERN.search(description)
-                
-            if match:
-                ep_num = int(match.group(1))
-                if ep_num in ep_map:
-                    row_idx, row = ep_map[ep_num]
-                    
-                    vid_id = vid.get('videoId', '')
-                    if not vid_id:
-                        continue
-                        
-                    old_vid_id = row[2].split('v=')[-1]
-                    if vid_id == old_vid_id:
-                        continue # Already have this exact video
-                        
-                    duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
-                    new_mins = get_minutes(duration_str)
-                    
-                    if new_mins < 5 or new_mins > 55:
-                        continue # Skip tiny promos under 5 mins and compilations over 55 mins
-                        
-                    if not is_single_episode(title, description, channel, ep_num):
-                        continue # Strictly validate single-episode, title-number, range, promo, etc.
-                        
-                    old_mins = get_minutes(row[5])
-                    
-                    # We don't know the exact old channel, but we assume it's "Unknown" (0 channel score)
-                    # This means we rely heavily on the new score.
-                    new_score = get_video_score(new_mins, channel, new_title)
-                    old_score_estimate = get_video_score(old_mins, "Unknown", title)
-                    
-                    # Cascade upgrade: Accept if it scores significantly higher
-                    if new_score > old_score_estimate + 10:
-                        url = f"https://www.youtube.com/watch?v={vid_id}"
-                        time_text = vid.get('publishedTimeText', {}).get('simpleText', '')
-                        date_str = parse_relative_date(time_text)
-                        
-                        print(f"  [REVERSE UPGRADE] Ep {ep_num}: {title} ({duration_str}) [Score: {new_score}]")
-                        extra = row[6:] if len(row) > 6 else []
-                        rows[row_idx] = [ep_num, title, url, "Found", date_str if date_str else row[4], duration_str] + extra
-                        upgraded_count += 1
-                        upgraded_details.append(f"Ep {ep_num} ({old_mins}m -> {new_mins}m)")
-                        
-                        # Update map so we don't downgrade it if an older duplicate is further down the results
-                        ep_map[ep_num] = (row_idx, rows[row_idx])
-                        
-    except Exception as e:
-        print(f"Reverse global scan error: {e}")
+        print(f"Checking for better version for Ep {ep_num} (Currently: {current_mins}m)...")
+        result = find_episode(ep_num, require_full=False)
+        if not result:
+            print(f"  [KEPT] No better version found.")
+            continue
+            
+        new_vid = result['vid_id']
+        new_title = result['title']
+        new_mins = get_minutes(result['duration_str'])
+        new_channel = result['channel']
         
+        old_is_promo = is_promo(title)
+        new_is_promo = is_promo(new_title)
+        old_is_geoblocked = is_geoblocked_title(title)
+        new_is_geoblocked = is_geoblocked_title(new_title)
+        
+        should_upgrade = False
+        
+        if old_is_promo and not new_is_promo:
+            should_upgrade = True
+        elif not old_is_promo and new_is_promo:
+            should_upgrade = False
+        elif old_is_geoblocked and not new_is_geoblocked and new_mins >= 18:
+            should_upgrade = True
+        elif not old_is_geoblocked and new_is_geoblocked:
+            should_upgrade = False
+        else:
+            new_score = get_video_score(new_mins, new_channel, new_title)
+            old_score_estimate = get_video_score(current_mins, "Unknown", title)
+            if new_score > old_score_estimate + 10 and new_vid != current_vid:
+                should_upgrade = True
+        
+        if should_upgrade:
+            print(f"  [UPGRADED] Ep {ep_num}: {new_title} ({result['duration_str']})")
+            ep_data['yt_main'] = new_vid
+            ep_data['durationSeconds'] = result['duration_secs']
+            if result.get('date_str'):
+                ep_data['releaseDate'] = result['date_str']
+            ep_data['status'] = 'Found'
+            
+            # Add fallback/short if found
+            if result.get('fallback_id') and result['fallback_id'] != new_vid:
+                backups = ep_data.get('yt_backups', [])
+                if result['fallback_id'] not in backups:
+                    backups.insert(0, result['fallback_id'])
+                ep_data['yt_backups'] = backups
+            if result.get('short_id') and result['short_id'] != new_vid:
+                shorts = ep_data.get('yt_shorts', [])
+                if result['short_id'] not in shorts:
+                    shorts.insert(0, result['short_id'])
+                ep_data['yt_shorts'] = shorts
+                
+            upgraded_count += 1
+            upgraded_details.append(f"Ep {ep_num} ({current_mins}m -> {new_mins}m)")
+        else:
+            # Even if not upgrading main, try to add new fallbacks
+            updated = False
+            if result.get('fallback_id') and result['fallback_id'] != current_vid:
+                backups = ep_data.get('yt_backups', [])
+                if result['fallback_id'] not in backups:
+                    backups.insert(0, result['fallback_id'])
+                    ep_data['yt_backups'] = backups
+                    updated = True
+            if result.get('short_id') and result['short_id'] != current_vid:
+                shorts = ep_data.get('yt_shorts', [])
+                if result['short_id'] not in shorts:
+                    shorts.insert(0, result['short_id'])
+                    ep_data['yt_shorts'] = shorts
+                    updated = True
+                    
+            if updated:
+                print(f"  [UPDATED FALLBACKS] Ep {ep_num}")
+                upgraded_count += 1
+            else:
+                print(f"  [KEPT] Existing version is optimal.")
+    
     return upgraded_count
 
 
+# ───────────────────────────── Main ─────────────────────────────
+
 def main():
     print("=======================================================")
-    print("  TMKOC Website & DB Auto-Updater (Zero Quota Mode)")
+    print("  TMKOC Website & DB Auto-Updater (JSON Native Mode)")
     print("=======================================================")
 
     upgraded_details = []
@@ -310,131 +382,56 @@ def main():
     with open(STATE_FILE, "r", encoding="utf-8") as f:
         state = json.load(f)
 
+    db = load_db()
+    
+    # Reconcile state with actual DB
+    all_ep_nums = [int(k) for k in db.keys() if k.isdigit()]
+    max_db_ep = max(all_ep_nums) if all_ep_nums else 0
     last_ep = state.get("last_episode", 4778)
     
-    rows = []
-    if os.path.exists(CSV_FILE):
-        with open(CSV_FILE, "r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            rows = list(reader)
-            
-    # Reconcile state with CSV to prevent desync bugs
-    max_csv_ep = 0
-    if len(rows) > 1:
-        for r in rows[1:]:
-            try:
-                ep = int(r[0])
-                if ep > max_csv_ep:
-                    max_csv_ep = ep
-            except: pass
-            
-    if max_csv_ep > 0 and max_csv_ep != last_ep:
-        print(f"Reconciling state: state.json says {last_ep}, but CSV max is {max_csv_ep}. Using {max_csv_ep}.")
-        last_ep = max_csv_ep
-        state["last_episode"] = max_csv_ep
+    if max_db_ep > 0 and max_db_ep != last_ep:
+        print(f"Reconciling state: state.json says {last_ep}, but DB max is {max_db_ep}. Using {max_db_ep}.")
+        last_ep = max_db_ep
+        state["last_episode"] = max_db_ep
 
     print(f"Checking for new TMKOC episodes after Ep {last_ep}...")
 
-    # 1. Reverse Global Scan (Catch extremely old re-uploads and promos)
-    upgraded_count = reverse_global_scan(rows, upgraded_details)
+    # 1. Upgrade existing weak/promo/recent episodes
+    upgraded_count = upgrade_existing_episodes(db, upgraded_details)
     
-    # 2. Check for missing episode upgrades (old promos that might have been uploaded later but missed)
-    # AND aggressively scan the last 100 episodes (using YouTube Relevance sort) to replace geo-blocked videos with public ones.
-    for i, row in enumerate(rows):
-        if i == 0: continue # Skip header
-        if len(row) >= 6:
-            try:
-                ep_num = int(row[0])
-            except ValueError:
-                continue
-            title = row[1]
-            duration_str = row[5]
-            current_mins = get_minutes(duration_str)
-            
-            is_recent = (i >= len(rows) - 100)
-            
-            if is_promo(title) or current_mins < 16 or current_mins > 55 or is_recent:
-                print(f"Checking for better version for Ep {ep_num} (Currently: {duration_str})...")
-                result = find_episode(ep_num, require_full=False)
-                if result:
-                    # best_match is (vid_id, title, url, date_str, duration_str, channel, fallback, short)
-                    vid_id, new_title, new_url, new_date_str, new_duration_str, new_channel, fallback_url, short_url = result
-                    new_mins = get_minutes(new_duration_str)
-                    
-                    old_is_promo = is_promo(title)
-                    new_is_promo = is_promo(new_title)
-                    old_is_geoblocked = is_geoblocked_title(title)
-                    new_is_geoblocked = is_geoblocked_title(new_title)
-                    
-                    should_upgrade = False
-                    
-                    if old_is_promo and not new_is_promo:
-                        should_upgrade = True
-                    elif not old_is_promo and new_is_promo:
-                        should_upgrade = False
-                    elif old_is_geoblocked and not new_is_geoblocked and new_mins >= 18:
-                        should_upgrade = True
-                    elif not old_is_geoblocked and new_is_geoblocked:
-                        should_upgrade = False
-                    else:
-                        # We don't know the old channel, so we conservatively estimate its score as "Unknown" (0 bonus)
-                        # We only upgrade if the new one scores higher than the BEST possible version of the old one?
-                        # No, if we estimate old channel as 0, and new channel is SAB (1000), it'll upgrade.
-                        new_score = get_video_score(new_mins, new_channel, new_title)
-                        old_score_estimate = get_video_score(current_mins, "Unknown", title)
-                        if new_score > old_score_estimate + 10:
-                            # Verify video is actually different
-                            if vid_id != row[2].split('v=')[-1]:
-                                should_upgrade = True
-                        
-                    if should_upgrade:
-                        print(f"  [UPGRADED] Ep {ep_num}: {new_title} ({new_duration_str})")
-                        rows[i] = [ep_num, new_title, new_url, "Found", new_date_str if new_date_str else row[4], new_duration_str, fallback_url, short_url]
-                        upgraded_count += 1
-                        upgraded_details.append(f"Ep {ep_num} ({current_mins}m -> {new_mins}m)")
-                    else:
-                        current_fallback = row[6] if len(row) > 6 else ""
-                        current_short = row[7] if len(row) > 7 else ""
-                        
-                        updated_fallbacks = False
-                        if fallback_url and not current_fallback and fallback_url != row[2]:
-                            current_fallback = fallback_url
-                            updated_fallbacks = True
-                        if short_url and not current_short and short_url != row[2]:
-                            current_short = short_url
-                            updated_fallbacks = True
-                            
-                        if updated_fallbacks:
-                            print(f"  [UPDATED FALLBACKS] Ep {ep_num}")
-                            rows[i] = [ep_num, row[1], row[2], row[3], row[4], row[5], current_fallback, current_short]
-                            upgraded_count += 1
-                        else:
-                            print(f"  [KEPT] Existing version is optimal.")
-
-
-    if upgraded_count > 0:
-        import tempfile
-        with tempfile.NamedTemporaryFile(mode="w", newline="", encoding="utf-8", delete=False, dir=os.path.dirname(CSV_FILE)) as f:
-            writer = csv.writer(f)
-            writer.writerows(rows)
-            tmp_name = f.name
-        os.replace(tmp_name, CSV_FILE)
-            
-    # 2. Find new episodes
+    # 2. Find brand new episodes
     episodes_added = 0
     next_ep = last_ep + 1
-
-    new_episodes = []
 
     while True:
         print(f"Searching for Episode {next_ep}...")
         result = find_episode(next_ep, require_full=True)
 
         if result:
-            vid_id, title, url, date_str, duration_str, channel, fallback_url, short_url = result
-            print(f"[FOUND] Ep {next_ep}: {title} ({url})")
+            vid_id = result['vid_id']
+            title = result['title']
+            print(f"[FOUND] Ep {next_ep}: {title}")
 
-            new_episodes.append([next_ep, title, url, "Found", date_str if date_str else "", duration_str, fallback_url, short_url])
+            backups = []
+            if result.get('fallback_id') and result['fallback_id'] != vid_id:
+                backups.append(result['fallback_id'])
+            shorts = []
+            if result.get('short_id') and result['short_id'] != vid_id:
+                shorts.append(result['short_id'])
+
+            db[str(next_ep)] = {
+                "epNumber": next_ep,
+                "title": title,
+                "description": "",
+                "releaseDate": result.get('date_str', ''),
+                "durationSeconds": result['duration_secs'],
+                "thumbnail": "",
+                "yt_main": vid_id,
+                "yt_backups": backups,
+                "yt_shorts": shorts,
+                "status": "Found"
+            }
+
             added_details.append(f"Ep {next_ep}")
             last_ep = next_ep
             episodes_added += 1
@@ -443,34 +440,17 @@ def main():
             print(f"[UP TO DATE] Ep {next_ep} is not available on YouTube yet.")
             break
 
-    # Sanitize all CSV cells to prevent formula injection (P0 CSV injection fix)
-    def sanitize_csv_cell(value):
-        s = str(value)
-        if s and s[0] in ('=', '+', '-', '@', '\t', '\r', '\n'):
-            return "'" + s
-        return s
+    # Save JSON database
+    if upgraded_count > 0 or episodes_added > 0:
+        save_db(db)
+        print(f"\nSaved {len(db)} episodes to {JSON_DB_FILE}")
 
-    # Append new episodes atomically
-    if new_episodes:
-        with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            for row in new_episodes:
-                writer.writerow([sanitize_csv_cell(cell) for cell in row])
-
-    # Update state atomically (P1 atomic write fix)
+    # Update state atomically
     today_str = time.strftime("%Y-%m-%d")
     state["last_episode"] = last_ep
     state["last_updated"] = today_str
-    # Compute total_found from actual CSV row count to prevent drift (P2 fix)
-    try:
-        with open(CSV_FILE, "r", encoding="utf-8") as f:
-            actual_rows = sum(1 for line in f if line.strip()) - 1  # minus header
-        state["total_found"] = max(actual_rows, 0)
-    except Exception:
-        state["total_found"] = state.get("total_found", 4778) + episodes_added
+    state["total_found"] = len(db)
 
-    # Atomic state.json write via tempfile
-    import tempfile
     state_dir = os.path.dirname(STATE_FILE) or "."
     try:
         with tempfile.NamedTemporaryFile(mode="w", dir=state_dir, suffix=".tmp", delete=False, encoding="utf-8") as tmp:
@@ -479,10 +459,10 @@ def main():
         os.replace(tmp_path, STATE_FILE)
     except Exception as e:
         print(f"[ERROR] Failed to write state.json atomically: {e}")
-        # Fallback to direct write
         with open(STATE_FILE, "w", encoding="utf-8") as f:
             json.dump(state, f, indent=2)
 
+    # Write activity log
     if added_details or upgraded_details:
         now_str = datetime.datetime.now(datetime.timezone.utc).strftime('%d %b %Y (%H:%M UTC)')
         
@@ -521,8 +501,7 @@ def main():
             
         log_entry += "---\n\n"
         
-        # Prepend new log entry instead of overwriting (P2 fix)
-        log_file = os.path.join(os.path.dirname(CSV_FILE), "..", "activity_logs.md")
+        log_file = os.path.join(BASE_DIR, "activity_logs.md")
         existing_log = ""
         try:
             with open(log_file, "r", encoding="utf-8") as f:
@@ -531,21 +510,12 @@ def main():
             pass
         with open(log_file, "w", encoding="utf-8") as f:
             f.write(log_entry + existing_log)
-            
-    # CRITICAL: Compile the modified CSV into the master JSON database
-    try:
-        print("\nRecompiling master JSON database...")
-        from merge_databases import merge
-        merge()
-    except Exception as e:
-        print(f"[ERROR] Failed to compile JSON database: {e}")
 
     print("\n=======================================================")
-    print(f" Website Update Complete! {episodes_added} new episode(s) added, {upgraded_count} promo(s) upgraded.")
+    print(f" Website Update Complete! {episodes_added} new episode(s) added, {upgraded_count} link(s) upgraded.")
     print(f" Latest Episode in DB: Ep {last_ep}")
     print("=======================================================\n")
 
 
 if __name__ == "__main__":
     main()
-
