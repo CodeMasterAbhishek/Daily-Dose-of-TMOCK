@@ -15,7 +15,7 @@ except ImportError:
 # Import shared config to avoid drift (P2 #18)
 try:
     from config import CSV_FILE, VALID_CHANNELS
-    from utils import get_minutes
+    from utils import get_minutes, is_compilation
 except ImportError:
     # Fallback for standalone execution outside scripts/
     CSV_FILE = 'data/episodes.csv'
@@ -37,13 +37,15 @@ except ImportError:
 
 ROBUST_DB_FILE = 'data/robust_fallbacks.json'
 
-def score_video(mins, channel):
+def score_video(mins, channel, title):
     c = channel.lower()
     score = 0
     if c == 'sony sab': score += 50
     elif 'taarak mehta ka ooltah chashmah' in c: score += 40
     elif c == 'sony pal': score += 10
-    return score + (mins if mins <= 55 else 0)
+    
+    compilation_penalty = -5000 if is_compilation(title) else 0
+    return score + (mins if mins <= 60 else 0) + compilation_penalty
 
 def search_robust(ep_num):
     queries = [
@@ -77,10 +79,11 @@ def search_robust(ep_num):
                     continue
                     
                 cat = "full" if mins >= 15 else ("short" if mins >= 8 else "skip")
-                if cat == "skip": continue
-                if mins > 55: continue # Compilation
+                if title:
+                    if is_compilation(title): continue
+                if mins > 60: continue # Hard limit for absurd lengths
                 
-                score = score_video(mins, channel)
+                score = score_video(mins, channel, title)
                 
                 found_videos.append({
                     "id": vid_id,

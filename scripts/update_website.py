@@ -25,7 +25,7 @@ if sys.platform == 'win32':
         pass
 
 from config import STATE_FILE, CSV_FILE, VALID_CHANNELS
-from utils import get_minutes
+from utils import get_minutes, is_compilation
 
 RE_EPISODE_RANGE = re.compile(r'\b(?:ep|episode|episodes|ep\.|एपिसोड)?\s*(\d{2,4})\s*(?:-|–|—|to|से)\s*(\d{2,4})\b')
 RE_EP_EXTRACT = re.compile(r'(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d+)')
@@ -136,7 +136,7 @@ def parse_relative_date(time_text: str) -> str:
     return target_date.strftime("%d %b %Y")
 
 
-def get_video_score(mins: int, channel: str) -> int:
+def get_video_score(mins: int, channel: str, title: str) -> int:
     channel_lower = channel.lower()
     c_score = 0
     if channel_lower == 'sony sab':
@@ -147,9 +147,14 @@ def get_video_score(mins: int, channel: str) -> int:
         c_score = 20
         
     is_full = 1000 if mins >= 15 else 0
+    # Original specials are long, so long videos get a boost...
     is_double = 1000 if mins >= 35 else 0
     
-    return is_full + is_double + c_score * 10 + mins
+    # ...UNLESS the title says it's a compilation/movie/marathon.
+    # We heavily penalize compilations so the single 20-min episode wins out!
+    compilation_penalty = -5000 if is_compilation(title) else 0
+    
+    return is_full + is_double + compilation_penalty + c_score * 10 + mins
 
 
 def find_episode(ep_num: int, require_full: bool = False):
@@ -189,7 +194,7 @@ def find_episode(ep_num: int, require_full: bool = False):
                     if mins > 55:  # Increased from 30 to 55 to allow Maha Episodes
                         continue
                         
-                    score = get_video_score(mins, channel)
+                    score = get_video_score(mins, channel, title)
                         
                     if score > best_score:
                         # If we already had a best match, save it as fallback or short
@@ -266,8 +271,8 @@ def reverse_global_scan(rows, upgraded_details):
                     
                     # We don't know the exact old channel, but we assume it's "Unknown" (0 channel score)
                     # This means we rely heavily on the new score.
-                    new_score = get_video_score(new_mins, channel)
-                    old_score_estimate = get_video_score(old_mins, "Unknown")
+                    new_score = get_video_score(new_mins, channel, new_title)
+                    old_score_estimate = get_video_score(old_mins, "Unknown", title)
                     
                     # Cascade upgrade: Accept if it scores significantly higher
                     if new_score > old_score_estimate + 10:
@@ -336,8 +341,12 @@ def main():
     # 2. Check for missing episode upgrades (old promos that might have been uploaded later but missed)
     # AND aggressively scan the last 100 episodes (using YouTube Relevance sort) to replace geo-blocked videos with public ones.
     for i, row in enumerate(rows):
+        if i == 0: continue # Skip header
         if len(row) >= 6:
-            ep_num = int(row[0])
+            try:
+                ep_num = int(row[0])
+            except ValueError:
+                continue
             title = row[1]
             duration_str = row[5]
             current_mins = get_minutes(duration_str)
@@ -371,8 +380,8 @@ def main():
                         # We don't know the old channel, so we conservatively estimate its score as "Unknown" (0 bonus)
                         # We only upgrade if the new one scores higher than the BEST possible version of the old one?
                         # No, if we estimate old channel as 0, and new channel is SAB (1000), it'll upgrade.
-                        new_score = get_video_score(new_mins, new_channel)
-                        old_score_estimate = get_video_score(current_mins, "Unknown")
+                        new_score = get_video_score(new_mins, new_channel, new_title)
+                        old_score_estimate = get_video_score(current_mins, "Unknown", title)
                         if new_score > old_score_estimate + 10:
                             # Verify video is actually different
                             if vid_id != row[2].split('v=')[-1]:
