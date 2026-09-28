@@ -978,9 +978,26 @@ function openCleanPlayer(article) {
                             modalWarning.style.display = 'block';
                             modalWarning.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
                                 <span>⚠️ <strong>Embedding is off:</strong> This episode is available, but Sony has disabled embedding.</span>
-                                <a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">↗️ Click here to redirect to YouTube</a>
+                                <a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">Watch on YouTube</a>
                             </div>`;
                         }
+                        
+                        // Replace the ugly black YouTube error screen with the episode's beautiful thumbnail
+                        const iframeContainer = document.getElementById('clean-iframe-container');
+                        if (iframeContainer) {
+                            iframeContainer.innerHTML = `
+                                <div style="width: 100%; height: 100%; background-image: url('${article.image}'); background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <div style="background: rgba(0,0,0,0.5); position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+                                    <a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="z-index: 2; display: flex; flex-direction: column; align-items: center; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                        <div style="width: 68px; height: 48px; background-color: #ef4444; border-radius: 14px; display: flex; justify-content: center; align-items: center; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);">
+                                            <svg viewBox="0 0 24 24" fill="white" style="width: 32px; height: 32px;"><path d="M8 5v14l11-7z"></path></svg>
+                                        </div>
+                                        <span style="color: white; font-weight: bold; font-size: 1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Click to Watch on YouTube</span>
+                                    </a>
+                                </div>
+                            `;
+                        }
+                        
                         try {
                             verifiedVideos.add(article.id);
                             const card = document.querySelector(`.card[data-id="${article.id}"]`);
