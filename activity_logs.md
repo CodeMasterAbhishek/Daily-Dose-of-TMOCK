@@ -1,3 +1,55 @@
+## 🔄 Sync Report: 29 Sep 2026 (21:36 UTC)
+
+### 📊 Insights & Summary
+- **New Episodes Added:** 0 (Latest remains Ep 4828)
+- **Links Upgraded:** 1 (Replaced promos or dead links with full episodes)
+
+### 📈 Upgrades (1)
+<details>
+<summary>Click to view all upgraded episodes</summary>
+
+- **Ep 4828**: 10m ➡️ 10m
+
+</details>
+
+---
+
+## 🔄 Sync Report: 29 Sep 2026 (17:07 UTC)
+
+### 📊 Insights & Summary
+- **New Episodes Added:** 1 (Latest: Ep 4828)
+- **Links Upgraded:** 1 (Replaced promos or dead links with full episodes)
+
+### ✨ New Episodes
+- Ep 4828
+
+### 📈 Upgrades (1)
+<details>
+<summary>Click to view all upgraded episodes</summary>
+
+- **Ep 4730**: 21m ➡️ 21m
+
+</details>
+
+---
+
+## 🔄 Sync Report: 28 Sep 2026 (22:42 UTC)
+
+### 📊 Insights & Summary
+- **New Episodes Added:** 0 (Latest remains Ep 4827)
+- **Links Upgraded:** 2 (Replaced promos or dead links with full episodes)
+
+### 📈 Upgrades (2)
+<details>
+<summary>Click to view all upgraded episodes</summary>
+
+- **Ep 4827**: 10m ➡️ 10m
+- **Ep 4797**: 22m ➡️ 23m
+
+</details>
+
+---
+
 ## 🔄 Sync Report: 28 Sep 2026 (19:05 UTC)
 
 ### 📊 Insights & Summary
