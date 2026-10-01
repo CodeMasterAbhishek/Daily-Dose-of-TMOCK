@@ -10,6 +10,7 @@ export const SUPABASE_CONFIG = {
 };
 
 const STORAGE_USER_ID = 'tmkoc_user_uuid';
+const STORAGE_USER_TOKEN = 'tmkoc_user_token';
 
 export function isSupabaseConfigured() {
     return Boolean(
@@ -41,15 +42,65 @@ export function getOrCreateUserId() {
     }
 }
 
+export function getOrCreateUserToken() {
+    try {
+        let token = localStorage.getItem(STORAGE_USER_TOKEN);
+        if (!token) {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                token = crypto.randomUUID() + '-' + crypto.randomUUID();
+            } else {
+                token = 'tok_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            }
+            localStorage.setItem(STORAGE_USER_TOKEN, token);
+        }
+        return token;
+    } catch (e) {
+        return 'temp_tok_' + Math.random().toString(36).substring(2, 15);
+    }
+}
+
 /**
- * Upsert current user's statistics to Supabase via standard REST API
+ * Upsert current user's statistics to Supabase via secure RPC function.
+ * Validates token ownership, sanitizes handle, and prevents row takeover.
  */
 export async function syncUserToCloud({ handle, watchedCount, watchHours, fanTier }) {
     if (!isSupabaseConfigured()) return { success: false, reason: 'unconfigured' };
-    
-    // Writes are disabled for security reasons (prevent stored XSS and row takeover).
-    // The global leaderboard is now read-only on the frontend.
-    return { success: false, reason: 'read-only' };
+
+    const userId = getOrCreateUserId();
+    const clientToken = getOrCreateUserToken();
+    const cleanHandle = (handle || '@TMKOCSuperfan').trim();
+    const cleanBaseUrl = getCleanBaseUrl();
+
+    try {
+        const response = await fetch(`${cleanBaseUrl}/rest/v1/rpc/sync_fan_stats`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_CONFIG.anonKey,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                p_user_id: userId,
+                p_client_token: clientToken,
+                p_handle: cleanHandle,
+                p_watched_count: Math.max(0, Math.min(5000, Number(watchedCount) || 0)),
+                p_watch_hours: Math.max(0, Math.min(2500, Number(watchHours) || 0)),
+                p_fan_tier: fanTier || 'Gokuldham Resident'
+            })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.warn('Leaderboard sync returned HTTP status:', response.status, errText);
+            return { success: false, error: errText };
+        }
+
+        const data = await response.json();
+        return { success: true, data };
+    } catch (err) {
+        console.warn('Network error syncing stats:', err);
+        return { success: false, error: err.message };
+    }
 }
 
 /**

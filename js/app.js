@@ -85,8 +85,8 @@ async function init() {
         registerMasterArticles(allArticles);
         renderPage();
 
-        // Silently sync existing watched episodes to the Global Leaderboard in the background
-        syncCurrentUserStats();
+        // Initialize sidebar fan stats and sync profile to the Global Leaderboard
+        updateFanDashboard();
     } catch (error) {
         console.error("Initialization failed:", error);
         document.getElementById('news-container').innerHTML = '<p style="color:red">Failed to load dataset. Please try again later.</p>';
