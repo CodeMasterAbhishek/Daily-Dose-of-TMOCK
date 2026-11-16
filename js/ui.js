@@ -905,11 +905,11 @@ function openCleanPlayer(article) {
                 if (fallbacks.length > 0) {
                     videoIdToPlay = fallbacks[0];
                     window._playbackAttempts[article.id] = 1;
-                    initialMsg = `⚠️ <strong>Switched to Backup Stream</strong>: The main video was blocked in your region, so we automatically pre-loaded a backup full episode!`;
+                    initialMsg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
                 } else if (shorts.length > 0) {
                     videoIdToPlay = shorts[0];
                     window._playbackAttempts[article.id] = fallbacks.length + 1;
-                    initialMsg = `⚠️ <strong>Switched to Short Version</strong>: The full episode is geo-blocked, so we automatically pre-loaded the promo/short version instead!`;
+                    initialMsg = `⚠️ <strong>Disclaimer:</strong> Playing short version of this episode.`;
                 }
             }
         } catch(e) {}
@@ -941,7 +941,7 @@ function openCleanPlayer(article) {
                     },
                     'onError': function(event) {
                         const loadingText = document.getElementById('player-loading-text');
-                        if (loadingText) loadingText.innerText = "Fetching backup...";
+                        if (loadingText) loadingText.innerText = "Loading...";
                         
                         if (event.data === 150 || event.data === 101 || event.data === 2) {
                             if (!window._playbackAttempts) window._playbackAttempts = {};
@@ -959,11 +959,11 @@ function openCleanPlayer(article) {
                             
                             if (attempts < fallbacks.length) {
                                 nextVideoId = fallbacks[attempts];
-                                msg = `⚠️ <strong>Switched to Backup Stream (${attempts + 1}/${fallbacks.length})</strong>: Attempting to load another backup full episode...`;
+                                msg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
                             } else if (attempts < fallbacks.length + shorts.length) {
                                 const shortIdx = attempts - fallbacks.length;
                                 nextVideoId = shorts[shortIdx];
-                                msg = `⚠️ <strong>Switched to Short Version (${shortIdx + 1}/${shorts.length})</strong>: The full episodes are blocked, attempting to load a promo/short version instead.`;
+                                msg = `⚠️ <strong>Disclaimer:</strong> Playing short version of this episode.`;
                             }
                             
                             if (nextVideoId) {
@@ -1005,7 +1005,7 @@ function openCleanPlayer(article) {
                         if (modalWarning) {
                             modalWarning.style.display = 'block';
                             modalWarning.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
-                                <span>⚠️ <strong>Embedding is off:</strong> This episode is available, but Sony has disabled embedding.</span>
+                                <span>⚠️ <strong>Disclaimer:</strong> This video cannot be played embedded directly.</span>
                                 <a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">Watch on YouTube</a>
                             </div>`;
                         }
