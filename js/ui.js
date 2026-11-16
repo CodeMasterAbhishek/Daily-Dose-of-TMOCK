@@ -1,7 +1,7 @@
 /**
  * UI module for DailyDose TMKOC, Episode Badges, Exact Ranking Search, Real Leaderboard Data, and Clean Theme Card Design.
  */
-import { syncUserToCloud, fetchGlobalLeaderboard, fetchUserGlobalRank, isSupabaseConfigured, getOrCreateUserId, reportDeadLinkToCloud } from './supabase.js';
+import { syncUserToCloud, fetchGlobalLeaderboard, fetchUserGlobalRank, isSupabaseConfigured, getOrCreateUserId, reportDeadLinkToCloud, fetchKnownDeadLinks } from './supabase.js';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -171,6 +171,26 @@ export async function initializeIpCache() {
         // Clean up old raw IP if it exists from before this fix
         localStorage.removeItem("tmkoc_last_ip");
     } catch (e) {}
+
+    // Pre-populate known crowdsourced dead/blocked links from Supabase
+    // so visitors instantly bypass known broken links without running background test players!
+    try {
+        const deadVideoIds = await fetchKnownDeadLinks();
+        if (deadVideoIds && deadVideoIds.length > 0) {
+            const cache = getCheckerCache();
+            const now = Date.now();
+            let changed = false;
+            deadVideoIds.forEach(vidId => {
+                if (!cache[vidId] || !cache[vidId].isUnavailable) {
+                    cache[vidId] = { isUnavailable: true, timestamp: now };
+                    changed = true;
+                }
+            });
+            if (changed) {
+                localStorage.setItem("tmkoc_checker_cache", JSON.stringify(cache));
+            }
+        }
+    } catch (e) {}
 }
 
 function getCheckerCache() {
@@ -178,7 +198,8 @@ function getCheckerCache() {
         const cache = JSON.parse(localStorage.getItem("tmkoc_checker_cache") || "{}");
         const now = Date.now();
         for (const key in cache) {
-            if (now - cache[key].timestamp > 3600000) {
+            // 24-hour geo/availability cache TTL (86400000 ms)
+        if (now - cache[key].timestamp > 86400000) {
                 delete cache[key];
             }
         }
@@ -250,6 +271,10 @@ function initIntersectionObserver() {
                             }
                         } else {
                             if (!bgCheckerQueue.some(a => a.id === article.id)) {
+                                // Cap queue at 5 items to prevent DOM thrashing during rapid scroll
+                                if (bgCheckerQueue.length >= 5) {
+                                    bgCheckerQueue.shift();
+                                }
                                 bgCheckerQueue.push(article);
                                 processBgCheckerQueue();
                             }

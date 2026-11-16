@@ -134,6 +134,30 @@ export async function reportDeadLinkToCloud(epNumber, videoId) {
 }
 
 /**
+ * Fetch crowdsourced dead/blocked YouTube links so visitors share the verification state
+ * without needing to run background test players for known dead links.
+ */
+export async function fetchKnownDeadLinks() {
+    if (!isSupabaseConfigured()) return [];
+    try {
+        const baseUrl = getCleanBaseUrl();
+        const response = await fetch(`${baseUrl}/rest/v1/dead_links?select=video_id`, {
+            method: 'GET',
+            headers: {
+                'apikey': SUPABASE_CONFIG.anonKey,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                'Accept': 'application/json'
+            }
+        });
+        if (!response.ok) return [];
+        const rows = await response.json();
+        return (rows || []).map(r => r.video_id).filter(Boolean);
+    } catch (e) {
+        return [];
+    }
+}
+
+/**
  * Fetch top fans for the global leaderboard via standard REST API
  */
 export async function fetchGlobalLeaderboard(limit = 50) {
