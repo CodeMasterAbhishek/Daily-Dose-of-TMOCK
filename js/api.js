@@ -17,9 +17,31 @@ function getCategoryForEp(epNum) {
 
 function getAirDateForEp(epNum) {
     // Generate realistic air date based on episode number
-    const startDate = new Date(2008, 6, 28); // July 28, 2008 (Ep 1 premiere)
-    const daysOffset = Math.floor(epNum * 1.378);
-    const epDate = new Date(startDate.getTime() + daysOffset * 86400000);
+    let epDate;
+    if (epNum >= 4824) {
+        // Ep 4824 aired Thursday, 24 Sep 2026. TMKOC airs 6 days/week (Mon-Sat, skipping Sun).
+        const anchorDate = new Date(2026, 8, 24); // 24 Sep 2026
+        const diff = epNum - 4824;
+        let cur = new Date(anchorDate.getTime());
+        for (let i = 0; i < diff; i++) {
+            cur.setDate(cur.getDate() + 1);
+            if (cur.getDay() === 0) { // Sunday, skip
+                cur.setDate(cur.getDate() + 1);
+            }
+        }
+        epDate = cur;
+    } else {
+        const startDate = new Date(2008, 6, 28); // July 28, 2008 (Ep 1 premiere)
+        const daysOffset = Math.floor(epNum * 1.3728);
+        epDate = new Date(startDate.getTime() + daysOffset * 86400000);
+    }
+
+    // Released episodes should never show an air date in the future
+    const now = new Date();
+    if (epDate > now) {
+        epDate = now;
+    }
+
     return epDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -36,13 +58,14 @@ function extractRealEpNumber(title, csvEpNum) {
 }
 
 function extractRealDate(title, epNum) {
-    if (!title) return getAirDateForEp(epNum);
-    const dateMatch = title.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9}),?\s+(20\d{2})\b/);
-    if (dateMatch) {
-        const day = dateMatch[1].padStart(2, '0');
-        const month = dateMatch[2].substring(0, 3);
-        const year = dateMatch[3];
-        return `${day} ${month} ${year}`;
+    if (title) {
+        const dateMatch = title.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9}),?\s+(20\d{2})\b/);
+        if (dateMatch) {
+            const day = dateMatch[1].padStart(2, '0');
+            const month = dateMatch[2].substring(0, 3);
+            const year = dateMatch[3];
+            return `${day} ${month} ${year}`;
+        }
     }
     return getAirDateForEp(epNum);
 }
@@ -73,7 +96,9 @@ export async function fetchNewsData() {
             const category = getCategoryForEp(realEpNum);
             
             // Format AirDate
-            const airDate = data.releaseDate || getAirDateForEp(realEpNum);
+            const airDate = (data.releaseDate && data.releaseDate.trim()) 
+                ? data.releaseDate.trim() 
+                : extractRealDate(data.title, realEpNum);
             let pubDateStr = new Date().toISOString();
             if (airDate) {
                 // If it looks like YYYY-MM-DD

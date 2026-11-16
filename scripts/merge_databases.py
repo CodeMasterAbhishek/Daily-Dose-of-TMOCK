@@ -3,6 +3,7 @@ import json
 import os
 import re
 import shutil
+import datetime
 
 def extract_id(url):
     if not url: return None
@@ -69,11 +70,23 @@ def merge():
                 if img_match:
                     thumbnail = img_match.group(0)
             
+            # Try to grab original television air date from SonyLIV's raw JSON dump
+            air_date = ""
+            if "raw_data" in sony_data and sony_data["raw_data"].get("originalAirDate"):
+                try:
+                    ts = sony_data["raw_data"]["originalAirDate"] / 1000
+                    dt = datetime.datetime.fromtimestamp(ts, tz=datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
+                    air_date = dt.strftime("%d %b %Y")
+                except Exception:
+                    pass
+            if not air_date:
+                air_date = sony_data.get('release_date') or row.get('Date', '')
+
             master_db[ep] = {
                 "epNumber": int(ep),
                 "title": sony_data.get('title') or row.get('Title', f"Episode {ep}"),
                 "description": sony_data.get('description', ''),
-                "releaseDate": sony_data.get('release_date') or row.get('Date', ''),
+                "releaseDate": air_date,
                 "durationSeconds": int(duration_s) if duration_s else 0,
                 "thumbnail": thumbnail,
                 "yt_main": main_id,

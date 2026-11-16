@@ -29,7 +29,11 @@ from utils import get_minutes, is_compilation
 
 RE_EPISODE_RANGE = re.compile(r'\b(?:ep|episode|episodes|ep\.|एपिसोड)?\s*(\d{2,4})\s*(?:-|–|—|to|से)\s*(\d{2,4})\b')
 RE_EP_EXTRACT = re.compile(r'(?:ep|episode|ep\.|एपिसोड)\s*#?\s*(\d+)')
-RE_RELATIVE_DATE = re.compile(r'(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago')
+RE_RELATIVE_DATE = re.compile(
+    r'(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks|mo|mth|month|months|y|yr|yrs|year|years)\s*ago',
+    re.IGNORECASE
+)
+RE_EXPLICIT_DATE = re.compile(r'\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9}),?\s+(20\d{2})\b')
 RE_EP_PATTERN = re.compile(r"(?i)(?:ep|episode)\s*[-:]?\s*(\d+)")
 
 
@@ -122,7 +126,7 @@ def parse_relative_date(time_text: str) -> str:
     if not time_text:
         return ""
     
-    text = time_text.lower()
+    text = time_text.lower().strip()
     now = datetime.datetime.now()
     
     match = RE_RELATIVE_DATE.search(text)
@@ -130,7 +134,17 @@ def parse_relative_date(time_text: str) -> str:
         return ""
         
     val = int(match.group(1))
-    unit = match.group(2)
+    raw_unit = match.group(2).lower()
+    
+    unit_map = {
+        'm': 'minute', 'min': 'minute', 'mins': 'minute', 'minute': 'minute', 'minutes': 'minute',
+        'h': 'hour', 'hr': 'hour', 'hrs': 'hour', 'hour': 'hour', 'hours': 'hour',
+        'd': 'day', 'days': 'day',
+        'w': 'week', 'wk': 'week', 'wks': 'week', 'week': 'week', 'weeks': 'week',
+        'mo': 'month', 'mth': 'month', 'month': 'month', 'months': 'month',
+        'y': 'year', 'yr': 'year', 'yrs': 'year', 'year': 'year', 'years': 'year'
+    }
+    unit = unit_map.get(raw_unit, 'day')
     
     deltas = {
         'minute': datetime.timedelta(minutes=val),
@@ -143,6 +157,44 @@ def parse_relative_date(time_text: str) -> str:
     
     target_date = now - deltas.get(unit, datetime.timedelta(0))
     return target_date.strftime("%d %b %Y")
+
+
+def extract_date_from_text(text: str) -> str:
+    """Extract explicit date formatted like '10 Nov 2026' or '10th November 2026'."""
+    if not text:
+        return ""
+    m = RE_EXPLICIT_DATE.search(text)
+    if not m:
+        return ""
+    day = m.group(1).zfill(2)
+    month_raw = m.group(2)[:3].title()
+    year = m.group(3)
+    try:
+        dt = datetime.datetime.strptime(f"{day} {month_raw} {year}", "%d %b %Y")
+        return dt.strftime("%d %b %Y")
+    except ValueError:
+        return ""
+
+
+def estimate_broadcast_date(ep_num: int, db: dict) -> str:
+    """Calculate the broadcast date for ep_num based on adjacent episodes (Mon-Sat, skipping Sundays)."""
+    for prev_ep in range(ep_num - 1, max(0, ep_num - 30), -1):
+        prev_data = db.get(str(prev_ep))
+        if prev_data and prev_data.get('releaseDate'):
+            try:
+                prev_date = datetime.datetime.strptime(prev_data['releaseDate'], "%d %b %Y").date()
+                cur_date = prev_date
+                for _ in range(ep_num - prev_ep):
+                    cur_date += datetime.timedelta(days=1)
+                    if cur_date.weekday() == 6:  # Skip Sunday
+                        cur_date += datetime.timedelta(days=1)
+                today = datetime.date.today()
+                if cur_date > today:
+                    cur_date = today
+                return cur_date.strftime("%d %b %Y")
+            except Exception:
+                pass
+    return datetime.date.today().strftime("%d %b %Y")
 
 
 def get_video_score(mins: int, channel: str, title: str) -> int:
@@ -226,7 +278,7 @@ def find_episode(ep_num: int, require_full: bool = False):
 
                 if vid_id and is_single_episode(title, description, channel, ep_num, require_full):
                     time_text = vid.get('publishedTimeText', {}).get('simpleText', '')
-                    date_str = parse_relative_date(time_text)
+                    date_str = extract_date_from_text(title) or extract_date_from_text(description) or parse_relative_date(time_text)
                     duration_str = vid.get('lengthText', {}).get('simpleText', '0:00')
                     
                     if require_full and is_promo(title):
@@ -292,9 +344,10 @@ def upgrade_existing_episodes(db, upgraded_details):
         current_vid = ep_data.get('yt_main', '')
         
         is_recent = (ep_num > max_ep - 100)
+        is_missing_date = not bool(ep_data.get('releaseDate', '').strip())
         
-        # Only check episodes that are promos, too short, too long, or recent
-        if not (is_promo(title) or current_mins < 16 or current_mins > 55 or is_recent):
+        # Only check episodes that are promos, too short, too long, recent, or missing releaseDate
+        if not (is_promo(title) or current_mins < 16 or current_mins > 55 or is_recent or is_missing_date):
             continue
             
         print(f"Checking for better version for Ep {ep_num} (Currently: {current_mins}m)...")
@@ -335,6 +388,8 @@ def upgrade_existing_episodes(db, upgraded_details):
             ep_data['durationSeconds'] = result['duration_secs']
             if result.get('date_str'):
                 ep_data['releaseDate'] = result['date_str']
+            elif is_missing_date:
+                ep_data['releaseDate'] = estimate_broadcast_date(ep_num, db)
             ep_data['status'] = 'Found'
             
             # Add fallback/short if found
@@ -367,6 +422,12 @@ def upgrade_existing_episodes(db, upgraded_details):
                     ep_data['yt_shorts'] = shorts
                     updated = True
                     
+            if is_missing_date:
+                date_found = result.get('date_str') or estimate_broadcast_date(ep_num, db)
+                if date_found:
+                    ep_data['releaseDate'] = date_found
+                    updated = True
+
             if updated:
                 print(f"  [UPDATED FALLBACKS] Ep {ep_num}")
                 upgraded_count += 1
@@ -434,7 +495,7 @@ def main():
                 "epNumber": next_ep,
                 "title": title,
                 "description": "",
-                "releaseDate": result.get('date_str', ''),
+                "releaseDate": result.get('date_str') or estimate_broadcast_date(next_ep, db),
                 "durationSeconds": result['duration_secs'],
                 "thumbnail": "",
                 "yt_main": vid_id,
