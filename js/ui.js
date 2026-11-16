@@ -909,7 +909,7 @@ function openCleanPlayer(article) {
                 } else if (shorts.length > 0) {
                     videoIdToPlay = shorts[0];
                     window._playbackAttempts[article.id] = fallbacks.length + 1;
-                    initialMsg = `⚠️ <strong>Disclaimer:</strong> Playing short version of this episode.`;
+                    initialMsg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
                 }
             }
         } catch(e) {}
@@ -963,7 +963,7 @@ function openCleanPlayer(article) {
                             } else if (attempts < fallbacks.length + shorts.length) {
                                 const shortIdx = attempts - fallbacks.length;
                                 nextVideoId = shorts[shortIdx];
-                                msg = `⚠️ <strong>Disclaimer:</strong> Playing short version of this episode.`;
+                                msg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
                             }
                             
                             if (nextVideoId) {
