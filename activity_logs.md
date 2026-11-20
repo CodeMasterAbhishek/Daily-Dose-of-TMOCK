@@ -1,3 +1,14 @@
+## 🔄 Sync Report: 20 Nov 2026 (00:14 UTC)
+
+### 📊 Insights & Summary
+- **New Episodes Added:** 1 (Latest: Ep 4872)
+- **Links Upgraded:** 0
+
+### ✨ New Episodes
+- Ep 4872
+
+---
+
 ## 🔄 Sync Report: 19 Nov 2026 (15:02 UTC)
 
 ### 📊 Insights & Summary
