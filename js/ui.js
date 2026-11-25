@@ -1045,6 +1045,11 @@ function openCleanPlayer(article) {
         descEl.style.display = article.description ? 'block' : 'none';
     }
 
+    const autoplayToggle = document.getElementById('autoplay-toggle');
+    if (autoplayToggle) {
+        autoplayToggle.checked = localStorage.getItem('autoplayNext') !== 'false';
+    }
+
     const timestamps = getTimestamps();
     let resumeSeconds = timestamps[article.id] || 0;
     
@@ -1091,8 +1096,19 @@ function openCleanPlayer(article) {
     const viewport = document.querySelector('.tmkoc-video-viewport');
     
     if (window.YT && window.YT.Player) {
-        const iframeExists = document.querySelector('#clean-iframe-container iframe');
-        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function' && iframeExists) {
+        let isPlayerReadyToReuse = false;
+        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+            try {
+                const iframeEl = (typeof ytPlayer.getIframe === 'function') 
+                    ? ytPlayer.getIframe() 
+                    : document.getElementById('clean-iframe-container');
+                if (iframeEl && iframeEl.tagName === 'IFRAME' && (iframeEl.isConnected || (document.body && document.body.contains(iframeEl)))) {
+                    isPlayerReadyToReuse = true;
+                }
+            } catch(e) {}
+        }
+
+        if (isPlayerReadyToReuse) {
             // SEAMLESS REUSE: Prevent player destruction and background-tab autoplay blocking!
             if (initialMsg && modalWarning) {
                 modalWarning.style.display = 'block';
@@ -1105,6 +1121,9 @@ function openCleanPlayer(article) {
             if (spinner) {
                 spinner.style.display = 'flex';
                 spinner.style.backgroundImage = `url('${article.image}')`;
+                setTimeout(() => {
+                    if (spinner) spinner.style.display = 'none';
+                }, 2000);
             }
             const loadingText = document.getElementById('player-loading-text');
             if (loadingText) loadingText.innerText = `Loading Ep ${article.epNumber}...`;
@@ -1115,7 +1134,11 @@ function openCleanPlayer(article) {
                     'startSeconds': resumeSeconds
                 };
                 if (article.endTime) loadOpts['endSeconds'] = article.endTime;
-                ytPlayer.loadVideoById(loadOpts);
+                try {
+                    ytPlayer.loadVideoById(loadOpts);
+                } catch(err) {
+                    ytPlayer.loadVideoById(videoIdToPlay, resumeSeconds);
+                }
                 try { ytPlayer.playVideo(); } catch(e) {}
             }
 
@@ -1384,10 +1407,10 @@ window.toggleAutoplay = function(checked) {
 
 window.navCleanEp = function(dir) {
     if (!currentModalEpNum) return;
-    let targetEp = currentModalEpNum + dir;
+    let targetEp = parseInt(currentModalEpNum, 10) + dir;
     let iterations = 0;
     while (iterations < 50) {
-        const targetArticle = masterEpNumberMap[targetEp];
+        const targetArticle = masterEpNumberMap[targetEp] || allArticlesMap[`ep_${targetEp}`] || allArticlesMap[targetEp];
         if (targetArticle) {
             openCleanPlayer(targetArticle);
             return;
