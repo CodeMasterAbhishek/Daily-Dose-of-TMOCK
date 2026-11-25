@@ -1003,7 +1003,7 @@ function openCleanPlayer(article) {
                         <span id="clean-badge" class="tmkoc-modal-badge">EP 1</span>
                         <h3 id="clean-title" class="tmkoc-modal-title">Episode Title</h3>
                     </div>
-                    <button class="tmkoc-modal-close" onclick="closeCleanPlayer()">✕</button>
+                    <button class="tmkoc-modal-close" onclick="closeCleanPlayer()" title="Close Player" aria-label="Close Player">✕</button>
                 </div>
                 <div id="clean-modal-warning" class="tmkoc-geo-warning"></div>
                 <div class="tmkoc-video-viewport">
@@ -1022,11 +1022,7 @@ function openCleanPlayer(article) {
                 </div>
             </div>
         `;
-        backdrop.addEventListener('click', (e) => {
-            if (e.target === backdrop) {
-                window.closeCleanPlayer();
-            }
-        });
+        // Deliberately do not close on backdrop click: prevent accidental dismissal while watching
         document.body.appendChild(backdrop);
 
     }
