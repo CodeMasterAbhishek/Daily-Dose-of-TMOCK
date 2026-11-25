@@ -230,6 +230,26 @@ function setCheckerCache(videoId, isUnavailable) {
     } catch(e) {}
 }
 
+export function getDurationBadgeHTML(article, isFallbackShort = false) {
+    const durText = article.durationText || '21:45';
+    let secs = 1260;
+    if (durText) {
+        const parts = durText.split(':');
+        if (parts.length === 3) secs = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+        else if (parts.length === 2) secs = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    }
+    
+    // An episode is considered a short version if:
+    // 1. It is playing a fallback short (isFallbackShort = true)
+    // 2. Its actual duration is under 15 minutes (secs < 900)
+    const isShort = isFallbackShort || (secs > 0 && secs < 900);
+    if (isShort) {
+        const displayTime = (isFallbackShort && secs >= 900) ? '10:00' : durText;
+        return `${displayTime} <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
+    }
+    return durText;
+}
+
 function handleCheckerResult(article, isUnavailable) {
     try {
         verifiedVideos.add(article.id);
@@ -245,7 +265,7 @@ function handleCheckerResult(article, isUnavailable) {
             
             if (isUnavailable && !(article.robustFallbacks && article.robustFallbacks.length) && (article.robustShorts && article.robustShorts.length)) {
                 const durationBadge = card.querySelector('.card-duration-badge');
-                if (durationBadge) durationBadge.innerHTML = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
+                if (durationBadge) durationBadge.innerHTML = getDurationBadgeHTML(article, true);
             }
         }
     } catch(e) {}
@@ -275,7 +295,7 @@ function initIntersectionObserver() {
                                     card.classList.add('ep-unavailable');
                                 } else if (!(article.robustFallbacks && article.robustFallbacks.length) && (article.robustShorts && article.robustShorts.length)) {
                                     const durationBadge = card.querySelector('.card-duration-badge');
-                                    if (durationBadge) durationBadge.innerHTML = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
+                                    if (durationBadge) durationBadge.innerHTML = getDurationBadgeHTML(article, true);
                                 }
                             }
                         } else {
@@ -584,15 +604,20 @@ function createCardHTML(article, context = null) {
     
     let unavailableClass = '';
     const cache = context ? context.cache : getCheckerCache();
-    let displayDuration = article.durationText;
+    const isFallbackShort = Boolean(
+        cache[article.videoId] && 
+        cache[article.videoId].isUnavailable && 
+        !(article.robustFallbacks && article.robustFallbacks.length) && 
+        (article.robustShorts && article.robustShorts.length)
+    );
     
     if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
         if (!(article.robustFallbacks && article.robustFallbacks.length) && !(article.robustShorts && article.robustShorts.length)) {
             unavailableClass = 'ep-unavailable';
-        } else if (!(article.robustFallbacks && article.robustFallbacks.length) && (article.robustShorts && article.robustShorts.length)) {
-            displayDuration = `10:00 <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;">(SHORT)</span>`;
         }
     }
+    
+    const displayDuration = getDurationBadgeHTML(article, isFallbackShort);
 
     const timestamps = context ? context.timestamps : getTimestamps();
     const savedTimeSec = timestamps[article.id] || 0;
