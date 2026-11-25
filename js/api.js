@@ -101,27 +101,37 @@ export async function fetchNewsData() {
                 : extractRealDate(data.title, realEpNum);
             let pubDateStr = new Date().toISOString();
             if (airDate) {
-                // If it looks like YYYY-MM-DD
-                if (airDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                    pubDateStr = new Date(airDate).toISOString();
-                } else {
-                    const dateParts = airDate.split(/\s+/);
-                    if (dateParts.length >= 3) {
-                        const monthLookup = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
-                        let dayStr = dateParts[0].replace(/,/g, '');
-                        let monthStr = dateParts[1].replace(/,/g, '');
-                        if (isNaN(parseInt(dayStr, 10))) {
-                            const temp = dayStr;
-                            dayStr = monthStr;
-                            monthStr = temp;
+                try {
+                    // If it looks like YYYY-MM-DD
+                    if (airDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        const parsed = new Date(airDate);
+                        if (!isNaN(parsed.getTime())) {
+                            pubDateStr = parsed.toISOString();
                         }
-                        const day = parseInt(dayStr, 10);
-                        const month = monthStr.substring(0, 3).toLowerCase();
-                        const year = parseInt(dateParts[2], 10);
-                        if (!isNaN(day) && monthLookup[month] !== undefined && !isNaN(year)) {
-                            pubDateStr = new Date(Date.UTC(year, monthLookup[month], day)).toISOString();
+                    } else {
+                        const dateParts = airDate.split(/\s+/);
+                        if (dateParts.length >= 3) {
+                            const monthLookup = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+                            let dayStr = dateParts[0].replace(/,/g, '');
+                            let monthStr = dateParts[1].replace(/,/g, '');
+                            if (isNaN(parseInt(dayStr, 10))) {
+                                const temp = dayStr;
+                                dayStr = monthStr;
+                                monthStr = temp;
+                            }
+                            const day = parseInt(dayStr, 10);
+                            const month = monthStr.substring(0, 3).toLowerCase();
+                            const year = parseInt(dateParts[2], 10);
+                            if (!isNaN(day) && monthLookup[month] !== undefined && !isNaN(year)) {
+                                const utcDate = new Date(Date.UTC(year, monthLookup[month], day));
+                                if (!isNaN(utcDate.getTime())) {
+                                    pubDateStr = utcDate.toISOString();
+                                }
+                            }
                         }
                     }
+                } catch (e) {
+                    // Fall back safely to default timestamp
                 }
             }
 

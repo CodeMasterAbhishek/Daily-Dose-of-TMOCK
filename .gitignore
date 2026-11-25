@@ -2,5 +2,6 @@ client_secret.json
 __pycache__/
 .venv/
 *.pyc
+debug.log
 
 data/episodes_with_compilations_backup.csv

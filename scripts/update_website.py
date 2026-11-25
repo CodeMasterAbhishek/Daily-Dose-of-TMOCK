@@ -24,6 +24,9 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
+# Ensure scripts directory is in sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from config import STATE_FILE, JSON_DB_FILE, BASE_DIR, VALID_CHANNELS
 from utils import get_minutes, is_compilation
 
@@ -377,13 +380,26 @@ def upgrade_existing_episodes(db, upgraded_details):
         elif not old_is_geoblocked and new_is_geoblocked:
             should_upgrade = False
         else:
+            # Baseline estimate for existing video (assuming standard official channel baseline)
+            existing_c_score = 80
+            existing_full = 1000 if current_mins >= 15 else 0
+            existing_double = 1000 if current_mins >= 35 else 0
+            existing_penalty = -5000 if is_compilation(title) else 0
+            old_score_estimate = existing_full + existing_double + existing_penalty + existing_c_score * 10 + current_mins
             new_score = get_video_score(new_mins, new_channel, new_title)
-            old_score_estimate = get_video_score(current_mins, "Unknown", title)
-            if new_score > old_score_estimate + 10 and new_vid != current_vid:
+            # Only upgrade if the new video is significantly superior (e.g. replacing a short/clip with a full episode)
+            if new_score >= old_score_estimate + 300 and new_vid != current_vid:
                 should_upgrade = True
         
         if should_upgrade:
             print(f"  [UPGRADED] Ep {ep_num}: {new_title} ({result['duration_str']})")
+            # Preserve old main as a backup if it wasn't a promo and isn't already stored
+            if current_vid and current_vid != new_vid and not old_is_promo:
+                backups = ep_data.get('yt_backups', [])
+                if current_vid not in backups:
+                    backups.append(current_vid)
+                ep_data['yt_backups'] = backups
+
             ep_data['yt_main'] = new_vid
             ep_data['durationSeconds'] = result['duration_secs']
             if result.get('date_str'):
@@ -407,8 +423,14 @@ def upgrade_existing_episodes(db, upgraded_details):
             upgraded_count += 1
             upgraded_details.append(f"Ep {ep_num} ({current_mins}m -> {new_mins}m)")
         else:
-            # Even if not upgrading main, try to add new fallbacks
+            # Even if not upgrading main, preserve newly found alternate full links as fallbacks
             updated = False
+            if new_vid != current_vid and new_mins >= 15 and not new_is_promo:
+                backups = ep_data.get('yt_backups', [])
+                if new_vid not in backups:
+                    backups.append(new_vid)
+                    ep_data['yt_backups'] = backups
+                    updated = True
             if result.get('fallback_id') and result['fallback_id'] != current_vid:
                 backups = ep_data.get('yt_backups', [])
                 if result['fallback_id'] not in backups:

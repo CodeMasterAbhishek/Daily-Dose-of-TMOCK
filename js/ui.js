@@ -193,17 +193,25 @@ export async function initializeIpCache() {
     } catch (e) {}
 }
 
+let memoryCheckerCache = null;
+
 function getCheckerCache() {
+    if (memoryCheckerCache) return memoryCheckerCache;
     try {
         const cache = JSON.parse(localStorage.getItem("tmkoc_checker_cache") || "{}");
         const now = Date.now();
+        let changed = false;
         for (const key in cache) {
             // 24-hour geo/availability cache TTL (86400000 ms)
-        if (now - cache[key].timestamp > 86400000) {
+            if (now - cache[key].timestamp > 86400000) {
                 delete cache[key];
+                changed = true;
             }
         }
-        localStorage.setItem("tmkoc_checker_cache", JSON.stringify(cache));
+        if (changed) {
+            localStorage.setItem("tmkoc_checker_cache", JSON.stringify(cache));
+        }
+        memoryCheckerCache = cache;
         return cache;
     } catch(e) {
         return {};
@@ -217,6 +225,7 @@ function setCheckerCache(videoId, isUnavailable) {
             isUnavailable: isUnavailable,
             timestamp: Date.now()
         };
+        memoryCheckerCache = cache;
         localStorage.setItem("tmkoc_checker_cache", JSON.stringify(cache));
     } catch(e) {}
 }
@@ -562,19 +571,19 @@ function createHeroHTML(articles) {
     `;
 }
 
-function createCardHTML(article) {
+function createCardHTML(article, context = null) {
     allArticlesMap[article.id] = article;
     masterEpNumberMap[article.epNumber] = article;
     const imageUrl = article.image;
     
     let readClass = '';
-    const completed = getCompletedWatchedList();
-    if (completed.includes(article.id)) {
+    const completedSet = context ? context.completedSet : new Set(getCompletedWatchedList());
+    if (completedSet.has(article.id)) {
         readClass = 'read-article watched-article';
     }
     
     let unavailableClass = '';
-    const cache = getCheckerCache();
+    const cache = context ? context.cache : getCheckerCache();
     let displayDuration = article.durationText;
     
     if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
@@ -585,7 +594,7 @@ function createCardHTML(article) {
         }
     }
 
-    const timestamps = getTimestamps();
+    const timestamps = context ? context.timestamps : getTimestamps();
     const savedTimeSec = timestamps[article.id] || 0;
     
     let expectedDurationSecs = 1260; // fallback 21 mins
@@ -633,8 +642,13 @@ export function renderArticles(articles, containerId, append = false) {
     const fragment = document.createDocumentFragment();
     const tempDiv = document.createElement('div');
 
+    const completedSet = new Set(getCompletedWatchedList());
+    const cache = getCheckerCache();
+    const timestamps = getTimestamps();
+    const context = { completedSet, cache, timestamps };
+
     articles.forEach(article => {
-        tempDiv.innerHTML = createCardHTML(article);
+        tempDiv.innerHTML = createCardHTML(article, context);
         const cardElem = tempDiv.firstElementChild;
         fragment.appendChild(cardElem);
         if (checkObserver) checkObserver.observe(cardElem);
@@ -774,7 +788,7 @@ function startActiveWatchTracker(articleId) {
             let totalEpSecs = 1260; // fallback to 21 mins
             let segmentOffset = 0;
             
-            const currentArticle = masterEpNumberMap[articleId];
+            const currentArticle = allArticlesMap[articleId] || masterEpNumberMap[articleId] || (currentModalEpNum ? masterEpNumberMap[currentModalEpNum] : null);
             if (currentArticle && currentArticle.startTime) {
                 segmentOffset = currentArticle.startTime;
                 if (currentArticle.endTime) {
@@ -847,6 +861,11 @@ function openCleanPlayer(article) {
                 </div>
             </div>
         `;
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                window.closeCleanPlayer();
+            }
+        });
         document.body.appendChild(backdrop);
 
     }
@@ -986,9 +1005,7 @@ function openCleanPlayer(article) {
                                 
                                 // Mark the original video as unavailable in cache so future clicks bypass instantly
                                 try {
-                                    const cache = getCheckerCache();
-                                    cache[article.videoId] = { isUnavailable: true, timestamp: Date.now() };
-                                    localStorage.setItem('tmkoc_yt_cache', JSON.stringify(cache));
+                                    setCheckerCache(article.videoId, true);
                                     
                                     // Make the card red to visually indicate the main link died
                                     const card = document.querySelector(`.card[data-id="${article.id}"]`);
@@ -1088,6 +1105,15 @@ window.closeCleanPlayer = function() {
     stopActiveWatchTracker();
     updateFanDashboard();
 };
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const backdrop = document.getElementById('tmkoc-clean-backdrop');
+        if (backdrop && backdrop.style.display !== 'none') {
+            window.closeCleanPlayer();
+        }
+    }
+});
 
 window.toggleAutoplay = function(checked) {
     localStorage.setItem('autoplayNext', checked);
@@ -1194,7 +1220,14 @@ export async function updateFanDashboard() {
     } else {
         if (brandEpTitle) brandEpTitle.textContent = 'No episodes yet';
         if (brandEpSub) brandEpSub.textContent = 'Start watching to track progress';
-        if (continueBtn) continueBtn.style.display = 'flex';
+        if (continueBtn) {
+            continueBtn.style.display = 'flex';
+            continueBtn.onclick = () => {
+                if (window.playEpisode) {
+                    window.playEpisode('ep_1');
+                }
+            };
+        }
     }
 
     // Sidebar: Recent Activity
@@ -1471,12 +1504,25 @@ window.closeFanModal = function() {
 };
 
 window.toggleFullScreen = function() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.warn(`Error attempting to enable fullscreen: ${err.message}`);
-        });
+    const docEl = document.documentElement;
+    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+    if (!isFullscreen) {
+        const req = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+        if (typeof req === 'function') {
+            const p = req.call(docEl);
+            if (p && typeof p.catch === 'function') {
+                p.catch(err => console.warn(`Fullscreen error: ${err.message}`));
+            }
+        }
     } else {
-        document.exitFullscreen();
+        const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+        if (typeof exit === 'function') {
+            const p = exit.call(document);
+            if (p && typeof p.catch === 'function') {
+                p.catch(err => console.warn(`Exit fullscreen error: ${err.message}`));
+            }
+        }
     }
 };
 

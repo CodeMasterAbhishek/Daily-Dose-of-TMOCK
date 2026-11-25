@@ -800,7 +800,8 @@ a:focus-visible {
   .static-search-form input::placeholder {
     color: transparent !important;
   }
-  .static-search-form input:focus {
+  .static-search-form input:focus,
+  .static-search-form input:not(:placeholder-shown) {
     width: 170px;
     padding: 9px 16px 9px 36px;
     color: var(--text-primary) !important;
@@ -808,7 +809,8 @@ a:focus-visible {
     border-color: var(--text-primary) !important;
     cursor: text;
   }
-  .static-search-form input:focus::placeholder {
+  .static-search-form input:focus::placeholder,
+  .static-search-form input:not(:placeholder-shown)::placeholder {
     color: #9ca3af !important;
   }
   .search-input-wrapper .search-icon {

@@ -42,6 +42,41 @@ def delete_dead_link(record_id):
     except:
         return False
 
+def is_video_dead(vid_id):
+    """Check if a video is unavailable or dead by testing its player playability status."""
+    if not vid_id:
+        return True
+    try:
+        url = "https://www.youtube.com/youtubei/v1/player"
+        payload = json.dumps({
+            "context": {
+                "client": {
+                    "clientName": "ANDROID",
+                    "clientVersion": "19.09.37",
+                    "hl": "en",
+                    "gl": "US"
+                }
+            },
+            "videoId": vid_id
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "com.google.android.youtube/19.09.37"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            status = data.get("playabilityStatus", {}).get("status", "")
+            # "OK" indicates the video is healthy and playable.
+            # Other statuses (UNPLAYABLE, ERROR, LOGIN_REQUIRED) indicate dead or geo-blocked.
+            return status != "OK"
+    except Exception as e:
+        print(f"Notice: Could not probe video {vid_id} status ({e}). Assuming safe.")
+        return False
+
 def scrape_new_link(ep_number):
     try:
         import scrapetube
@@ -132,10 +167,14 @@ def main():
         if ep_data.get('yt_main') == dead_vid:
             needs_fix = True
         elif dead_vid in ep_data.get('yt_backups', []):
-            ep_data['yt_backups'].remove(dead_vid)
-            print(f"Removed dead backup {dead_vid} from Ep {ep_num}")
-            delete_dead_link(record_id)
-            fixed_count += 1
+            if is_video_dead(dead_vid):
+                ep_data['yt_backups'].remove(dead_vid)
+                print(f"Removed verified dead backup {dead_vid} from Ep {ep_num}")
+                delete_dead_link(record_id)
+                fixed_count += 1
+            else:
+                print(f"Reported backup {dead_vid} for Ep {ep_num} is alive. Discarding report.")
+                delete_dead_link(record_id)
             continue
             
         if not needs_fix:
@@ -143,25 +182,38 @@ def main():
             delete_dead_link(record_id)
             continue
             
-        # It's the main video that died! Let's find a new one.
-        # First, try to promote a backup
-        if ep_data.get('yt_backups'):
-            new_main = ep_data['yt_backups'].pop(0)
-            ep_data['yt_main'] = new_main
-            print(f"Promoted backup {new_main} to main for Ep {ep_num}")
+        # Verify if the main video is actually dead before altering the database
+        if not is_video_dead(dead_vid):
+            print(f"Main video {dead_vid} for Ep {ep_num} was reported dead, but verified PLAYABLE. Discarding false report.")
             delete_dead_link(record_id)
-            fixed_count += 1
+            continue
+
+        # It's the main video that truly died! Let's find a verified replacement.
+        # First, try to promote a healthy backup
+        promoted = False
+        while ep_data.get('yt_backups'):
+            candidate = ep_data['yt_backups'].pop(0)
+            if not is_video_dead(candidate):
+                ep_data['yt_main'] = candidate
+                print(f"Promoted verified backup {candidate} to main for Ep {ep_num}")
+                delete_dead_link(record_id)
+                fixed_count += 1
+                promoted = True
+                break
+            else:
+                print(f"Backup {candidate} was also dead for Ep {ep_num}. Dropping it.")
+        if promoted:
             continue
             
         # No backups available, we must scrape a new one!
         new_vid = scrape_new_link(ep_num)
-        if new_vid:
+        if new_vid and new_vid != dead_vid and not is_video_dead(new_vid):
             ep_data['yt_main'] = new_vid
-            print(f"Replaced main video for Ep {ep_num} with new scrape: {new_vid}")
+            print(f"Replaced dead main video for Ep {ep_num} with new scrape: {new_vid}")
             delete_dead_link(record_id)
             fixed_count += 1
         else:
-            print(f"Failed to find a replacement for Ep {ep_num} on YouTube.")
+            print(f"Failed to find a playable replacement for Ep {ep_num} on YouTube.")
             # Leave it in Supabase to try again tomorrow
             
     if fixed_count > 0:
