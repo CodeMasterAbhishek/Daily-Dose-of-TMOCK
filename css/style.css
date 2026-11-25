@@ -447,6 +447,37 @@ a:focus-visible {
   backdrop-filter: blur(4px);
 }
 
+.card.watched-clip-article::after, .hero-slide.watched-clip-article::after {
+  content: '✓ Clip Watched';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(14, 165, 233, 0.92);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+.card.clip-watched-upgrade-article::after {
+  content: '✓ Clip • Full Available';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(245, 158, 11, 0.95);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
 .card-duration-badge {
   position: absolute;
   bottom: 0.5rem;

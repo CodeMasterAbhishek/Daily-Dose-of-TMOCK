@@ -44,7 +44,8 @@ let masterEpNumberMap = {};
 let currentModalEpNum = null;
 
 // LocalStorage Keys
-const STORAGE_COMPLETED = 'tmkoc_completed_watched_eps'; // Only >= 90% completed
+const STORAGE_COMPLETED = 'tmkoc_completed_watched_eps'; // Only >= 90% completed full episodes
+const STORAGE_COMPLETED_SHORTS = 'tmkoc_completed_shorts'; // Only >= 90% completed short clips
 const STORAGE_TIMESTAMPS = 'tmkoc_timestamps';
 const STORAGE_EXACT_WATCH_SECONDS = 'tmkoc_exact_watch_seconds';
 const STORAGE_HANDLE = 'tmkoc_user_handle';
@@ -324,11 +325,20 @@ export function getCompletedWatchedList() {
     }
 }
 
+export function getCompletedShortsList() {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE_COMPLETED_SHORTS) || '[]');
+    } catch(e) {
+        return [];
+    }
+}
+
 function getExactWatchSeconds() {
     try {
         let secs = parseInt(localStorage.getItem(STORAGE_EXACT_WATCH_SECONDS) || '0');
         const completed = getCompletedWatchedList();
-        const minSecs = completed.length * 1260 * 0.90; // minimum 90% of 21 mins per ep
+        const completedShorts = getCompletedShortsList();
+        const minSecs = (completed.length * 1260 * 0.90) + (completedShorts.length * 600 * 0.90);
         if (secs < minSecs) {
             secs = Math.round(minSecs);
             localStorage.setItem(STORAGE_EXACT_WATCH_SECONDS, secs);
@@ -423,10 +433,16 @@ function getLastWatchedEpisode() {
         let lastId = localStorage.getItem(STORAGE_LAST_OPENED);
         if (!lastId) {
             const completed = getCompletedWatchedList();
-            if (completed.length === 0) return null;
-            lastId = completed[completed.length - 1];
+            const completedShorts = getCompletedShortsList();
+            if (completed.length > 0) {
+                lastId = completed[completed.length - 1];
+            } else if (completedShorts.length > 0) {
+                lastId = completedShorts[completedShorts.length - 1];
+            } else {
+                return null;
+            }
         }
-        const article = allArticlesMap[lastId];
+        const article = allArticlesMap[lastId] || masterEpNumberMap[lastId];
         if (article) return { id: lastId, title: article.title, epNumber: article.epNumber };
         return { id: lastId, title: `Episode`, epNumber: lastId };
     } catch(e) {
@@ -505,7 +521,7 @@ function saveCompletedEpisode(id) {
             updateStreak();
 
             // Log activity
-            const article = allArticlesMap[id];
+            const article = allArticlesMap[id] || masterEpNumberMap[id];
             const epTitle = article ? `Episode ${article.epNumber}` : `Episode`;
             logActivity('watch', epTitle);
 
@@ -518,7 +534,39 @@ function saveCompletedEpisode(id) {
             syncCurrentUserStats();
         }
         const elements = document.querySelectorAll(`[data-id="${id}"]`);
-        elements.forEach(el => el.classList.add('read-article', 'watched-article'));
+        elements.forEach(el => {
+            el.classList.remove('watched-clip-article', 'clip-watched-upgrade-article');
+            el.classList.add('read-article', 'watched-article');
+        });
+    } catch(e) {}
+}
+
+function saveCompletedShort(id) {
+    try {
+        const completedShorts = getCompletedShortsList();
+        if (!completedShorts.includes(id)) {
+            completedShorts.push(id);
+            localStorage.setItem(STORAGE_COMPLETED_SHORTS, JSON.stringify(completedShorts));
+
+            // Track streak
+            updateStreak();
+
+            // Log activity
+            const article = allArticlesMap[id] || masterEpNumberMap[id];
+            const epTitle = article ? `Episode ${article.epNumber} (Clip)` : `Episode Clip`;
+            logActivity('watch', epTitle);
+
+            syncCurrentUserStats();
+        }
+        
+        const completedFull = getCompletedWatchedList();
+        if (!completedFull.includes(id)) {
+            const elements = document.querySelectorAll(`[data-id="${id}"]`);
+            elements.forEach(el => {
+                el.classList.remove('watched-article', 'clip-watched-upgrade-article');
+                el.classList.add('watched-clip-article');
+            });
+        }
     } catch(e) {}
 }
 
@@ -550,8 +598,11 @@ function createHeroHTML(articles) {
         
         let readClass = '';
         const completed = getCompletedWatchedList();
+        const completedShorts = getCompletedShortsList();
         if (completed.includes(article.id)) {
             readClass = 'read-article watched-article';
+        } else if (completedShorts.includes(article.id)) {
+            readClass = 'watched-clip-article';
         }
         
         slidesHTML += `
@@ -596,10 +647,26 @@ function createCardHTML(article, context = null) {
     masterEpNumberMap[article.epNumber] = article;
     const imageUrl = article.image;
     
+    let epSecs = 1260; // fallback 21 mins
+    if (article.durationText) {
+        const parts = article.durationText.split(':');
+        if (parts.length === 3) epSecs = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+        else if (parts.length === 2) epSecs = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    }
+    const isCurrentEpShort = epSecs < 900;
+    
     let readClass = '';
     const completedSet = context ? context.completedSet : new Set(getCompletedWatchedList());
+    const completedShortsSet = context && context.completedShortsSet ? context.completedShortsSet : new Set(getCompletedShortsList());
+    
     if (completedSet.has(article.id)) {
         readClass = 'read-article watched-article';
+    } else if (completedShortsSet.has(article.id)) {
+        if (isCurrentEpShort) {
+            readClass = 'watched-clip-article';
+        } else {
+            readClass = 'clip-watched-upgrade-article';
+        }
     }
     
     let unavailableClass = '';
@@ -620,15 +687,15 @@ function createCardHTML(article, context = null) {
     const displayDuration = getDurationBadgeHTML(article, isFallbackShort);
 
     const timestamps = context ? context.timestamps : getTimestamps();
-    const savedTimeSec = timestamps[article.id] || 0;
+    let savedTimeSec = timestamps[article.id] || 0;
     
-    let expectedDurationSecs = 1260; // fallback 21 mins
-    if (article.durationText) {
-        const parts = article.durationText.split(':');
-        if (parts.length === 3) expectedDurationSecs = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
-        else if (parts.length === 2) expectedDurationSecs = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    // If the episode is now an upgraded full episode (> 15m), but user only completed the short clip,
+    // don't show an awkward 50% bar from the short version; let them watch the full episode fresh.
+    if (completedShortsSet.has(article.id) && !completedSet.has(article.id) && !isCurrentEpShort && savedTimeSec <= 720) {
+        savedTimeSec = 0;
     }
-    const progressPercent = savedTimeSec ? Math.min(100, Math.round((savedTimeSec / expectedDurationSecs) * 100)) : 0;
+    
+    const progressPercent = savedTimeSec ? Math.min(100, Math.round((savedTimeSec / epSecs) * 100)) : 0;
     
     return `
         <article class="card ${readClass} ${unavailableClass}" data-id="${article.id}" data-category="${escapeHTML(article.category).toLowerCase()}">
@@ -668,9 +735,10 @@ export function renderArticles(articles, containerId, append = false) {
     const tempDiv = document.createElement('div');
 
     const completedSet = new Set(getCompletedWatchedList());
+    const completedShortsSet = new Set(getCompletedShortsList());
     const cache = getCheckerCache();
     const timestamps = getTimestamps();
-    const context = { completedSet, cache, timestamps };
+    const context = { completedSet, completedShortsSet, cache, timestamps };
 
     articles.forEach(article => {
         tempDiv.innerHTML = createCardHTML(article, context);
@@ -826,7 +894,11 @@ function startActiveWatchTracker(articleId) {
             
             const effectiveWatchedSecs = currentEpSecs - segmentOffset;
             if (effectiveWatchedSecs >= totalEpSecs * 0.90) {
-                saveCompletedEpisode(articleId);
+                if (totalEpSecs < 900) {
+                    saveCompletedShort(articleId);
+                } else {
+                    saveCompletedEpisode(articleId);
+                }
             }
         }
     }, 1000);
@@ -911,6 +983,20 @@ function openCleanPlayer(article) {
 
     const timestamps = getTimestamps();
     let resumeSeconds = timestamps[article.id] || 0;
+    
+    // If opening an upgraded full episode after previously watching only a short clip, start fresh from 0:00!
+    const completedShorts = getCompletedShortsList();
+    const completedFull = getCompletedWatchedList();
+    let epDurSecs = 1260;
+    if (article.durationText) {
+        const parts = article.durationText.split(':');
+        if (parts.length === 3) epDurSecs = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+        else if (parts.length === 2) epDurSecs = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    }
+    if (completedShorts.includes(article.id) && !completedFull.includes(article.id) && epDurSecs >= 900 && resumeSeconds <= 720) {
+        resumeSeconds = 0;
+    }
+    
     if (article.startTime && resumeSeconds < article.startTime) resumeSeconds = article.startTime;
     if (article.endTime && resumeSeconds > article.endTime) resumeSeconds = article.startTime;
 
@@ -1171,7 +1257,9 @@ function getFanLevel(watchedCount) {
 
 export async function updateFanDashboard() {
     const completedList = getCompletedWatchedList();
+    const completedShorts = getCompletedShortsList();
     const watchedCount = completedList.length;
+    const shortsCount = completedShorts.length;
 
     const totalWatchSecs = getExactWatchSeconds();
     const watchHours = Math.floor(totalWatchSecs / 3600);
@@ -1205,7 +1293,11 @@ export async function updateFanDashboard() {
 
     if (cardUserBadge) cardUserBadge.textContent = savedHandle;
     if (cardTierBadge) cardTierBadge.textContent = level.title;
-    if (cardMainStat) cardMainStat.textContent = `${watchedCount} Episodes Watched`;
+    if (cardMainStat) {
+        cardMainStat.textContent = shortsCount > 0 
+            ? `${watchedCount} Full • ${shortsCount} Clips` 
+            : `${watchedCount} Episodes Watched`;
+    }
     if (cardSubStat) cardSubStat.textContent = `${formatWatchTime(totalWatchSecs / 3600)} Exact Watch Time`;
 
     // Streak card
@@ -1217,6 +1309,7 @@ export async function updateFanDashboard() {
 
     // Sidebar: Quick Stats
     const qsEpisodes = document.getElementById('qs-episodes');
+    const qsShorts = document.getElementById('qs-shorts');
     const qsUnique = document.getElementById('qs-unique');
     const qsWatchTime = document.getElementById('qs-watch-time');
     const qsStreak = document.getElementById('qs-streak');
@@ -1225,6 +1318,7 @@ export async function updateFanDashboard() {
     const uniqueStartedCount = Object.keys(getTimestamps()).length;
     
     if (qsEpisodes) qsEpisodes.textContent = watchedCount;
+    if (qsShorts) qsShorts.textContent = shortsCount;
     if (qsUnique) qsUnique.textContent = uniqueStartedCount;
     if (qsWatchTime) qsWatchTime.textContent = formatWatchTime(decimalHours);
     if (qsStreak) qsStreak.textContent = `${currentStreak} days`;
@@ -1578,12 +1672,15 @@ window.saveUserHandle = async function() {
 window.copyShareCardText = function() {
     const handle = localStorage.getItem(STORAGE_HANDLE) || '@TMKOCSuperfan';
     const completedList = getCompletedWatchedList();
+    const completedShorts = getCompletedShortsList();
     const count = completedList.length;
+    const shortsCount = completedShorts.length;
     const totalSecs = getExactWatchSeconds();
     const hours = totalSecs / 3600;
     const level = getFanLevel(count);
 
-    const shareText = `I've watched ${count} episodes (${formatWatchTime(hours)}) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/`;
+    const countText = shortsCount > 0 ? `${count} full episodes + ${shortsCount} clips` : `${count} episodes`;
+    const shareText = `I've watched ${countText} (${formatWatchTime(hours)}) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/`;
 
     navigator.clipboard.writeText(shareText).then(() => {
         alert('Copied Social Share Card text to clipboard!');
