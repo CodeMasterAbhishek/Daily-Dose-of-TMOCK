@@ -980,6 +980,67 @@ function stopActiveWatchTracker() {
     }
 }
 
+let connectingSafetyTimer = null;
+
+function showPlayerConnecting(mainMsg = 'Connecting to servers...', subMsg = 'Establishing stream...', bgImage = null) {
+    const viewport = document.querySelector('.tmkoc-video-viewport');
+    if (!viewport) return;
+    
+    let overlay = document.getElementById('player-loading-spinner');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'player-loading-spinner';
+        overlay.className = 'player-connecting-overlay';
+        overlay.innerHTML = `
+            <div class="player-connecting-backdrop"></div>
+            <div class="player-connecting-content">
+                <div class="player-connecting-spinner"></div>
+                <div class="player-connecting-text" id="player-loading-text"></div>
+                <div class="player-connecting-subtext" id="player-loading-subtext"></div>
+            </div>
+        `;
+        viewport.appendChild(overlay);
+    }
+    
+    if (bgImage) {
+        overlay.style.backgroundImage = `url('${bgImage}')`;
+    }
+    
+    const textEl = document.getElementById('player-loading-text');
+    if (textEl) textEl.textContent = mainMsg;
+    
+    const subTextEl = document.getElementById('player-loading-subtext');
+    if (subTextEl) {
+        subTextEl.textContent = subMsg;
+        subTextEl.style.display = subMsg ? 'block' : 'none';
+    }
+    
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth;
+    overlay.style.opacity = '1';
+    
+    if (connectingSafetyTimer) clearTimeout(connectingSafetyTimer);
+    connectingSafetyTimer = setTimeout(() => {
+        hidePlayerConnecting();
+    }, 10000);
+}
+
+function hidePlayerConnecting() {
+    if (connectingSafetyTimer) {
+        clearTimeout(connectingSafetyTimer);
+        connectingSafetyTimer = null;
+    }
+    const overlay = document.getElementById('player-loading-spinner');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            if (overlay && overlay.style.opacity === '0') {
+                overlay.style.display = 'none';
+            }
+        }, 250);
+    }
+}
+
 function openCleanPlayer(article) {
     currentModalArticle = article;
     currentModalEpNum = article.epNumber;
@@ -1067,6 +1128,7 @@ function openCleanPlayer(article) {
 
     let videoIdToPlay = article.videoId || '';
     let initialMsg = "";
+    let connectingSubMsg = `Episode ${article.epNumber}`;
     
     // INSTANT BYPASS: If the background checker already knows the main video is blocked,
     // instantly switch to fallback/short without waiting 10s for the player to error out!
@@ -1081,10 +1143,12 @@ function openCleanPlayer(article) {
                 videoIdToPlay = fallbacks[0];
                 window._playbackAttempts[article.id] = 1;
                 initialMsg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
+                connectingSubMsg = 'Switching to alternate stream...';
             } else if (shorts.length > 0) {
                 videoIdToPlay = shorts[0];
                 window._playbackAttempts[article.id] = fallbacks.length + 1;
                 initialMsg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
+                connectingSubMsg = 'Loading short version...';
             }
         }
     } catch(e) {}
@@ -1113,16 +1177,7 @@ function openCleanPlayer(article) {
                 modalWarning.style.display = 'none';
             }
 
-            const spinner = document.getElementById('player-loading-spinner');
-            if (spinner) {
-                spinner.style.display = 'flex';
-                spinner.style.backgroundImage = `url('${article.image}')`;
-                setTimeout(() => {
-                    if (spinner) spinner.style.display = 'none';
-                }, 2000);
-            }
-            const loadingText = document.getElementById('player-loading-text');
-            if (loadingText) loadingText.innerText = `Loading Ep ${article.epNumber}...`;
+            showPlayerConnecting('Connecting to servers...', connectingSubMsg, article.image);
 
             if (videoIdToPlay) {
                 const loadOpts = {
@@ -1151,15 +1206,13 @@ function openCleanPlayer(article) {
             ytPlayer = null;
         }
         viewport.innerHTML = `
-            <div id="player-loading-spinner" style="position:absolute; top:0; left:0; width:100%; height:100%; background-image: url('${article.image}'); background-size: cover; background-position: center; display:flex; justify-content:center; align-items:center; z-index:10; color:#fff; flex-direction:column;">
-                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);"></div>
-                <div style="z-index: 11; display: flex; flex-direction: column; align-items: center;">
-                    <div class="spinner" style="border: 3px solid rgba(255,255,255,0.1); border-left-color: #ef4444; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite;"></div>
-                    <div style="margin-top: 12px; font-family: sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.9;" id="player-loading-text">Fetching...</div>
+            <div id="player-loading-spinner" class="player-connecting-overlay" style="background-image: url('${article.image}');">
+                <div class="player-connecting-backdrop"></div>
+                <div class="player-connecting-content">
+                    <div class="player-connecting-spinner"></div>
+                    <div class="player-connecting-text" id="player-loading-text">Connecting to servers...</div>
+                    <div class="player-connecting-subtext" id="player-loading-subtext">${connectingSubMsg}</div>
                 </div>
-                <style>
-                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                </style>
             </div>
             <div id="clean-iframe-container" style="position:relative; z-index:1; width:100%; height:100%;"></div>
         `;
@@ -1182,8 +1235,6 @@ function openCleanPlayer(article) {
                 playerVars: pVars,
                 events: {
                     'onReady': function(event) {
-                        const spinner = document.getElementById('player-loading-spinner');
-                        if (spinner) spinner.style.display = 'none';
                         if (initialMsg && modalWarning) {
                             modalWarning.style.display = 'block';
                             modalWarning.innerHTML = initialMsg;
@@ -1192,8 +1243,6 @@ function openCleanPlayer(article) {
                     },
                     'onError': function(event) {
                         const currentArt = currentModalArticle || article;
-                        const loadingText = document.getElementById('player-loading-text');
-                        if (loadingText) loadingText.innerText = "Loading...";
                         
                         if (event.data === 150 || event.data === 101 || event.data === 2) {
                             if (!window._playbackAttempts) window._playbackAttempts = {};
@@ -1201,25 +1250,31 @@ function openCleanPlayer(article) {
                             
                             // Report dead link to our backend for the Nightly Auto-Healer
                             if (attempts === 0) {
-                                reportDeadLinkToCloud(currentArt.epNumber, videoIdToPlay).catch(() => {});
+                                reportDeadLinkToCloud(currentArt.epNumber, (currentArt && currentArt.videoId) ? currentArt.videoId : videoIdToPlay).catch(() => {});
                             }
                             
                             let nextVideoId = null;
                             let msg = "";
+                            let switchSubtext = "Connecting to alternate stream...";
                             const fallbacks = currentArt.robustFallbacks || [];
                             const shorts = currentArt.robustShorts || [];
                             
                             if (attempts < fallbacks.length) {
                                 nextVideoId = fallbacks[attempts];
                                 msg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
+                                switchSubtext = "Switching to alternate stream...";
                             } else if (attempts < fallbacks.length + shorts.length) {
                                 const shortIdx = attempts - fallbacks.length;
                                 nextVideoId = shorts[shortIdx];
                                 msg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
+                                switchSubtext = "Switching to short version...";
                             }
                             
                             if (nextVideoId) {
                                 window._playbackAttempts[currentArt.id] = attempts + 1;
+                                
+                                // Show lively connecting overlay with backdrop thumbnail
+                                showPlayerConnecting('Connecting to servers...', switchSubtext, currentArt.image);
                                 
                                 // Instead of destroying the entire player (which causes race conditions and a black screen),
                                 // we seamlessly instruct the existing YouTube player to load the fallback video.
@@ -1250,8 +1305,7 @@ function openCleanPlayer(article) {
                             }
                         }
                         
-                        const spinner = document.getElementById('player-loading-spinner');
-                        if (spinner) spinner.style.display = 'none';
+                        hidePlayerConnecting();
                         
                         if (modalWarning) {
                             modalWarning.style.display = 'block';
@@ -1288,8 +1342,7 @@ function openCleanPlayer(article) {
                     'onStateChange': function(event) {
                         const currentArt = currentModalArticle || article;
                         if (event.data === window.YT.PlayerState.PLAYING) {
-                            const spinner = document.getElementById('player-loading-spinner');
-                            if (spinner) spinner.style.display = 'none';
+                            hidePlayerConnecting();
                             
                             currentActiveEpId = currentArt.id;
                             if ('mediaSession' in navigator) {
@@ -1356,6 +1409,7 @@ function openCleanPlayer(article) {
 window.openCleanPlayer = openCleanPlayer;
 
 window.closeCleanPlayer = function() {
+    hidePlayerConnecting();
     const backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (backdrop) backdrop.style.display = 'none';
     if (ytPlayer) {
@@ -1408,6 +1462,7 @@ window.navCleanEp = function(dir) {
     while (iterations < 50) {
         const targetArticle = masterEpNumberMap[targetEp] || allArticlesMap[`ep_${targetEp}`] || allArticlesMap[targetEp];
         if (targetArticle) {
+            showPlayerConnecting('Connecting to servers...', `Loading Ep ${targetArticle.epNumber}...`, targetArticle.image);
             openCleanPlayer(targetArticle);
             return;
         }
