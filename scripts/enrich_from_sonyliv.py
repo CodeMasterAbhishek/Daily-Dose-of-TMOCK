@@ -227,12 +227,14 @@ def main():
     # 2. Push to GitHub
     print('Pushing logs and data to GitHub...')
     try:
-        subprocess.run(['git', 'add', 'data/episodes.json', 'data/scraper_log.md'], check=True)
+        import shutil
+        git_cmd = shutil.which('git') or r'C:\Users\perso\MinGit\cmd\git.exe'
+        subprocess.run([git_cmd, 'add', 'data/episodes.json', 'data/scraper_log.md'], check=True)
         commit_msg = 'chore: Daily SonyLIV Scraper Log (No new episodes)'
         if enriched_count > 0:
             commit_msg = f'Auto-enrich: Added SonyLIV metadata for {enriched_count} missing episodes'
-        subprocess.run(['git', 'commit', '-m', commit_msg], check=True)
-        subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+        subprocess.run([git_cmd, 'commit', '-m', commit_msg], check=True)
+        subprocess.run([git_cmd, 'push', 'origin', 'main'], check=True)
         print('Successfully pushed to GitHub!')
     except Exception as e:
         print(f"Failed to push to GitHub: {e}")
