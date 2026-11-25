@@ -142,6 +142,7 @@ function getFilteredAndRankedArticles() {
     } else if (currentSort === 'random') {
         result = shuffleArray(filtered);
     } else {
+        const completedSet = currentSort === 'unwatched' ? new Set(getCompletedWatchedList()) : null;
         result = filtered.sort((a, b) => {
             if (searchQuery) {
                 const epA = a.epNumber.toString();
@@ -157,9 +158,8 @@ function getFilteredAndRankedArticles() {
             if (currentSort === 'oldest') {
                 return a.epNumber - b.epNumber;
             } else if (currentSort === 'unwatched') {
-                const completed = getCompletedWatchedList();
-                const watchedA = completed.includes(a.id);
-                const watchedB = completed.includes(b.id);
+                const watchedA = completedSet.has(a.id);
+                const watchedB = completedSet.has(b.id);
                 if (watchedA && !watchedB) return 1;
                 if (!watchedA && watchedB) return -1;
                 return b.epNumber - a.epNumber;
@@ -198,7 +198,7 @@ function renderPage(append = false) {
         if (currentSort === 'random') {
             sortedStorylines = shuffleArray(sortedStorylines);
         } else {
-            const completed = currentSort === 'unwatched' ? getCompletedWatchedList() : [];
+            const completedSet = currentSort === 'unwatched' ? new Set(getCompletedWatchedList()) : null;
             sortedStorylines.sort((a, b) => {
                 if (currentSort === 'oldest') {
                     return a.startEp - b.startEp;
@@ -207,8 +207,8 @@ function renderPage(append = false) {
                     const lenB = b.endEp - b.startEp;
                     return lenB - lenA;
                 } else if (currentSort === 'unwatched') {
-                    const unwatchedA = allArticles.some(art => art.epNumber >= a.startEp && art.epNumber <= a.endEp && !completed.includes(art.id));
-                    const unwatchedB = allArticles.some(art => art.epNumber >= b.startEp && art.epNumber <= b.endEp && !completed.includes(art.id));
+                    const unwatchedA = allArticles.some(art => art.epNumber >= a.startEp && art.epNumber <= a.endEp && !completedSet.has(art.id));
+                    const unwatchedB = allArticles.some(art => art.epNumber >= b.startEp && art.epNumber <= b.endEp && !completedSet.has(art.id));
                     
                     if (unwatchedA && !unwatchedB) return -1;
                     if (!unwatchedA && unwatchedB) return 1;

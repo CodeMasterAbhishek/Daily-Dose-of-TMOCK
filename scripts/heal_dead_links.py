@@ -54,7 +54,7 @@ def is_video_dead(vid_id):
                     "clientName": "ANDROID",
                     "clientVersion": "19.09.37",
                     "hl": "en",
-                    "gl": "US"
+                    "gl": "IN"
                 }
             },
             "videoId": vid_id
@@ -217,8 +217,10 @@ def main():
             # Leave it in Supabase to try again tomorrow
             
     if fixed_count > 0:
-        with open(JSON_DB_FILE, 'w', encoding='utf-8') as f:
+        tmp_db = JSON_DB_FILE + ".tmp"
+        with open(tmp_db, 'w', encoding='utf-8') as f:
             json.dump(db, f, separators=(',', ':'), ensure_ascii=False)
+        os.replace(tmp_db, JSON_DB_FILE)
         print(f"Successfully auto-healed {fixed_count} episodes!")
     else:
         print("No episodes were healed this run.")

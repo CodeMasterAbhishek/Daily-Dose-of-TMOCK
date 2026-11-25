@@ -3,5 +3,8 @@ __pycache__/
 .venv/
 *.pyc
 debug.log
+*.tmp
+data/*.tmp
+data/dead_mains_to_heal.json
 
 data/episodes_with_compilations_backup.csv
