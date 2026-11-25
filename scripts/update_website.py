@@ -379,6 +379,9 @@ def upgrade_existing_episodes(db, upgraded_details):
             should_upgrade = True
         elif not old_is_geoblocked and new_is_geoblocked:
             should_upgrade = False
+        elif current_mins < 15 and new_mins >= 15:
+            # Always upgrade a short clip to an official full episode
+            should_upgrade = True
         else:
             # Baseline estimate for existing video (assuming standard official channel baseline)
             existing_c_score = 80
