@@ -49,7 +49,9 @@ def try_enrich(obj, db, missing_set):
                 if desc or duration:
                     if desc:
                         db[ep_key]["description"] = desc
-                    if duration and int(duration) > 0:
+                    # Only populate durationSeconds if not already present;
+                    # do not overwrite actual YouTube video playback duration with OTT broadcast duration.
+                    if duration and int(duration) > 0 and not db[ep_key].get("durationSeconds"):
                         db[ep_key]["durationSeconds"] = int(duration)
                     missing_set.discard(ep_num)
                     count += 1
