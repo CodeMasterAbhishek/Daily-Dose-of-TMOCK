@@ -982,7 +982,7 @@ function stopActiveWatchTracker() {
 
 let connectingSafetyTimer = null;
 
-function showPlayerConnecting(mainMsg = 'Connecting to servers...', subMsg = 'Establishing stream...', bgImage = null) {
+function showPlayerConnecting(mainMsg = 'Connecting to servers...', subMsg = 'Establishing stream...', bgImage = null, badgeText = 'STREAM ROUTER') {
     const viewport = document.querySelector('.tmkoc-video-viewport');
     if (!viewport) return;
     
@@ -993,10 +993,22 @@ function showPlayerConnecting(mainMsg = 'Connecting to servers...', subMsg = 'Es
         overlay.className = 'player-connecting-overlay';
         overlay.innerHTML = `
             <div class="player-connecting-backdrop"></div>
-            <div class="player-connecting-content">
-                <div class="player-connecting-spinner"></div>
-                <div class="player-connecting-text" id="player-loading-text"></div>
-                <div class="player-connecting-subtext" id="player-loading-subtext"></div>
+            <div class="player-connecting-ambient-glow"></div>
+            <div class="player-hud-card">
+                <div class="player-hud-badge-pill">
+                    <span class="player-hud-beacon-dot" id="player-hud-beacon"></span>
+                    <span id="player-hud-badge-text">STREAM ROUTER</span>
+                </div>
+                <div class="player-hud-loader-wrap">
+                    <div class="player-hud-ring-outer"></div>
+                    <div class="player-hud-ring-inner"></div>
+                    <div class="player-hud-center-dot"></div>
+                </div>
+                <div class="player-hud-headline" id="player-loading-text">Connecting to servers...</div>
+                <div class="player-hud-detail" id="player-loading-subtext">Establishing stream...</div>
+                <div class="player-hud-shimmer-track">
+                    <div class="player-hud-shimmer-bar"></div>
+                </div>
             </div>
         `;
         viewport.appendChild(overlay);
@@ -1013,6 +1025,19 @@ function showPlayerConnecting(mainMsg = 'Connecting to servers...', subMsg = 'Es
     if (subTextEl) {
         subTextEl.textContent = subMsg;
         subTextEl.style.display = subMsg ? 'block' : 'none';
+    }
+    
+    const badgeTextEl = document.getElementById('player-hud-badge-text');
+    if (badgeTextEl) badgeTextEl.textContent = badgeText;
+    
+    const beaconEl = document.getElementById('player-hud-beacon');
+    if (beaconEl) {
+        const lower = (subMsg + ' ' + badgeText).toLowerCase();
+        if (lower.includes('switch') || lower.includes('short') || lower.includes('alternate') || lower.includes('fallback')) {
+            beaconEl.classList.add('switching');
+        } else {
+            beaconEl.classList.remove('switching');
+        }
     }
     
     overlay.style.display = 'flex';
@@ -1177,7 +1202,10 @@ function openCleanPlayer(article) {
                 modalWarning.style.display = 'none';
             }
 
-            showPlayerConnecting('Connecting to servers...', connectingSubMsg, article.image);
+            let connectingBadge = 'STREAM INITIALIZER';
+            if (connectingSubMsg.includes('short')) connectingBadge = 'AUTO-SWITCH ENGINE';
+            else if (connectingSubMsg.includes('alternate')) connectingBadge = 'FALLBACK STREAM';
+            showPlayerConnecting('Connecting to servers...', connectingSubMsg, article.image, connectingBadge);
 
             if (videoIdToPlay) {
                 const loadOpts = {
@@ -1205,13 +1233,36 @@ function openCleanPlayer(article) {
             try { ytPlayer.destroy(); } catch(e) {}
             ytPlayer = null;
         }
+
+        let connectingBadge = 'STREAM INITIALIZER';
+        let isSwitching = false;
+        if (connectingSubMsg.includes('short')) {
+            connectingBadge = 'AUTO-SWITCH ENGINE';
+            isSwitching = true;
+        } else if (connectingSubMsg.includes('alternate')) {
+            connectingBadge = 'FALLBACK STREAM';
+            isSwitching = true;
+        }
+
         viewport.innerHTML = `
             <div id="player-loading-spinner" class="player-connecting-overlay" style="background-image: url('${article.image}');">
                 <div class="player-connecting-backdrop"></div>
-                <div class="player-connecting-content">
-                    <div class="player-connecting-spinner"></div>
-                    <div class="player-connecting-text" id="player-loading-text">Connecting to servers...</div>
-                    <div class="player-connecting-subtext" id="player-loading-subtext">${connectingSubMsg}</div>
+                <div class="player-connecting-ambient-glow"></div>
+                <div class="player-hud-card">
+                    <div class="player-hud-badge-pill">
+                        <span class="player-hud-beacon-dot ${isSwitching ? 'switching' : ''}" id="player-hud-beacon"></span>
+                        <span id="player-hud-badge-text">${connectingBadge}</span>
+                    </div>
+                    <div class="player-hud-loader-wrap">
+                        <div class="player-hud-ring-outer"></div>
+                        <div class="player-hud-ring-inner"></div>
+                        <div class="player-hud-center-dot"></div>
+                    </div>
+                    <div class="player-hud-headline" id="player-loading-text">Connecting to servers...</div>
+                    <div class="player-hud-detail" id="player-loading-subtext">${connectingSubMsg}</div>
+                    <div class="player-hud-shimmer-track">
+                        <div class="player-hud-shimmer-bar"></div>
+                    </div>
                 </div>
             </div>
             <div id="clean-iframe-container" style="position:relative; z-index:1; width:100%; height:100%;"></div>
@@ -1256,6 +1307,7 @@ function openCleanPlayer(article) {
                             let nextVideoId = null;
                             let msg = "";
                             let switchSubtext = "Connecting to alternate stream...";
+                            let switchBadge = "FALLBACK ENGINE";
                             const fallbacks = currentArt.robustFallbacks || [];
                             const shorts = currentArt.robustShorts || [];
                             
@@ -1263,18 +1315,20 @@ function openCleanPlayer(article) {
                                 nextVideoId = fallbacks[attempts];
                                 msg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
                                 switchSubtext = "Switching to alternate stream...";
+                                switchBadge = "FALLBACK STREAM";
                             } else if (attempts < fallbacks.length + shorts.length) {
                                 const shortIdx = attempts - fallbacks.length;
                                 nextVideoId = shorts[shortIdx];
                                 msg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
                                 switchSubtext = "Switching to short version...";
+                                switchBadge = "AUTO-SWITCH ENGINE";
                             }
                             
                             if (nextVideoId) {
                                 window._playbackAttempts[currentArt.id] = attempts + 1;
                                 
                                 // Show lively connecting overlay with backdrop thumbnail
-                                showPlayerConnecting('Connecting to servers...', switchSubtext, currentArt.image);
+                                showPlayerConnecting('Connecting to servers...', switchSubtext, currentArt.image, switchBadge);
                                 
                                 // Instead of destroying the entire player (which causes race conditions and a black screen),
                                 // we seamlessly instruct the existing YouTube player to load the fallback video.
@@ -1462,7 +1516,7 @@ window.navCleanEp = function(dir) {
     while (iterations < 50) {
         const targetArticle = masterEpNumberMap[targetEp] || allArticlesMap[`ep_${targetEp}`] || allArticlesMap[targetEp];
         if (targetArticle) {
-            showPlayerConnecting('Connecting to servers...', `Loading Ep ${targetArticle.epNumber}...`, targetArticle.image);
+            showPlayerConnecting('Connecting to servers...', `Loading Ep ${targetArticle.epNumber}...`, targetArticle.image, 'NEXT EPISODE');
             openCleanPlayer(targetArticle);
             return;
         }
