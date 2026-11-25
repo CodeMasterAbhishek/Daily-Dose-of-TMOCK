@@ -55,8 +55,69 @@ const STORAGE_LAST_OPENED = 'tmkoc_last_opened';
 
 let activeWatchTrackerTimer = null;
 let currentActiveEpId = null;
+let currentModalArticle = null;
 window.userIsIndia = false;
 let ytPlayer = null;
+let bgKeepAliveAudio = null;
+
+function ensureBackgroundAudioKeepAlive() {
+    try {
+        if (!bgKeepAliveAudio) {
+            bgKeepAliveAudio = document.createElement('audio');
+            bgKeepAliveAudio.id = 'tmkoc-bg-keepalive';
+            bgKeepAliveAudio.loop = true;
+            bgKeepAliveAudio.volume = 0.001; // Low volume audible stream to exempt tab from background freezing
+            bgKeepAliveAudio.src = 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+            document.body.appendChild(bgKeepAliveAudio);
+        }
+        if (bgKeepAliveAudio.paused) {
+            bgKeepAliveAudio.play().catch(() => {});
+        }
+    } catch(e) {}
+}
+
+function stopBackgroundAudioKeepAlive() {
+    try {
+        if (bgKeepAliveAudio && !bgKeepAliveAudio.paused) {
+            bgKeepAliveAudio.pause();
+        }
+    } catch(e) {}
+}
+
+function updateMediaSession(article) {
+    if (!('mediaSession' in navigator)) return;
+    try {
+        if (window.MediaMetadata) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: `EP ${article.epNumber}: ${article.title}`,
+                artist: 'Taarak Mehta Ka Ooltah Chashmah',
+                album: 'Daily Dose of TMKOC',
+                artwork: [
+                    { src: article.image || 'assets/default_thumb.jpg', sizes: '512x512', type: 'image/jpeg' }
+                ]
+            });
+        }
+        navigator.mediaSession.playbackState = 'playing';
+
+        navigator.mediaSession.setActionHandler('play', () => {
+            if (ytPlayer && typeof ytPlayer.playVideo === 'function') ytPlayer.playVideo();
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+            if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') ytPlayer.pauseVideo();
+        });
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            window.navCleanEp(1);
+        });
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            window.navCleanEp(-1);
+        });
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+            if (ytPlayer && typeof ytPlayer.seekTo === 'function' && details.seekTime !== undefined) {
+                ytPlayer.seekTo(details.seekTime, true);
+            }
+        });
+    } catch(e) {}
+}
 
 // Load YouTube IFrame API dynamically
 const ytScript = document.createElement('script');
@@ -920,11 +981,14 @@ function stopActiveWatchTracker() {
 }
 
 function openCleanPlayer(article) {
+    currentModalArticle = article;
     currentModalEpNum = article.epNumber;
     localStorage.setItem(STORAGE_LAST_OPENED, article.id);
     
     const initialTimestamps = getTimestamps();
     logActivity('watch', `Episode ${article.epNumber}`, initialTimestamps[article.id] || 0);
+
+    ensureBackgroundAudioKeepAlive();
 
     let backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (!backdrop) {
@@ -1000,11 +1064,72 @@ function openCleanPlayer(article) {
     if (article.startTime && resumeSeconds < article.startTime) resumeSeconds = article.startTime;
     if (article.endTime && resumeSeconds > article.endTime) resumeSeconds = article.startTime;
 
+    let videoIdToPlay = article.videoId || '';
+    let initialMsg = "";
+    
+    // INSTANT BYPASS: If the background checker already knows the main video is blocked,
+    // instantly switch to fallback/short without waiting 10s for the player to error out!
+    try {
+        const cache = getCheckerCache();
+        if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
+            if (!window._playbackAttempts) window._playbackAttempts = {};
+            const fallbacks = article.robustFallbacks || [];
+            const shorts = article.robustShorts || [];
+            
+            if (fallbacks.length > 0) {
+                videoIdToPlay = fallbacks[0];
+                window._playbackAttempts[article.id] = 1;
+                initialMsg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
+            } else if (shorts.length > 0) {
+                videoIdToPlay = shorts[0];
+                window._playbackAttempts[article.id] = fallbacks.length + 1;
+                initialMsg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
+            }
+        }
+    } catch(e) {}
+
     const viewport = document.querySelector('.tmkoc-video-viewport');
     
     if (window.YT && window.YT.Player) {
+        const iframeExists = document.querySelector('#clean-iframe-container iframe');
+        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function' && iframeExists) {
+            // SEAMLESS REUSE: Prevent player destruction and background-tab autoplay blocking!
+            if (initialMsg && modalWarning) {
+                modalWarning.style.display = 'block';
+                modalWarning.innerHTML = initialMsg;
+            } else if (modalWarning) {
+                modalWarning.style.display = 'none';
+            }
+
+            const spinner = document.getElementById('player-loading-spinner');
+            if (spinner) {
+                spinner.style.display = 'flex';
+                spinner.style.backgroundImage = `url('${article.image}')`;
+            }
+            const loadingText = document.getElementById('player-loading-text');
+            if (loadingText) loadingText.innerText = `Loading Ep ${article.epNumber}...`;
+
+            if (videoIdToPlay) {
+                const loadOpts = {
+                    'videoId': videoIdToPlay,
+                    'startSeconds': resumeSeconds
+                };
+                if (article.endTime) loadOpts['endSeconds'] = article.endTime;
+                ytPlayer.loadVideoById(loadOpts);
+                try { ytPlayer.playVideo(); } catch(e) {}
+            }
+
+            currentActiveEpId = article.id;
+            updateMediaSession(article);
+            backdrop.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            startActiveWatchTracker(article.id);
+            return;
+        }
+
         if (ytPlayer) {
-            ytPlayer.destroy();
+            try { ytPlayer.destroy(); } catch(e) {}
+            ytPlayer = null;
         }
         viewport.innerHTML = `
             <div id="player-loading-spinner" style="position:absolute; top:0; left:0; width:100%; height:100%; background-image: url('${article.image}'); background-size: cover; background-position: center; display:flex; justify-content:center; align-items:center; z-index:10; color:#fff; flex-direction:column;">
@@ -1019,30 +1144,6 @@ function openCleanPlayer(article) {
             </div>
             <div id="clean-iframe-container" style="position:relative; z-index:1; width:100%; height:100%;"></div>
         `;
-        
-        let videoIdToPlay = article.videoId || '';
-        let initialMsg = "";
-        
-        // INSTANT BYPASS: If the background checker already knows the main video is blocked,
-        // instantly switch to fallback/short without waiting 10s for the player to error out!
-        try {
-            const cache = getCheckerCache();
-            if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
-                if (!window._playbackAttempts) window._playbackAttempts = {};
-                const fallbacks = article.robustFallbacks || [];
-                const shorts = article.robustShorts || [];
-                
-                if (fallbacks.length > 0) {
-                    videoIdToPlay = fallbacks[0];
-                    window._playbackAttempts[article.id] = 1;
-                    initialMsg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
-                } else if (shorts.length > 0) {
-                    videoIdToPlay = shorts[0];
-                    window._playbackAttempts[article.id] = fallbacks.length + 1;
-                    initialMsg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
-                }
-            }
-        } catch(e) {}
         
         if (videoIdToPlay) {
             let pVars = { 
@@ -1068,24 +1169,26 @@ function openCleanPlayer(article) {
                             modalWarning.style.display = 'block';
                             modalWarning.innerHTML = initialMsg;
                         }
+                        updateMediaSession(currentModalArticle || article);
                     },
                     'onError': function(event) {
+                        const currentArt = currentModalArticle || article;
                         const loadingText = document.getElementById('player-loading-text');
                         if (loadingText) loadingText.innerText = "Loading...";
                         
                         if (event.data === 150 || event.data === 101 || event.data === 2) {
                             if (!window._playbackAttempts) window._playbackAttempts = {};
-                            const attempts = window._playbackAttempts[article.id] || 0;
+                            const attempts = window._playbackAttempts[currentArt.id] || 0;
                             
                             // Report dead link to our backend for the Nightly Auto-Healer
                             if (attempts === 0) {
-                                reportDeadLinkToCloud(article.epNumber, videoIdToPlay).catch(() => {});
+                                reportDeadLinkToCloud(currentArt.epNumber, videoIdToPlay).catch(() => {});
                             }
                             
                             let nextVideoId = null;
                             let msg = "";
-                            const fallbacks = article.robustFallbacks || [];
-                            const shorts = article.robustShorts || [];
+                            const fallbacks = currentArt.robustFallbacks || [];
+                            const shorts = currentArt.robustShorts || [];
                             
                             if (attempts < fallbacks.length) {
                                 nextVideoId = fallbacks[attempts];
@@ -1097,7 +1200,7 @@ function openCleanPlayer(article) {
                             }
                             
                             if (nextVideoId) {
-                                window._playbackAttempts[article.id] = attempts + 1;
+                                window._playbackAttempts[currentArt.id] = attempts + 1;
                                 
                                 // Instead of destroying the entire player (which causes race conditions and a black screen),
                                 // we seamlessly instruct the existing YouTube player to load the fallback video.
@@ -1106,6 +1209,7 @@ function openCleanPlayer(article) {
                                         'videoId': nextVideoId,
                                         'startSeconds': resumeSeconds
                                     });
+                                    try { ytPlayer.playVideo(); } catch(e) {}
                                 }
                                 
                                 // Show the warning banner
@@ -1116,10 +1220,10 @@ function openCleanPlayer(article) {
                                 
                                 // Mark the original video as unavailable in cache so future clicks bypass instantly
                                 try {
-                                    setCheckerCache(article.videoId, true);
+                                    setCheckerCache(currentArt.videoId, true);
                                     
                                     // Make the card red to visually indicate the main link died
-                                    const card = document.querySelector(`.card[data-id="${article.id}"]`);
+                                    const card = document.querySelector(`.card[data-id="${currentArt.id}"]`);
                                     if (card) card.classList.add('ep-unavailable');
                                 } catch(e) {}
                                 
@@ -1134,7 +1238,7 @@ function openCleanPlayer(article) {
                             modalWarning.style.display = 'block';
                             modalWarning.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
                                 <span>⚠️ <strong>Disclaimer:</strong> This video cannot be played embedded directly.</span>
-                                <a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">Watch on YouTube</a>
+                                <a href="https://www.youtube.com/watch?v=${currentArt.videoId}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">Watch on YouTube</a>
                             </div>`;
                         }
                         
@@ -1142,9 +1246,9 @@ function openCleanPlayer(article) {
                         const iframeContainer = document.getElementById('clean-iframe-container');
                         if (iframeContainer) {
                             iframeContainer.innerHTML = `
-                                <div style="width: 100%; height: 100%; background-image: url('${article.image}'); background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 100%; height: 100%; background-image: url('${currentArt.image}'); background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center;">
                                     <div style="background: rgba(0,0,0,0.5); position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
-                                    <a href="https://www.youtube.com/watch?v=${article.videoId}" target="_blank" style="z-index: 2; display: flex; flex-direction: column; align-items: center; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                    <a href="https://www.youtube.com/watch?v=${currentArt.videoId}" target="_blank" style="z-index: 2; display: flex; flex-direction: column; align-items: center; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                                         <div style="width: 68px; height: 48px; background-color: #ef4444; border-radius: 14px; display: flex; justify-content: center; align-items: center; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);">
                                             <svg viewBox="0 0 24 24" fill="white" style="width: 32px; height: 32px;"><path d="M8 5v14l11-7z"></path></svg>
                                         </div>
@@ -1155,25 +1259,51 @@ function openCleanPlayer(article) {
                         }
                         
                         try {
-                            verifiedVideos.add(article.id);
-                            const card = document.querySelector(`.card[data-id="${article.id}"]`);
+                            verifiedVideos.add(currentArt.id);
+                            const card = document.querySelector(`.card[data-id="${currentArt.id}"]`);
                             if (card && !card.classList.contains('ep-unavailable')) {
                                 card.classList.add('ep-unavailable');
                             }
                         } catch(e) {}
                     },
                     'onStateChange': function(event) {
+                        const currentArt = currentModalArticle || article;
                         if (event.data === window.YT.PlayerState.PLAYING) {
                             const spinner = document.getElementById('player-loading-spinner');
                             if (spinner) spinner.style.display = 'none';
                             
-                            currentActiveEpId = article.id;
+                            currentActiveEpId = currentArt.id;
+                            if ('mediaSession' in navigator) {
+                                try { navigator.mediaSession.playbackState = 'playing'; } catch(e) {}
+                            }
                             try {
-                                verifiedVideos.add(article.id);
-                                const card = document.querySelector(`.card[data-id="${article.id}"]`);
+                                verifiedVideos.add(currentArt.id);
+                                const card = document.querySelector(`.card[data-id="${currentArt.id}"]`);
                                 if (card) card.classList.remove('ep-unavailable');
                             } catch(e) {}
+                        } else if (event.data === window.YT.PlayerState.PAUSED) {
+                            if ('mediaSession' in navigator) {
+                                try { navigator.mediaSession.playbackState = 'paused'; } catch(e) {}
+                            }
                         } else if (event.data === window.YT.PlayerState.ENDED) {
+                            if (currentArt) {
+                                let isShort = false;
+                                try {
+                                    const dur = (ytPlayer && typeof ytPlayer.getDuration === 'function') ? ytPlayer.getDuration() : 0;
+                                    if (dur > 0 && dur < 900) isShort = true;
+                                    else if (currentArt.durationText) {
+                                        const parts = currentArt.durationText.split(':');
+                                        const secs = parts.length === 3 ? parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10) : (parts.length === 2 ? parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) : 1260);
+                                        if (secs < 900) isShort = true;
+                                    }
+                                } catch(e) {}
+                                if (isShort) {
+                                    saveCompletedShort(currentArt.id);
+                                } else {
+                                    saveCompletedEpisode(currentArt.id);
+                                }
+                                flushWatchTracker();
+                            }
                             if (localStorage.getItem('autoplayNext') !== 'false') {
                                 window.navCleanEp(1);
                             }
@@ -1181,6 +1311,7 @@ function openCleanPlayer(article) {
                     }
                 }
             });
+            updateMediaSession(article);
         } else {
             viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         }
@@ -1203,6 +1334,8 @@ function openCleanPlayer(article) {
     startActiveWatchTracker(article.id);
 }
 
+window.openCleanPlayer = openCleanPlayer;
+
 window.closeCleanPlayer = function() {
     const backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (backdrop) backdrop.style.display = 'none';
@@ -1213,6 +1346,13 @@ window.closeCleanPlayer = function() {
     const iframe = document.getElementById('clean-iframe');
     if (iframe) iframe.src = '';
     document.body.style.overflow = 'auto';
+    stopBackgroundAudioKeepAlive();
+    currentModalArticle = null;
+    currentModalEpNum = null;
+    currentActiveEpId = null;
+    if ('mediaSession' in navigator) {
+        try { navigator.mediaSession.playbackState = 'none'; } catch(e) {}
+    }
     stopActiveWatchTracker();
     updateFanDashboard();
 };
@@ -1222,6 +1362,18 @@ document.addEventListener('keydown', (e) => {
         const backdrop = document.getElementById('tmkoc-clean-backdrop');
         if (backdrop && backdrop.style.display !== 'none') {
             window.closeCleanPlayer();
+        }
+    }
+});
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        const backdrop = document.getElementById('tmkoc-clean-backdrop');
+        if (backdrop && backdrop.style.display !== 'none' && ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+            const state = ytPlayer.getPlayerState();
+            if (state === window.YT.PlayerState.PAUSED || state === window.YT.PlayerState.CUED) {
+                try { ytPlayer.playVideo(); } catch(e) {}
+            }
         }
     }
 });
