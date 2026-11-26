@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats } from './ui.js?v=22';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats } from './ui.js?v=23';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
