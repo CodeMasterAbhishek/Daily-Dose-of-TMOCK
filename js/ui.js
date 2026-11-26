@@ -129,9 +129,9 @@ if(firstScriptTag) {
     document.head.appendChild(ytScript);
 }
 
-// --- Fast Persistent Probe Pool & Geo-block Cache ---
-const PROBE_POOL_SIZE = 3;
-const MAX_LOW_PRIORITY_WORKERS = 2;
+// --- Gentle Single-Worker Probe Pool & Geo-block Cache ---
+const PROBE_POOL_SIZE = 2;
+const MAX_LOW_PRIORITY_WORKERS = 1;
 const probeWorkers = [];
 const highPriorityQueue = [];
 const lowPriorityQueue = [];
@@ -145,6 +145,9 @@ let isMainPlayerReady = false;
 let lastPlayerHadEndTime = false;
 let pendingMainPlayerLoad = null;
 let mainLoadingTimeout = null;
+let jsapiWatchdogTimer = null;
+let adjPrecheckTimer = null;
+let probeDrainTimer = null;
 let playbackSessionId = 0;
 let currentResumeSeconds = 0;
 let currentCandidates = [];
@@ -289,6 +292,45 @@ function preemptLowPriorityWorkersIfNeeded() {
     }
 }
 
+function stopAllProbeWorkers() {
+    while (highPriorityQueue.length > 0) {
+        const droppedId = highPriorityQueue.shift();
+        const entry = inFlightProbes.get(droppedId);
+        if (entry && !probeWorkers.some(w => w.busy && w.currentVideoId === droppedId)) {
+            inFlightProbes.delete(droppedId);
+            entry.resolve(false);
+        }
+    }
+    for (const worker of probeWorkers) {
+        if (worker.busy && worker.currentVideoId) {
+            const preemptedId = worker.currentVideoId;
+            const prevPriority = worker.priority;
+            worker.jobToken += 1;
+            if (worker.timer) {
+                clearTimeout(worker.timer);
+                worker.timer = null;
+            }
+            worker.busy = false;
+            worker.priority = null;
+            worker.currentVideoId = null;
+            if (prevPriority === 'low') {
+                if (!lowPriorityQueue.includes(preemptedId)) {
+                    lowPriorityQueue.unshift(preemptedId);
+                }
+            } else {
+                const entry = inFlightProbes.get(preemptedId);
+                if (entry) {
+                    inFlightProbes.delete(preemptedId);
+                    entry.resolve(false);
+                }
+            }
+        }
+        if (worker.ready && worker.player && typeof worker.player.stopVideo === 'function') {
+            try { worker.player.stopVideo(); } catch (e) {}
+        }
+    }
+}
+
 function finishWorkerJob(worker, expectedToken, isUnavailable, persist) {
     if (worker.jobToken !== expectedToken || !worker.busy) return;
     const videoId = worker.currentVideoId;
@@ -318,7 +360,12 @@ function finishWorkerJob(worker, expectedToken, isUnavailable, persist) {
         try { worker.player.stopVideo(); } catch (e) {}
     }
 
-    Promise.resolve().then(drainProbeQueues);
+    if (probeDrainTimer) clearTimeout(probeDrainTimer);
+    const delay = highPriorityQueue.length > 0 ? 30 : 250;
+    probeDrainTimer = setTimeout(() => {
+        probeDrainTimer = null;
+        drainProbeQueues();
+    }, delay);
 }
 
 function runProbeOnWorker(worker, videoId, priority = 'low') {
@@ -337,7 +384,7 @@ function runProbeOnWorker(worker, videoId, priority = 'low') {
         wrapperDiv.style.width = '1px';
         wrapperDiv.style.height = '1px';
         wrapperDiv.style.overflow = 'hidden';
-        wrapperDiv.style.opacity = '0.01';
+        wrapperDiv.style.opacity = '0';
         wrapperDiv.style.zIndex = '-9999';
         wrapperDiv.style.pointerEvents = 'none';
 
@@ -506,7 +553,7 @@ function probeVideoId(videoId, priority = 'low') {
     if (priority === 'high') {
         highPriorityQueue.push(videoId);
     } else {
-        if (lowPriorityQueue.length >= 40) {
+        if (lowPriorityQueue.length >= 12) {
             const droppedId = lowPriorityQueue.shift();
             const droppedEntry = inFlightProbes.get(droppedId);
             if (droppedEntry) {
@@ -547,16 +594,22 @@ async function resolveArticleLinks(article, priority = 'low', skipVideoId = null
     }
 }
 
-function precheckAdjacentEpisodes(epNumber) {
+function scheduleAdjacentPrecheck(epNumber, expectedSessionId) {
+    if (adjPrecheckTimer) {
+        clearTimeout(adjPrecheckTimer);
+        adjPrecheckTimer = null;
+    }
     const base = parseInt(epNumber, 10);
     if (isNaN(base)) return;
-    [base + 1, base - 1].forEach(num => {
-        const adj = masterEpNumberMap[num] || allArticlesMap[`ep_${num}`] || allArticlesMap[num];
-        if (adj && !verifiedVideos.has(adj.id)) {
-            verifiedVideos.add(adj.id);
-            resolveArticleLinks(adj, 'high', null).catch(() => {});
+    adjPrecheckTimer = setTimeout(() => {
+        adjPrecheckTimer = null;
+        if (playbackSessionId !== expectedSessionId || !currentModalArticle || isMainPlayerLoading) return;
+        const nextArt = masterEpNumberMap[base + 1] || allArticlesMap[`ep_${base + 1}`] || allArticlesMap[base + 1];
+        if (nextArt && !verifiedVideos.has(nextArt.id)) {
+            verifiedVideos.add(nextArt.id);
+            resolveArticleLinks(nextArt, 'high', null).catch(() => {});
         }
-    });
+    }, 1500);
 }
 
 window.onYouTubeIframeAPIReady = function() {
@@ -1096,16 +1149,29 @@ export function renderArticles(articles, containerId, append = false) {
     if (!container.dataset.hoverPrecheckAttached) {
         container.dataset.hoverPrecheckAttached = 'true';
         let lastHoveredCardId = null;
+        let hoverPrecheckTimer = null;
         container.addEventListener('mouseover', (e) => {
             const card = e.target.closest('.card[data-id]');
             if (!card) return;
             const id = card.getAttribute('data-id');
             if (!id || id === lastHoveredCardId) return;
             lastHoveredCardId = id;
-            const article = allArticlesMap[id];
-            if (article && article.videoId) {
-                verifiedVideos.add(article.id);
-                resolveArticleLinks(article, 'high', null).catch(() => {});
+            if (hoverPrecheckTimer) clearTimeout(hoverPrecheckTimer);
+            hoverPrecheckTimer = setTimeout(() => {
+                hoverPrecheckTimer = null;
+                if (currentModalArticle) return;
+                const article = allArticlesMap[id];
+                if (article && article.videoId) {
+                    verifiedVideos.add(article.id);
+                    resolveArticleLinks(article, 'high', null).catch(() => {});
+                }
+            }, 180);
+        });
+        container.addEventListener('mouseleave', () => {
+            lastHoveredCardId = null;
+            if (hoverPrecheckTimer) {
+                clearTimeout(hoverPrecheckTimer);
+                hoverPrecheckTimer = null;
             }
         });
     }
@@ -1387,12 +1453,47 @@ function setModalWarningBanner(htmlMsg) {
     }
 }
 
+function renderDirectIframeFallback(viewport, chosenCandidate, resumeSeconds, article) {
+    if (!viewport) return;
+    isMainPlayerLoading = false;
+    if (mainLoadingTimeout) {
+        clearTimeout(mainLoadingTimeout);
+        mainLoadingTimeout = null;
+    }
+    if (jsapiWatchdogTimer) {
+        clearTimeout(jsapiWatchdogTimer);
+        jsapiWatchdogTimer = null;
+    }
+    if (ytPlayer) {
+        try { ytPlayer.destroy(); } catch (e) {}
+        ytPlayer = null;
+        isMainPlayerReady = false;
+    }
+
+    let startParam = resumeSeconds > 5 ? `&start=${resumeSeconds}` : '';
+    if (article.startTime && resumeSeconds < article.startTime) startParam = `&start=${article.startTime}`;
+    let endParam = article.endTime ? `&end=${article.endTime}` : '';
+
+    if (chosenCandidate) {
+        const opts = buildLoadOptions(chosenCandidate, resumeSeconds, article);
+        const sParam = opts.startSeconds > 0 ? `&start=${opts.startSeconds}` : '';
+        const eParam = opts.endSeconds ? `&end=${opts.endSeconds}` : '';
+        viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${opts.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${sParam}${eParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    } else {
+        viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    }
+}
+
 function renderAllSourcesFailedFallback(article) {
     isMainPlayerLoading = false;
     pendingMainPlayerLoad = null;
     if (mainLoadingTimeout) {
         clearTimeout(mainLoadingTimeout);
         mainLoadingTimeout = null;
+    }
+    if (jsapiWatchdogTimer) {
+        clearTimeout(jsapiWatchdogTimer);
+        jsapiWatchdogTimer = null;
     }
     drainProbeQueues();
 
@@ -1529,6 +1630,18 @@ function openCleanPlayer(article) {
         }
     }, 5000);
 
+    if (jsapiWatchdogTimer) {
+        clearTimeout(jsapiWatchdogTimer);
+        jsapiWatchdogTimer = null;
+    }
+    if (adjPrecheckTimer) {
+        clearTimeout(adjPrecheckTimer);
+        adjPrecheckTimer = null;
+    }
+
+    // Halt background probe iframes so the active video loads immediately with zero contention
+    stopAllProbeWorkers();
+
     setModalWarningBanner(chosenCandidate ? getWarningBannerForTier(chosenCandidate.tier) : '');
 
     // Ensure modal is visible BEFORE instructing YouTube player so playback isn't throttled
@@ -1536,11 +1649,6 @@ function openCleanPlayer(article) {
     document.body.style.overflow = 'hidden';
 
     const viewport = document.querySelector('.tmkoc-video-viewport');
-
-    if (chosenCandidate && candidates.length > 1) {
-        // Race all remaining unverified fallback/short links in parallel while main player loads
-        resolveArticleLinks(article, 'high', chosenCandidate.videoId).catch(() => {});
-    }
 
     if (window.YT && window.YT.Player) {
         const iframeEl = getCleanIframeElement();
@@ -1561,6 +1669,7 @@ function openCleanPlayer(article) {
                 } catch (err) {
                     ytPlayer.loadVideoById(loadOpts.videoId, loadOpts.startSeconds);
                 }
+                try { ytPlayer.playVideo(); } catch (e) {}
             } else {
                 pendingMainPlayerLoad = loadOpts;
             }
@@ -1595,11 +1704,23 @@ function openCleanPlayer(article) {
             };
             if (initialOpts.endSeconds) pVars['end'] = initialOpts.endSeconds;
 
+            // Watchdog: if YT.Player JSAPI fails to fire ready/error within 3.5s, fall back to direct iframe
+            jsapiWatchdogTimer = setTimeout(() => {
+                jsapiWatchdogTimer = null;
+                if (playbackSessionId === activeSessionId && currentModalArticle && !isMainPlayerReady) {
+                    renderDirectIframeFallback(viewport, chosenCandidate, resumeSeconds, article);
+                }
+            }, 3500);
+
             ytPlayer = new window.YT.Player('clean-iframe-container', {
                 videoId: initialOpts.videoId,
                 playerVars: pVars,
                 events: {
                     'onReady': function() {
+                        if (jsapiWatchdogTimer) {
+                            clearTimeout(jsapiWatchdogTimer);
+                            jsapiWatchdogTimer = null;
+                        }
                         isMainPlayerReady = true;
                         if (!currentModalArticle) {
                             try { ytPlayer.stopVideo(); } catch (e) {}
@@ -1613,10 +1734,15 @@ function openCleanPlayer(article) {
                             } catch (e) {
                                 ytPlayer.loadVideoById(queued.videoId, queued.startSeconds);
                             }
+                            try { ytPlayer.playVideo(); } catch (e) {}
                         }
                         updateMediaSession(currentModalArticle);
                     },
                     'onError': function(event) {
+                        if (jsapiWatchdogTimer) {
+                            clearTimeout(jsapiWatchdogTimer);
+                            jsapiWatchdogTimer = null;
+                        }
                         const currentArt = currentModalArticle;
                         if (!currentArt) return;
 
@@ -1648,6 +1774,12 @@ function openCleanPlayer(article) {
                                 currentPlayingVideoId = nextCandidate.videoId;
                                 setModalWarningBanner(getWarningBannerForTier(nextCandidate.tier));
 
+                                // Only probe further backups/shorts in background once main actually failed
+                                const remainingAfterNext = currentCandidates.filter(c => !sessionTriedVideoIds.has(c.videoId) && !isVideoKnownUnavailable(c.videoId));
+                                if (remainingAfterNext.length > 0) {
+                                    resolveArticleLinks(currentArt, 'high', nextCandidate.videoId).catch(() => {});
+                                }
+
                                 const nextOpts = buildLoadOptions(nextCandidate, currentResumeSeconds, currentArt);
                                 if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
                                     try {
@@ -1655,6 +1787,7 @@ function openCleanPlayer(article) {
                                     } catch (err) {
                                         ytPlayer.loadVideoById(nextOpts.videoId, nextOpts.startSeconds);
                                     }
+                                    try { ytPlayer.playVideo(); } catch (e) {}
                                 }
                                 return;
                             }
@@ -1663,6 +1796,10 @@ function openCleanPlayer(article) {
                         renderAllSourcesFailedFallback(currentArt);
                     },
                     'onStateChange': function(event) {
+                        if (event.data !== -1 && jsapiWatchdogTimer) {
+                            clearTimeout(jsapiWatchdogTimer);
+                            jsapiWatchdogTimer = null;
+                        }
                         const currentArt = currentModalArticle;
                         if (!currentArt) {
                             if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
@@ -1682,7 +1819,7 @@ function openCleanPlayer(article) {
                                 updateCardElementStatus(currentArt);
                             }
                             verifiedVideos.add(currentArt.id);
-                            precheckAdjacentEpisodes(currentArt.epNumber);
+                            scheduleAdjacentPrecheck(currentArt.epNumber, playbackSessionId);
                             drainProbeQueues();
 
                             currentActiveEpId = currentArt.id;
@@ -1732,17 +1869,8 @@ function openCleanPlayer(article) {
             viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         }
     } else {
-        isMainPlayerLoading = false;
-        // Fallback if YT API fails to load
-        let startParam = resumeSeconds > 5 ? `&start=${resumeSeconds}` : '';
-        if (article.startTime && resumeSeconds < article.startTime) startParam = `&start=${article.startTime}`;
-        let endParam = article.endTime ? `&end=${article.endTime}` : '';
-
-        if (chosenCandidate) {
-            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${chosenCandidate.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${startParam}${endParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-        } else {
-            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-        }
+        // Fallback if YT API fails to load or hasn't loaded yet
+        renderDirectIframeFallback(viewport, chosenCandidate, resumeSeconds, article);
     }
 
     startActiveWatchTracker(article.id);
@@ -1758,20 +1886,24 @@ window.closeCleanPlayer = function() {
         clearTimeout(mainLoadingTimeout);
         mainLoadingTimeout = null;
     }
+    if (jsapiWatchdogTimer) {
+        clearTimeout(jsapiWatchdogTimer);
+        jsapiWatchdogTimer = null;
+    }
+    if (adjPrecheckTimer) {
+        clearTimeout(adjPrecheckTimer);
+        adjPrecheckTimer = null;
+    }
 
     const backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (backdrop) backdrop.style.display = 'none';
 
-    const iframeEl = getCleanIframeElement();
-    if (ytPlayer && iframeEl && iframeEl.tagName === 'IFRAME' && isMainPlayerReady) {
-        // Keep the player iframe warm for instantaneous switching on the next click
-        try { ytPlayer.pauseVideo(); } catch (e) {}
-        try { ytPlayer.stopVideo(); } catch (e) {}
-    } else if (ytPlayer) {
+    if (ytPlayer) {
         try { ytPlayer.destroy(); } catch (e) {}
         ytPlayer = null;
-        isMainPlayerReady = false;
     }
+    isMainPlayerReady = false;
+    lastPlayerHadEndTime = false;
 
     const iframe = document.getElementById('clean-iframe');
     if (iframe) iframe.src = '';
