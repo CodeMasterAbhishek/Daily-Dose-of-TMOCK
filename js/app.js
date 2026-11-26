@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, getCompletedWatchedList, syncCurrentUserStats } from './ui.js?v=20';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats } from './ui.js?v=21';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -77,13 +77,20 @@ async function init() {
     if (activeChip) activeChip.classList.add('active');
 
     try {
-        await initializeIpCache();
-        allArticles = await fetchNewsData();
-        allStorylines = await fetchStorylines();
+        const ipCachePromise = initializeIpCache().then(() => {
+            refreshAllRenderedCards();
+        });
+        const [newsData, storylinesData] = await Promise.all([
+            fetchNewsData(),
+            fetchStorylines()
+        ]);
+        allArticles = newsData;
+        allStorylines = storylinesData;
         stateVersion++;
         
         registerMasterArticles(allArticles);
         renderPage();
+        ipCachePromise.catch(() => {});
 
         // Initialize sidebar fan stats and sync profile to the Global Leaderboard
         updateFanDashboard();

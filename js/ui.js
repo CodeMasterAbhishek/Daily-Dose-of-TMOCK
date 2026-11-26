@@ -129,115 +129,474 @@ if(firstScriptTag) {
     document.head.appendChild(ytScript);
 }
 
-// --- Background Geo-block Checker ---
-let bgCheckerQueue = [];
-let bgCheckerProcessing = false;
+// --- Fast Persistent Probe Pool & Geo-block Cache ---
+const PROBE_POOL_SIZE = 3;
+const MAX_LOW_PRIORITY_WORKERS = 2;
+const probeWorkers = [];
+const highPriorityQueue = [];
+const lowPriorityQueue = [];
+const inFlightProbes = new Map();
+const reportedDeadVideoIds = new Set();
 let checkObserver = null;
-let bgCheckerTimeout = null;
 const verifiedVideos = new Set();
 
-// Remove initBgChecker completely as we create players on the fly
-window.onYouTubeIframeAPIReady = function() {
-    // API is ready. Trigger the queue if items are waiting.
-    if (bgCheckerQueue.length > 0) processBgCheckerQueue();
-};
+let isMainPlayerLoading = false;
+let isMainPlayerReady = false;
+let lastPlayerHadEndTime = false;
+let pendingMainPlayerLoad = null;
+let mainLoadingTimeout = null;
+let playbackSessionId = 0;
+let currentResumeSeconds = 0;
+let currentCandidates = [];
+let currentActiveCandidate = null;
+let currentPlayingVideoId = '';
+let sessionTriedVideoIds = new Set();
 
-function processBgCheckerQueue() {
-    if (bgCheckerProcessing || bgCheckerQueue.length === 0 || !window.YT || !window.YT.Player) return;
-    
-    bgCheckerProcessing = true;
-    const article = bgCheckerQueue[0];
-    
-    // Create temporary wrapper div (1x1) to prevent browser throttling of the iframe
-    const wrapperDiv = document.createElement('div');
-    wrapperDiv.id = 'bg-checker-wrapper';
-    wrapperDiv.style.position = 'fixed';
-    wrapperDiv.style.bottom = '0';
-    wrapperDiv.style.right = '0';
-    wrapperDiv.style.width = '1px';
-    wrapperDiv.style.height = '1px';
-    wrapperDiv.style.overflow = 'hidden';
-    wrapperDiv.style.zIndex = '-9999';
-    wrapperDiv.style.pointerEvents = 'none';
-    
-    const tempDiv = document.createElement('div');
-    tempDiv.id = 'bg-checker-temp';
-    wrapperDiv.appendChild(tempDiv);
-    document.body.appendChild(wrapperDiv);
-
-    let tempPlayer = null;
-    let handled = false;
-
-    function cleanupAndNext(isUnavailable) {
-        if (handled) return;
-        handled = true;
-        if (bgCheckerTimeout) clearTimeout(bgCheckerTimeout);
-        try { if (tempPlayer) tempPlayer.destroy(); } catch(e) {}
-        try { 
-            if (wrapperDiv && wrapperDiv.parentNode) {
-                wrapperDiv.parentNode.removeChild(wrapperDiv);
-            }
-        } catch(e) {}
-        
-        handleCheckerResult(article, isUnavailable);
+function getEpisodeCandidates(article) {
+    if (!article) return [];
+    const seen = new Set();
+    const list = [];
+    const add = (videoId, tier) => {
+        if (videoId && !seen.has(videoId)) {
+            seen.add(videoId);
+            list.push({ videoId, tier });
+        }
+    };
+    add(article.videoId, 'main');
+    if (Array.isArray(article.robustFallbacks)) {
+        article.robustFallbacks.forEach(id => add(id, 'backup'));
     }
+    if (Array.isArray(article.robustShorts)) {
+        article.robustShorts.forEach(id => add(id, 'short'));
+    }
+    return list;
+}
 
+function isVideoKnownUnavailable(videoId, cache = getCheckerCache()) {
+    return Boolean(videoId && cache[videoId] && cache[videoId].isUnavailable === true);
+}
+
+function isVideoKnownAvailable(videoId, cache = getCheckerCache()) {
+    return Boolean(videoId && cache[videoId] && cache[videoId].isUnavailable === false);
+}
+
+function getArticleAvailabilityState(article, cache = getCheckerCache()) {
+    const candidates = getEpisodeCandidates(article);
+    if (candidates.length === 0) {
+        return { allUnavailable: false, isFallbackShort: false };
+    }
+    const hasPlayableFull = candidates.some(c => c.tier !== 'short' && !isVideoKnownUnavailable(c.videoId, cache));
+    const hasPlayableShort = candidates.some(c => c.tier === 'short' && !isVideoKnownUnavailable(c.videoId, cache));
+    return {
+        allUnavailable: !hasPlayableFull && !hasPlayableShort,
+        isFallbackShort: !hasPlayableFull && hasPlayableShort
+    };
+}
+
+function updateCardElementStatus(article) {
+    if (!article) return;
     try {
-        tempPlayer = new window.YT.Player('bg-checker-temp', {
-            height: '200',
-            width: '200',
-            videoId: article.videoId,
-            playerVars: { 'playsinline': 1, 'controls': 0, 'disablekb': 1, 'rel': 0, 'mute': 1, 'autoplay': 1 },
-            events: {
-                'onReady': function() {
-                    // Grace period: if no error fires in 1.5s after ready, assume it's available
-                    setTimeout(() => cleanupAndNext(false), 1500);
-                },
-                'onStateChange': function(event) {
-                    if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
-                        cleanupAndNext(false);
-                    }
-                },
-                'onError': function(event) {
-                    // Code 100, 101, 150
-                    cleanupAndNext(true);
-                }
+        const card = document.querySelector(`.card[data-id="${article.id}"]`);
+        if (!card) return;
+        const { allUnavailable, isFallbackShort } = getArticleAvailabilityState(article);
+        card.classList.toggle('ep-unavailable', allUnavailable);
+        const durationBadge = card.querySelector('.card-duration-badge');
+        if (durationBadge) {
+            durationBadge.innerHTML = getDurationBadgeHTML(article, isFallbackShort) || '21:45';
+        }
+    } catch (e) {}
+}
+
+export function refreshAllRenderedCards() {
+    try {
+        const cache = getCheckerCache();
+        document.querySelectorAll('.card[data-id]').forEach(card => {
+            const id = card.getAttribute('data-id');
+            const article = allArticlesMap[id];
+            if (!article) return;
+            const { allUnavailable, isFallbackShort } = getArticleAvailabilityState(article, cache);
+            card.classList.toggle('ep-unavailable', allUnavailable);
+            const durationBadge = card.querySelector('.card-duration-badge');
+            if (durationBadge) {
+                durationBadge.innerHTML = getDurationBadgeHTML(article, isFallbackShort) || '21:45';
             }
         });
-        
-        // Failsafe timeout in case YT hangs completely
-        if (bgCheckerTimeout) clearTimeout(bgCheckerTimeout);
-        bgCheckerTimeout = setTimeout(() => cleanupAndNext(false), 6000);
-        
-    } catch(e) {
-        cleanupAndNext(false);
+    } catch (e) {}
+}
+
+function createProbeWorker(id) {
+    return {
+        id,
+        player: null,
+        wrapperEl: null,
+        ready: false,
+        busy: false,
+        priority: null,
+        currentVideoId: null,
+        timer: null,
+        jobToken: 0
+    };
+}
+
+function destroyProbeWorker(worker) {
+    if (worker.timer) {
+        clearTimeout(worker.timer);
+        worker.timer = null;
+    }
+    try { if (worker.player && typeof worker.player.destroy === 'function') worker.player.destroy(); } catch (e) {}
+    try {
+        if (worker.wrapperEl && worker.wrapperEl.parentNode) {
+            worker.wrapperEl.parentNode.removeChild(worker.wrapperEl);
+        }
+    } catch (e) {}
+    worker.player = null;
+    worker.wrapperEl = null;
+    worker.ready = false;
+    worker.busy = false;
+    worker.priority = null;
+    worker.currentVideoId = null;
+}
+
+function hasPendingProbeWork() {
+    if (highPriorityQueue.length > 0) return true;
+    return !isMainPlayerLoading && !currentModalArticle && lowPriorityQueue.length > 0;
+}
+
+function preemptLowPriorityWorkersIfNeeded() {
+    if (highPriorityQueue.length === 0) return;
+    const idleCount = probeWorkers.filter(w => !w.busy).length;
+    const canSpawn = probeWorkers.length < PROBE_POOL_SIZE;
+    if (idleCount > 0 || canSpawn) return;
+
+    let needed = highPriorityQueue.length;
+    for (const worker of probeWorkers) {
+        if (needed <= 0) break;
+        if (worker.busy && worker.priority === 'low' && worker.ready && worker.currentVideoId) {
+            const preemptedId = worker.currentVideoId;
+            worker.jobToken += 1;
+            if (worker.timer) {
+                clearTimeout(worker.timer);
+                worker.timer = null;
+            }
+            worker.busy = false;
+            worker.priority = null;
+            worker.currentVideoId = null;
+            if (!lowPriorityQueue.includes(preemptedId)) {
+                lowPriorityQueue.unshift(preemptedId);
+            }
+            needed -= 1;
+        }
     }
 }
 
-export async function initializeIpCache() {
-    try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
-        // Hash IP to detect VPN changes without storing raw PII
-        const encoder = new TextEncoder();
-        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data.ip));
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const ipHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        
-        const lastHash = localStorage.getItem("tmkoc_last_ip_hash");
-        if (lastHash && lastHash !== ipHash) {
-            // Network changed (VPN toggled). Invalidate the geo cache.
-            localStorage.removeItem("tmkoc_checker_cache");
+function finishWorkerJob(worker, expectedToken, isUnavailable, persist) {
+    if (worker.jobToken !== expectedToken || !worker.busy) return;
+    const videoId = worker.currentVideoId;
+    if (worker.timer) {
+        clearTimeout(worker.timer);
+        worker.timer = null;
+    }
+    worker.busy = false;
+    worker.priority = null;
+    worker.currentVideoId = null;
+
+    if (videoId) {
+        if (persist) {
+            setCheckerCache(videoId, isUnavailable);
         }
-        localStorage.setItem("tmkoc_last_ip_hash", ipHash);
-        // Clean up old raw IP if it exists from before this fix
-        localStorage.removeItem("tmkoc_last_ip");
-    } catch (e) {}
+
+        const entry = inFlightProbes.get(videoId);
+        if (entry) {
+            inFlightProbes.delete(videoId);
+            entry.resolve(isUnavailable);
+        }
+    }
+
+    if (!worker.ready) {
+        destroyProbeWorker(worker);
+    } else if (!hasPendingProbeWork()) {
+        try { worker.player.stopVideo(); } catch (e) {}
+    }
+
+    Promise.resolve().then(drainProbeQueues);
+}
+
+function runProbeOnWorker(worker, videoId, priority = 'low') {
+    worker.busy = true;
+    worker.priority = priority;
+    worker.currentVideoId = videoId;
+    worker.jobToken += 1;
+    const token = worker.jobToken;
+
+    if (!worker.player) {
+        const wrapperDiv = document.createElement('div');
+        wrapperDiv.id = `bg-checker-wrapper-${worker.id}`;
+        wrapperDiv.style.position = 'fixed';
+        wrapperDiv.style.bottom = '0';
+        wrapperDiv.style.right = '0';
+        wrapperDiv.style.width = '1px';
+        wrapperDiv.style.height = '1px';
+        wrapperDiv.style.overflow = 'hidden';
+        wrapperDiv.style.opacity = '0.01';
+        wrapperDiv.style.zIndex = '-9999';
+        wrapperDiv.style.pointerEvents = 'none';
+
+        const playerEl = document.createElement('div');
+        const playerDomId = `bg-checker-player-${worker.id}`;
+        playerEl.id = playerDomId;
+        wrapperDiv.appendChild(playerEl);
+        document.body.appendChild(wrapperDiv);
+        worker.wrapperEl = wrapperDiv;
+
+        worker.timer = setTimeout(() => finishWorkerJob(worker, token, false, false), 4500);
+
+        try {
+            worker.player = new window.YT.Player(playerDomId, {
+                height: '200',
+                width: '200',
+                videoId,
+                playerVars: {
+                    playsinline: 1,
+                    controls: 0,
+                    disablekb: 1,
+                    rel: 0,
+                    mute: 1,
+                    autoplay: 1
+                },
+                events: {
+                    'onReady': function() {
+                        worker.ready = true;
+                        try { worker.player.mute(); } catch (e) {}
+                        if (worker.busy && worker.currentVideoId) {
+                            const activeToken = worker.jobToken;
+                            if (worker.timer) clearTimeout(worker.timer);
+                            worker.timer = setTimeout(() => finishWorkerJob(worker, activeToken, false, false), 1500);
+                        }
+                    },
+                    'onStateChange': function(event) {
+                        if (!worker.busy || !worker.currentVideoId) return;
+                        if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
+                            try {
+                                const vd = typeof worker.player.getVideoData === 'function' ? worker.player.getVideoData() : null;
+                                if (vd && vd.video_id && vd.video_id !== worker.currentVideoId) return;
+                            } catch (e) {}
+                            finishWorkerJob(worker, worker.jobToken, false, true);
+                        }
+                    },
+                    'onError': function() {
+                        if (!worker.busy || !worker.currentVideoId) return;
+                        try {
+                            const vd = typeof worker.player.getVideoData === 'function' ? worker.player.getVideoData() : null;
+                            if (vd && vd.video_id && vd.video_id !== worker.currentVideoId) return;
+                        } catch (e) {}
+                        finishWorkerJob(worker, worker.jobToken, true, true);
+                    }
+                }
+            });
+        } catch (e) {
+            finishWorkerJob(worker, token, false, false);
+        }
+        return;
+    }
+
+    worker.timer = setTimeout(() => {
+        try { worker.player.stopVideo(); } catch (e) {}
+        finishWorkerJob(worker, token, false, false);
+    }, 1800);
+
+    try {
+        worker.player.mute();
+        worker.player.loadVideoById(videoId);
+    } catch (e) {
+        destroyProbeWorker(worker);
+        finishWorkerJob(worker, token, false, false);
+    }
+}
+
+function clearLowPriorityQueue() {
+    while (lowPriorityQueue.length > 0) {
+        const droppedId = lowPriorityQueue.shift();
+        const entry = inFlightProbes.get(droppedId);
+        if (entry && entry.priority !== 'high' && !probeWorkers.some(w => w.busy && w.currentVideoId === droppedId)) {
+            inFlightProbes.delete(droppedId);
+            entry.resolve(false);
+        }
+    }
+}
+
+function drainProbeQueues() {
+    if (!window.YT || !window.YT.Player) return;
+
+    preemptLowPriorityWorkersIfNeeded();
+
+    while (true) {
+        let nextVideoId = null;
+        let nextPriority = 'low';
+
+        if (highPriorityQueue.length > 0) {
+            nextVideoId = highPriorityQueue[0];
+            nextPriority = 'high';
+        } else if (!isMainPlayerLoading && !currentModalArticle && lowPriorityQueue.length > 0) {
+            const activeLowCount = probeWorkers.filter(w => w.busy && w.priority === 'low').length;
+            if (activeLowCount >= MAX_LOW_PRIORITY_WORKERS) break;
+            nextVideoId = lowPriorityQueue[0];
+            nextPriority = 'low';
+        } else {
+            break;
+        }
+
+        let worker = probeWorkers.find(w => !w.busy);
+        if (!worker && probeWorkers.length < PROBE_POOL_SIZE) {
+            worker = createProbeWorker(probeWorkers.length);
+            probeWorkers.push(worker);
+        }
+        if (!worker) break;
+
+        if (nextPriority === 'high') {
+            highPriorityQueue.shift();
+        } else {
+            lowPriorityQueue.shift();
+        }
+
+        if (!nextVideoId) continue;
+
+        const cache = getCheckerCache();
+        if (cache[nextVideoId]) {
+            const entry = inFlightProbes.get(nextVideoId);
+            if (entry) {
+                inFlightProbes.delete(nextVideoId);
+                entry.resolve(Boolean(cache[nextVideoId].isUnavailable));
+            }
+            continue;
+        }
+
+        runProbeOnWorker(worker, nextVideoId, nextPriority);
+    }
+}
+
+function probeVideoId(videoId, priority = 'low') {
+    if (!videoId) return Promise.resolve(true);
+
+    const cache = getCheckerCache();
+    if (cache[videoId]) {
+        return Promise.resolve(Boolean(cache[videoId].isUnavailable));
+    }
+
+    if (inFlightProbes.has(videoId)) {
+        const existing = inFlightProbes.get(videoId);
+        if (priority === 'high' && existing.priority !== 'high') {
+            existing.priority = 'high';
+            const lowIdx = lowPriorityQueue.indexOf(videoId);
+            if (lowIdx !== -1) lowPriorityQueue.splice(lowIdx, 1);
+            if (!highPriorityQueue.includes(videoId) && !probeWorkers.some(w => w.busy && w.currentVideoId === videoId)) {
+                highPriorityQueue.push(videoId);
+                drainProbeQueues();
+            }
+        }
+        return existing.promise;
+    }
+
+    let resolveFn;
+    const promise = new Promise(resolve => {
+        resolveFn = resolve;
+    });
+
+    inFlightProbes.set(videoId, { promise, resolve: resolveFn, priority });
+
+    if (priority === 'high') {
+        highPriorityQueue.push(videoId);
+    } else {
+        if (lowPriorityQueue.length >= 40) {
+            const droppedId = lowPriorityQueue.shift();
+            const droppedEntry = inFlightProbes.get(droppedId);
+            if (droppedEntry) {
+                inFlightProbes.delete(droppedId);
+                droppedEntry.resolve(false);
+            }
+        }
+        lowPriorityQueue.push(videoId);
+    }
+
+    drainProbeQueues();
+    return promise;
+}
+
+async function resolveArticleLinks(article, priority = 'low', skipVideoId = null) {
+    if (!article) return;
+    const candidates = getEpisodeCandidates(article);
+    if (candidates.length === 0) return;
+
+    const mainCandidate = candidates.find(c => c.tier === 'main');
+    if (mainCandidate && mainCandidate.videoId !== skipVideoId) {
+        const mainUnavailable = await probeVideoId(mainCandidate.videoId, priority);
+        updateCardElementStatus(article);
+        if (!mainUnavailable) return;
+    }
+
+    const backups = candidates.filter(c => c.tier === 'backup' && c.videoId !== skipVideoId);
+    if (backups.length > 0) {
+        const backupResults = await Promise.all(backups.map(c => probeVideoId(c.videoId, priority)));
+        updateCardElementStatus(article);
+        if (backupResults.some(isUnavailable => !isUnavailable)) return;
+    }
+
+    const shorts = candidates.filter(c => c.tier === 'short' && c.videoId !== skipVideoId);
+    if (shorts.length > 0) {
+        await Promise.all(shorts.map(c => probeVideoId(c.videoId, priority)));
+        updateCardElementStatus(article);
+    }
+}
+
+function precheckAdjacentEpisodes(epNumber) {
+    const base = parseInt(epNumber, 10);
+    if (isNaN(base)) return;
+    [base + 1, base - 1].forEach(num => {
+        const adj = masterEpNumberMap[num] || allArticlesMap[`ep_${num}`] || allArticlesMap[num];
+        if (adj && !verifiedVideos.has(adj.id)) {
+            verifiedVideos.add(adj.id);
+            resolveArticleLinks(adj, 'high', null).catch(() => {});
+        }
+    });
+}
+
+window.onYouTubeIframeAPIReady = function() {
+    drainProbeQueues();
+};
+
+export async function initializeIpCache() {
+    const ipFetchPromise = (async () => {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timer = controller ? setTimeout(() => controller.abort(), 2000) : null;
+        try {
+            const res = await fetch('https://api.ipify.org?format=json', controller ? { signal: controller.signal } : undefined);
+            const data = await res.json();
+            // Hash IP to detect VPN changes without storing raw PII
+            const encoder = new TextEncoder();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data.ip));
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const ipHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            const lastHash = localStorage.getItem("tmkoc_last_ip_hash");
+            if (lastHash && lastHash !== ipHash) {
+                // Network changed (VPN toggled). Invalidate the geo cache.
+                localStorage.removeItem("tmkoc_checker_cache");
+                memoryCheckerCache = null;
+            }
+            localStorage.setItem("tmkoc_last_ip_hash", ipHash);
+            localStorage.removeItem("tmkoc_last_ip");
+        } catch (e) {
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    })();
+
+    const deadLinksPromise = fetchKnownDeadLinks().catch(() => []);
+
+    const [, deadVideoIds] = await Promise.all([ipFetchPromise, deadLinksPromise]);
 
     // Pre-populate known crowdsourced dead/blocked links from Supabase
     // so visitors instantly bypass known broken links without running background test players!
     try {
-        const deadVideoIds = await fetchKnownDeadLinks();
         if (deadVideoIds && deadVideoIds.length > 0) {
             const cache = getCheckerCache();
             const now = Date.now();
@@ -249,6 +608,7 @@ export async function initializeIpCache() {
                 }
             });
             if (changed) {
+                memoryCheckerCache = cache;
                 localStorage.setItem("tmkoc_checker_cache", JSON.stringify(cache));
             }
         }
@@ -281,6 +641,7 @@ function getCheckerCache() {
 }
 
 function setCheckerCache(videoId, isUnavailable) {
+    if (!videoId) return;
     try {
         const cache = getCheckerCache();
         cache[videoId] = {
@@ -312,33 +673,6 @@ export function getDurationBadgeHTML(article, isFallbackShort = false) {
     return durText;
 }
 
-function handleCheckerResult(article, isUnavailable) {
-    try {
-        verifiedVideos.add(article.id);
-        setCheckerCache(article.videoId, isUnavailable);
-        
-        const card = document.querySelector(`.card[data-id="${article.id}"]`);
-        if (card) {
-            if (isUnavailable && !(article.robustFallbacks && article.robustFallbacks.length) && !(article.robustShorts && article.robustShorts.length)) {
-                card.classList.add('ep-unavailable');
-            } else {
-                card.classList.remove('ep-unavailable');
-            }
-            
-            if (isUnavailable && !(article.robustFallbacks && article.robustFallbacks.length) && (article.robustShorts && article.robustShorts.length)) {
-                const durationBadge = card.querySelector('.card-duration-badge');
-                if (durationBadge) durationBadge.innerHTML = getDurationBadgeHTML(article, true);
-            }
-        }
-    } catch(e) {}
-    
-    bgCheckerQueue.shift();
-    bgCheckerProcessing = false;
-    setTimeout(processBgCheckerQueue, 250);
-}
-
-
-
 function initIntersectionObserver() {
     if (checkObserver) return;
     checkObserver = new IntersectionObserver((entries) => {
@@ -348,28 +682,10 @@ function initIntersectionObserver() {
                 const id = card.getAttribute('data-id');
                 const article = allArticlesMap[id];
                 if (article && article.videoId) {
+                    updateCardElementStatus(article);
                     if (!verifiedVideos.has(article.id)) {
-                        const cache = getCheckerCache();
-                        if (cache[article.videoId]) {
-                            verifiedVideos.add(article.id);
-                            if (cache[article.videoId].isUnavailable) {
-                                if (!(article.robustFallbacks && article.robustFallbacks.length) && !(article.robustShorts && article.robustShorts.length)) {
-                                    card.classList.add('ep-unavailable');
-                                } else if (!(article.robustFallbacks && article.robustFallbacks.length) && (article.robustShorts && article.robustShorts.length)) {
-                                    const durationBadge = card.querySelector('.card-duration-badge');
-                                    if (durationBadge) durationBadge.innerHTML = getDurationBadgeHTML(article, true);
-                                }
-                            }
-                        } else {
-                            if (!bgCheckerQueue.some(a => a.id === article.id)) {
-                                // Cap queue at 5 items to prevent DOM thrashing during rapid scroll
-                                if (bgCheckerQueue.length >= 5) {
-                                    bgCheckerQueue.shift();
-                                }
-                                bgCheckerQueue.push(article);
-                                processBgCheckerQueue();
-                            }
-                        }
+                        verifiedVideos.add(article.id);
+                        resolveArticleLinks(article, 'low', null).catch(() => {});
                     }
                 }
                 checkObserver.unobserve(card);
@@ -730,20 +1046,9 @@ function createCardHTML(article, context = null) {
         }
     }
     
-    let unavailableClass = '';
     const cache = context ? context.cache : getCheckerCache();
-    const isFallbackShort = Boolean(
-        cache[article.videoId] && 
-        cache[article.videoId].isUnavailable && 
-        !(article.robustFallbacks && article.robustFallbacks.length) && 
-        (article.robustShorts && article.robustShorts.length)
-    );
-    
-    if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
-        if (!(article.robustFallbacks && article.robustFallbacks.length) && !(article.robustShorts && article.robustShorts.length)) {
-            unavailableClass = 'ep-unavailable';
-        }
-    }
+    const { allUnavailable, isFallbackShort } = getArticleAvailabilityState(article, cache);
+    const unavailableClass = allUnavailable ? 'ep-unavailable' : '';
     
     const displayDuration = getDurationBadgeHTML(article, isFallbackShort);
 
@@ -783,7 +1088,27 @@ export function renderArticles(articles, containerId, append = false) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    if (!append) container.innerHTML = '';
+    if (!append) {
+        container.innerHTML = '';
+        clearLowPriorityQueue();
+    }
+
+    if (!container.dataset.hoverPrecheckAttached) {
+        container.dataset.hoverPrecheckAttached = 'true';
+        let lastHoveredCardId = null;
+        container.addEventListener('mouseover', (e) => {
+            const card = e.target.closest('.card[data-id]');
+            if (!card) return;
+            const id = card.getAttribute('data-id');
+            if (!id || id === lastHoveredCardId) return;
+            lastHoveredCardId = id;
+            const article = allArticlesMap[id];
+            if (article && article.videoId) {
+                verifiedVideos.add(article.id);
+                resolveArticleLinks(article, 'high', null).catch(() => {});
+            }
+        });
+    }
 
     if (articles.length === 0 && !append) {
         container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; opacity: 0.6;">No episodes found matching your search.</div>';
@@ -980,97 +1305,138 @@ function stopActiveWatchTracker() {
     }
 }
 
-let connectingSafetyTimer = null;
-
-function showPlayerConnecting(mainMsg = 'Connecting to servers...', subMsg = 'Establishing stream...', bgImage = null, badgeText = 'STREAM ROUTER') {
-    const viewport = document.querySelector('.tmkoc-video-viewport');
-    if (!viewport) return;
-    
-    let overlay = document.getElementById('player-loading-spinner');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'player-loading-spinner';
-        overlay.className = 'player-connecting-overlay';
-        overlay.innerHTML = `
-            <div class="player-connecting-backdrop"></div>
-            <div class="player-connecting-ambient-glow"></div>
-            <div class="player-hud-card">
-                <div class="player-hud-badge-pill">
-                    <span class="player-hud-beacon-dot" id="player-hud-beacon"></span>
-                    <span id="player-hud-badge-text">STREAM ROUTER</span>
-                </div>
-                <div class="player-hud-loader-wrap">
-                    <div class="player-hud-ring-outer"></div>
-                    <div class="player-hud-ring-inner"></div>
-                    <div class="player-hud-center-dot"></div>
-                </div>
-                <div class="player-hud-headline" id="player-loading-text">Connecting to servers...</div>
-                <div class="player-hud-detail" id="player-loading-subtext">Establishing stream...</div>
-                <div class="player-hud-shimmer-track">
-                    <div class="player-hud-shimmer-bar"></div>
-                </div>
-            </div>
-        `;
-        viewport.appendChild(overlay);
+function getWarningBannerForTier(tier) {
+    if (tier === 'backup') {
+        return `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
     }
-    
-    if (bgImage) {
-        overlay.style.backgroundImage = `url('${bgImage}')`;
+    if (tier === 'short') {
+        return `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
     }
-    
-    const textEl = document.getElementById('player-loading-text');
-    if (textEl) textEl.textContent = mainMsg;
-    
-    const subTextEl = document.getElementById('player-loading-subtext');
-    if (subTextEl) {
-        subTextEl.textContent = subMsg;
-        subTextEl.style.display = subMsg ? 'block' : 'none';
-    }
-    
-    const badgeTextEl = document.getElementById('player-hud-badge-text');
-    if (badgeTextEl) badgeTextEl.textContent = badgeText;
-    
-    const beaconEl = document.getElementById('player-hud-beacon');
-    if (beaconEl) {
-        const lower = (subMsg + ' ' + badgeText).toLowerCase();
-        if (lower.includes('switch') || lower.includes('short') || lower.includes('alternate') || lower.includes('fallback')) {
-            beaconEl.classList.add('switching');
-        } else {
-            beaconEl.classList.remove('switching');
-        }
-    }
-    
-    overlay.style.display = 'flex';
-    void overlay.offsetWidth;
-    overlay.style.opacity = '1';
-    
-    if (connectingSafetyTimer) clearTimeout(connectingSafetyTimer);
-    connectingSafetyTimer = setTimeout(() => {
-        hidePlayerConnecting();
-    }, 10000);
+    return '';
 }
 
-function hidePlayerConnecting() {
-    if (connectingSafetyTimer) {
-        clearTimeout(connectingSafetyTimer);
-        connectingSafetyTimer = null;
+function getBestStartCandidate(candidates) {
+    if (!candidates || candidates.length === 0) return null;
+    const cache = getCheckerCache();
+    const confirmedBackupOrMain = candidates.find(c => c.tier !== 'short' && isVideoKnownAvailable(c.videoId, cache));
+    if (confirmedBackupOrMain && (candidates[0].videoId === confirmedBackupOrMain.videoId || isVideoKnownUnavailable(candidates[0].videoId, cache))) {
+        return confirmedBackupOrMain;
     }
-    const overlay = document.getElementById('player-loading-spinner');
-    if (overlay) {
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-            if (overlay && overlay.style.opacity === '0') {
-                overlay.style.display = 'none';
-            }
-        }, 250);
+    const firstPlayable = candidates.find(c => !isVideoKnownUnavailable(c.videoId, cache));
+    return firstPlayable || candidates[0];
+}
+
+function pickNextFallbackCandidate(candidates, triedSet) {
+    const cache = getCheckerCache();
+    const remaining = candidates.filter(c => !triedSet.has(c.videoId) && !isVideoKnownUnavailable(c.videoId, cache));
+    if (remaining.length === 0) return null;
+
+    const confirmedBackup = remaining.find(c => c.tier === 'backup' && isVideoKnownAvailable(c.videoId, cache));
+    if (confirmedBackup) return confirmedBackup;
+
+    const nextBackup = remaining.find(c => c.tier === 'backup');
+    if (nextBackup) return nextBackup;
+
+    const confirmedShort = remaining.find(c => c.tier === 'short' && isVideoKnownAvailable(c.videoId, cache));
+    if (confirmedShort) return confirmedShort;
+
+    return remaining[0];
+}
+
+function buildLoadOptions(candidate, resumeSecs, article) {
+    let startSeconds = resumeSecs || 0;
+    if (candidate.tier === 'short' && startSeconds >= 540) {
+        startSeconds = 0;
     }
+    if (candidate.tier === 'main' && article) {
+        if (article.startTime && startSeconds < article.startTime) startSeconds = article.startTime;
+        if (article.endTime && startSeconds > article.endTime) startSeconds = article.startTime;
+    }
+    const opts = {
+        videoId: candidate.videoId,
+        startSeconds
+    };
+    if (candidate.tier === 'main' && article && article.endTime) {
+        opts.endSeconds = article.endTime;
+    }
+    return opts;
+}
+
+function getCleanIframeElement() {
+    const viewport = document.querySelector('.tmkoc-video-viewport');
+    if (!viewport) return null;
+    let iframeEl = null;
+    if (ytPlayer && typeof ytPlayer.getIframe === 'function') {
+        try { iframeEl = ytPlayer.getIframe(); } catch (e) {}
+    }
+    if (!iframeEl) {
+        iframeEl = viewport.querySelector('#clean-iframe-container');
+    }
+    return iframeEl;
+}
+
+function setModalWarningBanner(htmlMsg) {
+    const modalWarning = document.getElementById('clean-modal-warning');
+    if (!modalWarning) return;
+    if (htmlMsg) {
+        modalWarning.style.display = 'block';
+        modalWarning.innerHTML = htmlMsg;
+    } else {
+        modalWarning.style.display = 'none';
+        modalWarning.innerHTML = '';
+    }
+}
+
+function renderAllSourcesFailedFallback(article) {
+    isMainPlayerLoading = false;
+    pendingMainPlayerLoad = null;
+    if (mainLoadingTimeout) {
+        clearTimeout(mainLoadingTimeout);
+        mainLoadingTimeout = null;
+    }
+    drainProbeQueues();
+
+    const watchUrl = `https://www.youtube.com/watch?v=${article.videoId}`;
+    setModalWarningBanner(`<div style="display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
+        <span>⚠️ <strong>Disclaimer:</strong> This video cannot be played embedded directly.</span>
+        <a href="${watchUrl}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">Watch on YouTube</a>
+    </div>`);
+
+    if (ytPlayer) {
+        try { ytPlayer.destroy(); } catch (e) {}
+        ytPlayer = null;
+        isMainPlayerReady = false;
+    }
+
+    const viewport = document.querySelector('.tmkoc-video-viewport');
+    if (viewport) {
+        viewport.innerHTML = `
+            <div style="width: 100%; height: 100%; background-image: url('${article.image}'); background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center;">
+                <div style="background: rgba(0,0,0,0.5); position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+                <a href="${watchUrl}" target="_blank" style="z-index: 2; display: flex; flex-direction: column; align-items: center; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <div style="width: 68px; height: 48px; background-color: #ef4444; border-radius: 14px; display: flex; justify-content: center; align-items: center; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);">
+                        <svg viewBox="0 0 24 24" fill="white" style="width: 32px; height: 32px;"><path d="M8 5v14l11-7z"></path></svg>
+                    </div>
+                    <span style="color: white; font-weight: bold; font-size: 1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Click to Watch on YouTube</span>
+                </a>
+            </div>
+        `;
+    }
+
+    try {
+        verifiedVideos.add(article.id);
+        updateCardElementStatus(article);
+    } catch (e) {}
 }
 
 function openCleanPlayer(article) {
+    playbackSessionId += 1;
+    const activeSessionId = playbackSessionId;
+
     currentModalArticle = article;
     currentModalEpNum = article.epNumber;
     localStorage.setItem(STORAGE_LAST_OPENED, article.id);
-    
+
     const initialTimestamps = getTimestamps();
     logActivity('watch', `Episode ${article.epNumber}`, initialTimestamps[article.id] || 0);
 
@@ -1110,17 +1476,11 @@ function openCleanPlayer(article) {
         `;
         // Deliberately do not close on backdrop click: prevent accidental dismissal while watching
         document.body.appendChild(backdrop);
-
-    }
-
-    const modalWarning = document.getElementById('clean-modal-warning');
-    if (modalWarning) {
-        modalWarning.style.display = 'none'; // Ensure it's hidden by default, ytPlayer onError will show it if needed
     }
 
     document.getElementById('clean-title').textContent = article.title;
     document.getElementById('clean-badge').textContent = `EP ${article.epNumber}`;
-    
+
     const descEl = document.getElementById('clean-description');
     if (descEl) {
         descEl.textContent = article.description || '';
@@ -1134,7 +1494,7 @@ function openCleanPlayer(article) {
 
     const timestamps = getTimestamps();
     let resumeSeconds = timestamps[article.id] || 0;
-    
+
     // If opening an upgraded full episode after previously watching only a short clip, start fresh from 0:00!
     const completedShorts = getCompletedShortsList();
     const completedFull = getCompletedWatchedList();
@@ -1147,289 +1507,218 @@ function openCleanPlayer(article) {
     if (completedShorts.includes(article.id) && !completedFull.includes(article.id) && epDurSecs >= 900 && resumeSeconds <= 720) {
         resumeSeconds = 0;
     }
-    
+
     if (article.startTime && resumeSeconds < article.startTime) resumeSeconds = article.startTime;
     if (article.endTime && resumeSeconds > article.endTime) resumeSeconds = article.startTime;
 
-    let videoIdToPlay = article.videoId || '';
-    let initialMsg = "";
-    let connectingSubMsg = `Episode ${article.epNumber}`;
-    
-    // INSTANT BYPASS: If the background checker already knows the main video is blocked,
-    // instantly switch to fallback/short without waiting 10s for the player to error out!
-    try {
-        const cache = getCheckerCache();
-        if (cache[article.videoId] && cache[article.videoId].isUnavailable) {
-            if (!window._playbackAttempts) window._playbackAttempts = {};
-            const fallbacks = article.robustFallbacks || [];
-            const shorts = article.robustShorts || [];
-            
-            if (fallbacks.length > 0) {
-                videoIdToPlay = fallbacks[0];
-                window._playbackAttempts[article.id] = 1;
-                initialMsg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
-                connectingSubMsg = 'Switching to alternate stream...';
-            } else if (shorts.length > 0) {
-                videoIdToPlay = shorts[0];
-                window._playbackAttempts[article.id] = fallbacks.length + 1;
-                initialMsg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
-                connectingSubMsg = 'Loading short version...';
-            }
+    const candidates = getEpisodeCandidates(article);
+    const chosenCandidate = getBestStartCandidate(candidates);
+
+    currentResumeSeconds = resumeSeconds;
+    currentCandidates = candidates;
+    currentActiveCandidate = chosenCandidate;
+    currentPlayingVideoId = chosenCandidate ? chosenCandidate.videoId : '';
+    sessionTriedVideoIds = new Set(chosenCandidate ? [chosenCandidate.videoId] : []);
+    isMainPlayerLoading = Boolean(chosenCandidate);
+
+    if (mainLoadingTimeout) clearTimeout(mainLoadingTimeout);
+    mainLoadingTimeout = setTimeout(() => {
+        if (playbackSessionId === activeSessionId) {
+            isMainPlayerLoading = false;
+            drainProbeQueues();
         }
-    } catch(e) {}
+    }, 5000);
+
+    setModalWarningBanner(chosenCandidate ? getWarningBannerForTier(chosenCandidate.tier) : '');
+
+    // Ensure modal is visible BEFORE instructing YouTube player so playback isn't throttled
+    backdrop.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 
     const viewport = document.querySelector('.tmkoc-video-viewport');
-    
+
+    if (chosenCandidate && candidates.length > 1) {
+        // Race all remaining unverified fallback/short links in parallel while main player loads
+        resolveArticleLinks(article, 'high', chosenCandidate.videoId).catch(() => {});
+    }
+
     if (window.YT && window.YT.Player) {
-        let isPlayerReadyToReuse = false;
-        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
-            try {
-                const iframeEl = (typeof ytPlayer.getIframe === 'function') 
-                    ? ytPlayer.getIframe() 
-                    : document.getElementById('clean-iframe-container');
-                if (iframeEl && iframeEl.tagName === 'IFRAME' && (iframeEl.isConnected || (document.body && document.body.contains(iframeEl)))) {
-                    isPlayerReadyToReuse = true;
-                }
-            } catch(e) {}
-        }
+        const iframeEl = getCleanIframeElement();
+        const hasLiveIframe = Boolean(
+            !lastPlayerHadEndTime &&
+            !article.endTime &&
+            ytPlayer &&
+            iframeEl &&
+            iframeEl.tagName === 'IFRAME' &&
+            (iframeEl.isConnected || (document.body && document.body.contains(iframeEl)))
+        );
 
-        if (isPlayerReadyToReuse) {
-            // SEAMLESS REUSE: Prevent player destruction and background-tab autoplay blocking!
-            if (initialMsg && modalWarning) {
-                modalWarning.style.display = 'block';
-                modalWarning.innerHTML = initialMsg;
-            } else if (modalWarning) {
-                modalWarning.style.display = 'none';
-            }
-
-            let connectingBadge = 'STREAM INITIALIZER';
-            if (connectingSubMsg.includes('short')) connectingBadge = 'AUTO-SWITCH ENGINE';
-            else if (connectingSubMsg.includes('alternate')) connectingBadge = 'FALLBACK STREAM';
-            showPlayerConnecting('Connecting to servers...', connectingSubMsg, article.image, connectingBadge);
-
-            if (videoIdToPlay) {
-                const loadOpts = {
-                    'videoId': videoIdToPlay,
-                    'startSeconds': resumeSeconds
-                };
-                if (article.endTime) loadOpts['endSeconds'] = article.endTime;
+        if (hasLiveIframe && chosenCandidate) {
+            const loadOpts = buildLoadOptions(chosenCandidate, resumeSeconds, article);
+            if (isMainPlayerReady && typeof ytPlayer.loadVideoById === 'function') {
                 try {
                     ytPlayer.loadVideoById(loadOpts);
-                } catch(err) {
-                    ytPlayer.loadVideoById(videoIdToPlay, resumeSeconds);
+                } catch (err) {
+                    ytPlayer.loadVideoById(loadOpts.videoId, loadOpts.startSeconds);
                 }
-                try { ytPlayer.playVideo(); } catch(e) {}
+            } else {
+                pendingMainPlayerLoad = loadOpts;
             }
 
             currentActiveEpId = article.id;
             updateMediaSession(article);
-            backdrop.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
             startActiveWatchTracker(article.id);
             return;
         }
 
         if (ytPlayer) {
-            try { ytPlayer.destroy(); } catch(e) {}
+            try { ytPlayer.destroy(); } catch (e) {}
             ytPlayer = null;
         }
+        isMainPlayerReady = false;
+        pendingMainPlayerLoad = null;
 
-        let connectingBadge = 'STREAM INITIALIZER';
-        let isSwitching = false;
-        if (connectingSubMsg.includes('short')) {
-            connectingBadge = 'AUTO-SWITCH ENGINE';
-            isSwitching = true;
-        } else if (connectingSubMsg.includes('alternate')) {
-            connectingBadge = 'FALLBACK STREAM';
-            isSwitching = true;
-        }
+        viewport.innerHTML = `<div id="clean-iframe-container" style="position:relative; z-index:1; width:100%; height:100%;"></div>`;
 
-        viewport.innerHTML = `
-            <div id="player-loading-spinner" class="player-connecting-overlay" style="background-image: url('${article.image}');">
-                <div class="player-connecting-backdrop"></div>
-                <div class="player-connecting-ambient-glow"></div>
-                <div class="player-hud-card">
-                    <div class="player-hud-badge-pill">
-                        <span class="player-hud-beacon-dot ${isSwitching ? 'switching' : ''}" id="player-hud-beacon"></span>
-                        <span id="player-hud-badge-text">${connectingBadge}</span>
-                    </div>
-                    <div class="player-hud-loader-wrap">
-                        <div class="player-hud-ring-outer"></div>
-                        <div class="player-hud-ring-inner"></div>
-                        <div class="player-hud-center-dot"></div>
-                    </div>
-                    <div class="player-hud-headline" id="player-loading-text">Connecting to servers...</div>
-                    <div class="player-hud-detail" id="player-loading-subtext">${connectingSubMsg}</div>
-                    <div class="player-hud-shimmer-track">
-                        <div class="player-hud-shimmer-bar"></div>
-                    </div>
-                </div>
-            </div>
-            <div id="clean-iframe-container" style="position:relative; z-index:1; width:100%; height:100%;"></div>
-        `;
-        
-        if (videoIdToPlay) {
-            let pVars = { 
-                'autoplay': 1, 
-                'rel': 0, 
+        if (chosenCandidate) {
+            const initialOpts = buildLoadOptions(chosenCandidate, resumeSeconds, article);
+            lastPlayerHadEndTime = Boolean(initialOpts.endSeconds);
+            const pVars = {
+                'autoplay': 1,
+                'rel': 0,
                 'controls': 1,
-                'start': resumeSeconds,
+                'start': initialOpts.startSeconds,
                 'modestbranding': 1,
                 'iv_load_policy': 3,
                 'color': 'white',
                 'playsinline': 1
             };
-            if (article.endTime) pVars['end'] = article.endTime;
+            if (initialOpts.endSeconds) pVars['end'] = initialOpts.endSeconds;
 
             ytPlayer = new window.YT.Player('clean-iframe-container', {
-                videoId: videoIdToPlay,
+                videoId: initialOpts.videoId,
                 playerVars: pVars,
                 events: {
-                    'onReady': function(event) {
-                        if (initialMsg && modalWarning) {
-                            modalWarning.style.display = 'block';
-                            modalWarning.innerHTML = initialMsg;
+                    'onReady': function() {
+                        isMainPlayerReady = true;
+                        if (!currentModalArticle) {
+                            try { ytPlayer.stopVideo(); } catch (e) {}
+                            return;
                         }
-                        updateMediaSession(currentModalArticle || article);
+                        if (pendingMainPlayerLoad) {
+                            const queued = pendingMainPlayerLoad;
+                            pendingMainPlayerLoad = null;
+                            try {
+                                ytPlayer.loadVideoById(queued);
+                            } catch (e) {
+                                ytPlayer.loadVideoById(queued.videoId, queued.startSeconds);
+                            }
+                        }
+                        updateMediaSession(currentModalArticle);
                     },
                     'onError': function(event) {
-                        const currentArt = currentModalArticle || article;
-                        
-                        if (event.data === 150 || event.data === 101 || event.data === 2) {
-                            if (!window._playbackAttempts) window._playbackAttempts = {};
-                            const attempts = window._playbackAttempts[currentArt.id] || 0;
-                            
-                            // Report dead link to our backend for the Nightly Auto-Healer
-                            if (attempts === 0) {
-                                reportDeadLinkToCloud(currentArt.epNumber, (currentArt && currentArt.videoId) ? currentArt.videoId : videoIdToPlay).catch(() => {});
+                        const currentArt = currentModalArticle;
+                        if (!currentArt) return;
+
+                        try {
+                            const vd = typeof ytPlayer.getVideoData === 'function' ? ytPlayer.getVideoData() : null;
+                            if (vd && vd.video_id && currentPlayingVideoId && vd.video_id !== currentPlayingVideoId) {
+                                return;
                             }
-                            
-                            let nextVideoId = null;
-                            let msg = "";
-                            let switchSubtext = "Connecting to alternate stream...";
-                            let switchBadge = "FALLBACK ENGINE";
-                            const fallbacks = currentArt.robustFallbacks || [];
-                            const shorts = currentArt.robustShorts || [];
-                            
-                            if (attempts < fallbacks.length) {
-                                nextVideoId = fallbacks[attempts];
-                                msg = `⚠️ <strong>Note:</strong> Playing from an alternate source.`;
-                                switchSubtext = "Switching to alternate stream...";
-                                switchBadge = "FALLBACK STREAM";
-                            } else if (attempts < fallbacks.length + shorts.length) {
-                                const shortIdx = attempts - fallbacks.length;
-                                nextVideoId = shorts[shortIdx];
-                                msg = `⚠️ <strong>Disclaimer:</strong> Full episode is unavailable in your country. Switched to short version.`;
-                                switchSubtext = "Switching to short version...";
-                                switchBadge = "AUTO-SWITCH ENGINE";
+                        } catch (e) {}
+
+                        const errCode = event.data;
+                        if (errCode === 150 || errCode === 101 || errCode === 100 || errCode === 2 || errCode === 5) {
+                            const failedVideoId = currentPlayingVideoId || currentArt.videoId;
+                            const failedTier = currentActiveCandidate ? currentActiveCandidate.tier : 'main';
+
+                            if (failedVideoId) {
+                                setCheckerCache(failedVideoId, true);
+                                updateCardElementStatus(currentArt);
+                                if ((failedTier === 'main' || failedTier === 'backup') && !reportedDeadVideoIds.has(failedVideoId)) {
+                                    reportedDeadVideoIds.add(failedVideoId);
+                                    reportDeadLinkToCloud(currentArt.epNumber, failedVideoId).catch(() => {});
+                                }
                             }
-                            
-                            if (nextVideoId) {
-                                window._playbackAttempts[currentArt.id] = attempts + 1;
-                                
-                                // Show lively connecting overlay with backdrop thumbnail
-                                showPlayerConnecting('Connecting to servers...', switchSubtext, currentArt.image, switchBadge);
-                                
-                                // Instead of destroying the entire player (which causes race conditions and a black screen),
-                                // we seamlessly instruct the existing YouTube player to load the fallback video.
+
+                            const nextCandidate = pickNextFallbackCandidate(currentCandidates, sessionTriedVideoIds);
+                            if (nextCandidate) {
+                                sessionTriedVideoIds.add(nextCandidate.videoId);
+                                currentActiveCandidate = nextCandidate;
+                                currentPlayingVideoId = nextCandidate.videoId;
+                                setModalWarningBanner(getWarningBannerForTier(nextCandidate.tier));
+
+                                const nextOpts = buildLoadOptions(nextCandidate, currentResumeSeconds, currentArt);
                                 if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
-                                    ytPlayer.loadVideoById({
-                                        'videoId': nextVideoId,
-                                        'startSeconds': resumeSeconds
-                                    });
-                                    try { ytPlayer.playVideo(); } catch(e) {}
+                                    try {
+                                        ytPlayer.loadVideoById(nextOpts);
+                                    } catch (err) {
+                                        ytPlayer.loadVideoById(nextOpts.videoId, nextOpts.startSeconds);
+                                    }
                                 }
-                                
-                                // Show the warning banner
-                                if (modalWarning) {
-                                    modalWarning.style.display = 'block';
-                                    modalWarning.innerHTML = msg;
-                                }
-                                
-                                // Mark the original video as unavailable in cache so future clicks bypass instantly
-                                try {
-                                    setCheckerCache(currentArt.videoId, true);
-                                    
-                                    // Make the card red to visually indicate the main link died
-                                    const card = document.querySelector(`.card[data-id="${currentArt.id}"]`);
-                                    if (card) card.classList.add('ep-unavailable');
-                                } catch(e) {}
-                                
                                 return;
                             }
                         }
-                        
-                        hidePlayerConnecting();
-                        
-                        if (modalWarning) {
-                            modalWarning.style.display = 'block';
-                            modalWarning.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
-                                <span>⚠️ <strong>Disclaimer:</strong> This video cannot be played embedded directly.</span>
-                                <a href="https://www.youtube.com/watch?v=${currentArt.videoId}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">Watch on YouTube</a>
-                            </div>`;
-                        }
-                        
-                        // Replace the ugly black YouTube error screen with the episode's beautiful thumbnail
-                        const iframeContainer = document.getElementById('clean-iframe-container');
-                        if (iframeContainer) {
-                            iframeContainer.innerHTML = `
-                                <div style="width: 100%; height: 100%; background-image: url('${currentArt.image}'); background-size: cover; background-position: center; position: relative; display: flex; align-items: center; justify-content: center;">
-                                    <div style="background: rgba(0,0,0,0.5); position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
-                                    <a href="https://www.youtube.com/watch?v=${currentArt.videoId}" target="_blank" style="z-index: 2; display: flex; flex-direction: column; align-items: center; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                                        <div style="width: 68px; height: 48px; background-color: #ef4444; border-radius: 14px; display: flex; justify-content: center; align-items: center; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);">
-                                            <svg viewBox="0 0 24 24" fill="white" style="width: 32px; height: 32px;"><path d="M8 5v14l11-7z"></path></svg>
-                                        </div>
-                                        <span style="color: white; font-weight: bold; font-size: 1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">Click to Watch on YouTube</span>
-                                    </a>
-                                </div>
-                            `;
-                        }
-                        
-                        try {
-                            verifiedVideos.add(currentArt.id);
-                            const card = document.querySelector(`.card[data-id="${currentArt.id}"]`);
-                            if (card && !card.classList.contains('ep-unavailable')) {
-                                card.classList.add('ep-unavailable');
-                            }
-                        } catch(e) {}
+
+                        renderAllSourcesFailedFallback(currentArt);
                     },
                     'onStateChange': function(event) {
-                        const currentArt = currentModalArticle || article;
+                        const currentArt = currentModalArticle;
+                        if (!currentArt) {
+                            if (event.data === window.YT.PlayerState.PLAYING || event.data === window.YT.PlayerState.BUFFERING) {
+                                try { ytPlayer.stopVideo(); } catch (e) {}
+                            }
+                            return;
+                        }
+
                         if (event.data === window.YT.PlayerState.PLAYING) {
-                            hidePlayerConnecting();
-                            
+                            isMainPlayerLoading = false;
+                            if (mainLoadingTimeout) {
+                                clearTimeout(mainLoadingTimeout);
+                                mainLoadingTimeout = null;
+                            }
+                            if (currentPlayingVideoId) {
+                                setCheckerCache(currentPlayingVideoId, false);
+                                updateCardElementStatus(currentArt);
+                            }
+                            verifiedVideos.add(currentArt.id);
+                            precheckAdjacentEpisodes(currentArt.epNumber);
+                            drainProbeQueues();
+
                             currentActiveEpId = currentArt.id;
                             if ('mediaSession' in navigator) {
-                                try { navigator.mediaSession.playbackState = 'playing'; } catch(e) {}
+                                try { navigator.mediaSession.playbackState = 'playing'; } catch (e) {}
                             }
-                            try {
-                                verifiedVideos.add(currentArt.id);
-                                const card = document.querySelector(`.card[data-id="${currentArt.id}"]`);
-                                if (card) card.classList.remove('ep-unavailable');
-                            } catch(e) {}
+                        } else if (event.data === window.YT.PlayerState.CUED) {
+                            isMainPlayerLoading = false;
+                            if (mainLoadingTimeout) {
+                                clearTimeout(mainLoadingTimeout);
+                                mainLoadingTimeout = null;
+                            }
+                            drainProbeQueues();
                         } else if (event.data === window.YT.PlayerState.PAUSED) {
+                            isMainPlayerLoading = false;
+                            drainProbeQueues();
                             if ('mediaSession' in navigator) {
-                                try { navigator.mediaSession.playbackState = 'paused'; } catch(e) {}
+                                try { navigator.mediaSession.playbackState = 'paused'; } catch (e) {}
                             }
                         } else if (event.data === window.YT.PlayerState.ENDED) {
-                            if (currentArt) {
-                                let isShort = false;
-                                try {
-                                    const dur = (ytPlayer && typeof ytPlayer.getDuration === 'function') ? ytPlayer.getDuration() : 0;
-                                    if (dur > 0 && dur < 900) isShort = true;
-                                    else if (currentArt.durationText) {
-                                        const parts = currentArt.durationText.split(':');
-                                        const secs = parts.length === 3 ? parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10) : (parts.length === 2 ? parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) : 1260);
-                                        if (secs < 900) isShort = true;
-                                    }
-                                } catch(e) {}
-                                if (isShort) {
-                                    saveCompletedShort(currentArt.id);
-                                } else {
-                                    saveCompletedEpisode(currentArt.id);
+                            let isShort = currentActiveCandidate && currentActiveCandidate.tier === 'short';
+                            try {
+                                const dur = (ytPlayer && typeof ytPlayer.getDuration === 'function') ? ytPlayer.getDuration() : 0;
+                                if (dur > 0 && dur < 900) isShort = true;
+                                else if (!isShort && currentArt.durationText) {
+                                    const parts = currentArt.durationText.split(':');
+                                    const secs = parts.length === 3 ? parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10) : (parts.length === 2 ? parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) : 1260);
+                                    if (secs < 900) isShort = true;
                                 }
-                                flushWatchTracker();
+                            } catch (e) {}
+                            if (isShort) {
+                                saveCompletedShort(currentArt.id);
+                            } else {
+                                saveCompletedEpisode(currentArt.id);
                             }
+                            flushWatchTracker();
                             if (localStorage.getItem('autoplayNext') !== 'false') {
                                 window.navCleanEp(1);
                             }
@@ -1439,23 +1728,22 @@ function openCleanPlayer(article) {
             });
             updateMediaSession(article);
         } else {
+            isMainPlayerLoading = false;
             viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         }
     } else {
+        isMainPlayerLoading = false;
         // Fallback if YT API fails to load
         let startParam = resumeSeconds > 5 ? `&start=${resumeSeconds}` : '';
         if (article.startTime && resumeSeconds < article.startTime) startParam = `&start=${article.startTime}`;
         let endParam = article.endTime ? `&end=${article.endTime}` : '';
-        
-        if (article.videoId) {
-            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${article.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${startParam}${endParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+
+        if (chosenCandidate) {
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${chosenCandidate.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${startParam}${endParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         } else {
             viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         }
     }
-
-    backdrop.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
 
     startActiveWatchTracker(article.id);
 }
@@ -1463,13 +1751,28 @@ function openCleanPlayer(article) {
 window.openCleanPlayer = openCleanPlayer;
 
 window.closeCleanPlayer = function() {
-    hidePlayerConnecting();
+    playbackSessionId += 1;
+    isMainPlayerLoading = false;
+    pendingMainPlayerLoad = null;
+    if (mainLoadingTimeout) {
+        clearTimeout(mainLoadingTimeout);
+        mainLoadingTimeout = null;
+    }
+
     const backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (backdrop) backdrop.style.display = 'none';
-    if (ytPlayer) {
-        try { ytPlayer.destroy(); } catch(e) {}
+
+    const iframeEl = getCleanIframeElement();
+    if (ytPlayer && iframeEl && iframeEl.tagName === 'IFRAME' && isMainPlayerReady) {
+        // Keep the player iframe warm for instantaneous switching on the next click
+        try { ytPlayer.pauseVideo(); } catch (e) {}
+        try { ytPlayer.stopVideo(); } catch (e) {}
+    } else if (ytPlayer) {
+        try { ytPlayer.destroy(); } catch (e) {}
         ytPlayer = null;
+        isMainPlayerReady = false;
     }
+
     const iframe = document.getElementById('clean-iframe');
     if (iframe) iframe.src = '';
     document.body.style.overflow = 'auto';
@@ -1477,11 +1780,17 @@ window.closeCleanPlayer = function() {
     currentModalArticle = null;
     currentModalEpNum = null;
     currentActiveEpId = null;
+    currentCandidates = [];
+    currentActiveCandidate = null;
+    currentPlayingVideoId = '';
+    sessionTriedVideoIds = new Set();
+
     if ('mediaSession' in navigator) {
-        try { navigator.mediaSession.playbackState = 'none'; } catch(e) {}
+        try { navigator.mediaSession.playbackState = 'none'; } catch (e) {}
     }
     stopActiveWatchTracker();
     updateFanDashboard();
+    drainProbeQueues();
 };
 
 document.addEventListener('keydown', (e) => {
@@ -1499,7 +1808,7 @@ document.addEventListener('visibilitychange', () => {
         if (backdrop && backdrop.style.display !== 'none' && ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
             const state = ytPlayer.getPlayerState();
             if (state === window.YT.PlayerState.PAUSED || state === window.YT.PlayerState.CUED) {
-                try { ytPlayer.playVideo(); } catch(e) {}
+                try { ytPlayer.playVideo(); } catch (e) {}
             }
         }
     }
@@ -1516,7 +1825,6 @@ window.navCleanEp = function(dir) {
     while (iterations < 50) {
         const targetArticle = masterEpNumberMap[targetEp] || allArticlesMap[`ep_${targetEp}`] || allArticlesMap[targetEp];
         if (targetArticle) {
-            showPlayerConnecting('Connecting to servers...', `Loading Ep ${targetArticle.epNumber}...`, targetArticle.image, 'NEXT EPISODE');
             openCleanPlayer(targetArticle);
             return;
         }
