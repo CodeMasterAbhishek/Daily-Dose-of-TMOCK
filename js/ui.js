@@ -406,6 +406,7 @@ function runProbeOnWorker(worker, videoId, priority = 'low') {
 
         try {
             worker.player = new window.YT.Player(playerDomId, {
+                host: 'https://www.youtube-nocookie.com',
                 height: '200',
                 width: '200',
                 videoId,
@@ -637,6 +638,7 @@ function handleYouTubeApiAvailable() {
             pendingAttachIframeSessionId = null;
             try {
                 ytPlayer = new window.YT.Player('clean-iframe', {
+                    host: 'https://www.youtube-nocookie.com',
                     events: createMainPlayerEvents(playbackSessionId)
                 });
             } catch (e) {}
@@ -1695,13 +1697,13 @@ function renderDirectIframeFallback(viewport, chosenCandidate, resumeSeconds, ar
             ? `&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`
             : '';
         pendingAttachIframeSessionId = originParam ? activeSessionId : null;
-        viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed/${opts.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${originParam}${sParam}${eParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+        viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube-nocookie.com/embed/${opts.videoId}?autoplay=1&rel=0&controls=1&modestbranding=1&iv_load_policy=3&color=white&playsinline=1${originParam}${sParam}${eParam}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         if (window.YT && window.YT.Player && pendingAttachIframeSessionId === activeSessionId) {
             handleYouTubeApiAvailable();
         }
     } else {
         pendingAttachIframeSessionId = null;
-        viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+        viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube-nocookie.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
     }
 }
 
@@ -1939,6 +1941,7 @@ function openCleanPlayer(article) {
             }, 2500);
 
             ytPlayer = new window.YT.Player('clean-iframe-container', {
+                host: 'https://www.youtube-nocookie.com',
                 videoId: initialOpts.videoId,
                 playerVars: pVars,
                 events: createMainPlayerEvents(activeSessionId)
@@ -1946,7 +1949,7 @@ function openCleanPlayer(article) {
             updateMediaSession(article);
         } else {
             isMainPlayerLoading = false;
-            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            viewport.innerHTML = `<iframe id="clean-iframe" src="https://www.youtube-nocookie.com/embed?listType=search&list=Taarak+Mehta+Ka+Ooltah+Chashmah+Episode+${article.epNumber}&modestbranding=1&rel=0&iv_load_policy=3&color=white&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         }
     } else {
         // YT API not ready yet: mount playable iframe immediately and attach JSAPI once API finishes
