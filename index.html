@@ -30,8 +30,8 @@
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css?v=1.0.3">
     <link rel="stylesheet" href="css/layout.css?v=1.0.3">
-    <link rel="stylesheet" href="css/style.css?v=1.0.10">
-    <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.1">
+    <link rel="stylesheet" href="css/style.css?v=1.0.11">
+    <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.2">
 </head>
 <body>
 
@@ -271,6 +271,41 @@
                     </div>
                 </div>
 
+                <!-- Phase 4: Superfan Status Card & Watch Progress Portability -->
+                <div class="sidebar-section dash-animate fan-portability-card">
+                    <div class="sidebar-section__header">
+                        <span class="sidebar-section__title" style="display: flex; align-items: center; gap: 8px;">
+                            🏅 Superfan Card &amp; Backup
+                        </span>
+                    </div>
+                    <div class="fan-cert-box">
+                        <p class="fan-cert-desc">Download your personalized Gokuldham certificate (1080×1920 PNG) for WhatsApp Status &amp; Instagram Stories.</p>
+                        <div class="fan-cert-actions">
+                            <button type="button" id="download-fan-card-btn" class="fan-card-primary-btn">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Download Status Card
+                            </button>
+                            <button type="button" id="preview-fan-card-btn" class="fan-card-secondary-btn" title="Preview certificate before downloading">Preview</button>
+                        </div>
+                    </div>
+                    <div class="fan-backup-box">
+                        <div class="fan-backup-header">Watch Progress Backup</div>
+                        <p class="fan-cert-desc">Save your watched episodes &amp; streaks as a file or restore them on another device.</p>
+                        <div class="fan-backup-actions">
+                            <button type="button" id="export-progress-btn" class="fan-backup-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Backup (.json)
+                            </button>
+                            <button type="button" id="import-progress-btn" class="fan-backup-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                Restore (.json)
+                            </button>
+                            <input type="file" id="import-progress-input" accept=".json,application/json" style="display: none;" />
+                        </div>
+                        <div id="backup-feedback" class="handle-feedback" style="display: none;"></div>
+                    </div>
+                </div>
+
                 <!-- Recent Activity -->
                 <div class="sidebar-section dash-animate">
                     <div class="sidebar-section__header">
@@ -326,6 +361,25 @@
         </div>
     </div>
 
+    <!-- Superfan Status Card Preview Modal -->
+    <div id="fan-card-preview-modal" class="name-prompt-backdrop" style="display: none;" aria-hidden="true">
+        <div class="fan-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="fan-preview-title">
+            <div class="fan-preview-header">
+                <h3 id="fan-preview-title" class="fan-preview-title">Superfan Status Card Preview</h3>
+                <button type="button" id="fan-preview-close-btn" class="tmkoc-modal-close" aria-label="Close Preview" title="Close">✕</button>
+            </div>
+            <div class="fan-preview-canvas-wrap">
+                <canvas id="fan-card-preview-canvas"></canvas>
+            </div>
+            <div class="fan-preview-actions">
+                <button type="button" id="fan-preview-download-btn" class="fan-card-primary-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download PNG (1080×1920)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Global Custom Toast Notification -->
     <div id="custom-toast" class="custom-toast" style="display: none;" role="status" aria-live="polite">
         <span id="custom-toast-icon" class="custom-toast__icon"></span>
@@ -333,6 +387,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=34"></script>
+    <script type="module" src="js/app.js?v=35"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ import {
     fetchUserGlobalRank,
     isSupabaseConfigured,
     getOrCreateUserId,
+    getOrCreateUserToken,
     reportDeadLinkToCloud,
     fetchKnownDeadLinks,
     isHandleTaken,
@@ -19,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=34';
+} from './supabase.js?v=35';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -27,7 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=34';
+} from './avatars.js?v=35';
+import {
+    generateFanCardCanvas,
+    downloadFanCardPNG
+} from './fan-card.js?v=35';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -3066,6 +3071,7 @@ export async function updateFanDashboard() {
     }
 
     bindSidebarAvatarPicker();
+    bindPhase4Controls();
 
     // Check if user's local handle is claimed by another user on the leaderboard
     if (savedHandle && !savedHandle.startsWith('Gokuldham resident') && savedHandle !== '@TMKOCSuperfan') {
@@ -3832,4 +3838,376 @@ export function renderStorylinesGrid(storylines, containerId) {
     });
 
     container.appendChild(fragment);
+}
+
+// ----------------------------------------------------
+// PHASE 4: SUPERFAN CERTIFICATE CARD & BACKUP / RESTORE
+// ----------------------------------------------------
+function setBackupFeedback(msg, type = 'success') {
+    const el = document.getElementById('backup-feedback');
+    if (el) {
+        if (!msg) {
+            el.style.display = 'none';
+            el.innerHTML = '';
+        } else {
+            el.className = `handle-feedback handle-feedback--${type}`;
+            el.innerHTML = `${type === 'error' ? '⚠️' : '✓'} <span>${escapeHTML(msg)}</span>`;
+            el.style.display = 'flex';
+        }
+    }
+    if (msg) {
+        showCustomToast(msg, type);
+    }
+}
+
+async function collectCurrentFanCardStats() {
+    const completed = getCompletedWatchedList();
+    const completedShorts = getCompletedShortsList();
+    const watchedCount = completed.length;
+    const shortsCount = completedShorts.length;
+    const totalSecs = getExactWatchSeconds();
+    const decimalHours = totalSecs / 3600;
+    const streakData = getStreakData();
+    const level = getFanLevel(watchedCount);
+    const uniqueStarted = Object.keys(getTimestamps()).length;
+
+    let rank = null;
+    if (watchedCount > 0 || totalSecs > 0) {
+        try {
+            rank = await Promise.race([
+                fetchUserGlobalRank(watchedCount, decimalHours),
+                new Promise(resolve => setTimeout(() => resolve(null), 2500))
+            ]);
+        } catch (e) {
+            rank = null;
+        }
+    }
+
+    return {
+        handle: getCurrentCommentHandle(),
+        avatarId: getSelectedAvatarId(),
+        rank: rank ? rank.toLocaleString() : null,
+        watchedCount,
+        shortsCount,
+        uniqueStarted,
+        watchTimeText: formatWatchTime(decimalHours),
+        streakDays: Number(streakData.currentStreak) || 0,
+        fanTier: level.title,
+        dateStr: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    };
+}
+
+async function triggerFanCardDownload(btnEl = null) {
+    const originalText = btnEl ? btnEl.textContent.trim() : '';
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = 'Generating PNG...';
+    }
+    try {
+        const stats = await collectCurrentFanCardStats();
+        const filename = await downloadFanCardPNG(stats);
+        showCustomToast(`Downloaded ${filename}!`, 'success');
+    } catch (err) {
+        console.error('Fan card download error:', err);
+        showCustomToast('Could not generate status card. Please try again.', 'error');
+    } finally {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.textContent = originalText || 'Download Status Card';
+        }
+    }
+}
+
+async function openFanCardPreviewModal() {
+    const modal = document.getElementById('fan-card-preview-modal');
+    const canvas = document.getElementById('fan-card-preview-canvas');
+    if (!modal || !canvas) return;
+
+    modal.style.display = 'flex';
+    void modal.offsetWidth;
+    modal.classList.add('is-active');
+    modal.setAttribute('aria-hidden', 'false');
+
+    try {
+        const stats = await collectCurrentFanCardStats();
+        await generateFanCardCanvas(stats, canvas);
+    } catch (e) {
+        console.error('Preview canvas error:', e);
+        showCustomToast('Could not render preview card.', 'error');
+    }
+}
+
+function closeFanCardPreviewModal() {
+    const modal = document.getElementById('fan-card-preview-modal');
+    if (!modal) return;
+    modal.classList.remove('is-active');
+    modal.setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 260);
+}
+
+function readJsonObjectFromStorage(key) {
+    try {
+        const val = JSON.parse(localStorage.getItem(key) || '{}');
+        return (val && typeof val === 'object' && !Array.isArray(val)) ? val : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function exportWatchProgressBackup() {
+    try {
+        const completed = getCompletedWatchedList();
+        const completedShorts = getCompletedShortsList();
+        const backup = {
+            app: 'daily-dose-of-tmkoc',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            identity: {
+                handle: (localStorage.getItem(STORAGE_HANDLE) || '').trim(),
+                avatarId: getSelectedAvatarId(),
+                customNameSet: hasUserSelectedCustomName(),
+                userId: getOrCreateUserId(),
+                clientToken: getOrCreateUserToken()
+            },
+            progress: {
+                completedEpisodes: completed,
+                completedShorts: completedShorts,
+                timestamps: getTimestamps(),
+                exactWatchSeconds: getExactWatchSeconds(),
+                streakData: getStreakData(),
+                activityLog: getRecentActivity(20),
+                lastOpened: localStorage.getItem(STORAGE_LAST_OPENED) || '',
+                reactions: readJsonObjectFromStorage('tmkoc_episode_reactions'),
+                autoplayNext: localStorage.getItem('autoplayNext') !== 'false'
+            }
+        };
+
+        const dateTag = new Date().toISOString().split('T')[0];
+        const filename = `tmkoc_progress_backup_${dateTag}.json`;
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2500);
+
+        const epLabel = completed.length === 1 ? 'episode' : 'episodes';
+        const clipLabel = completedShorts.length === 1 ? 'clip' : 'clips';
+        setBackupFeedback(`Backup downloaded (${completed.length} ${epLabel}, ${completedShorts.length} ${clipLabel}).`, 'success');
+    } catch (err) {
+        console.error('Export backup error:', err);
+        setBackupFeedback('Could not export watch progress backup.', 'error');
+    }
+}
+
+function sanitizeEpIdArray(arr) {
+    if (!Array.isArray(arr)) return [];
+    const safeRe = /^[A-Za-z0-9_-]{1,32}$/;
+    const out = [];
+    for (const item of arr.slice(0, 6000)) {
+        if (typeof item === 'string' && safeRe.test(item.trim())) {
+            out.push(item.trim());
+        }
+    }
+    return out;
+}
+
+async function importWatchProgressBackup(file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        setBackupFeedback('Backup file is too large (max 5 MB).', 'error');
+        return;
+    }
+
+    let parsed;
+    try {
+        const text = await file.text();
+        parsed = JSON.parse(text);
+    } catch (e) {
+        setBackupFeedback('Invalid JSON file. Please pick a valid TMKOC backup.', 'error');
+        return;
+    }
+
+    if (!parsed || typeof parsed !== 'object' || parsed.app !== 'daily-dose-of-tmkoc' || !parsed.progress || typeof parsed.progress !== 'object') {
+        setBackupFeedback('Unrecognized backup format. Please select a Daily Dose of TMKOC backup file.', 'error');
+        return;
+    }
+
+    const prog = parsed.progress;
+    const prevCompleted = getCompletedWatchedList();
+    const incomingCompleted = sanitizeEpIdArray(prog.completedEpisodes);
+    const mergedCompleted = Array.from(new Set([...prevCompleted, ...incomingCompleted]));
+    localStorage.setItem(STORAGE_COMPLETED, JSON.stringify(mergedCompleted));
+
+    const prevShorts = getCompletedShortsList();
+    const incomingShorts = sanitizeEpIdArray(prog.completedShorts);
+    const mergedShorts = Array.from(new Set([...prevShorts, ...incomingShorts]));
+    localStorage.setItem(STORAGE_COMPLETED_SHORTS, JSON.stringify(mergedShorts));
+
+    // Merge timestamps keeping furthest timestamp per episode
+    const prevTimestamps = getTimestamps();
+    const mergedTimestamps = { ...prevTimestamps };
+    if (prog.timestamps && typeof prog.timestamps === 'object' && !Array.isArray(prog.timestamps)) {
+        for (const [epKey, val] of Object.entries(prog.timestamps)) {
+            if (/^[A-Za-z0-9_-]{1,32}$/.test(epKey) && typeof val === 'number' && Number.isFinite(val) && val >= 0 && val <= 86400) {
+                mergedTimestamps[epKey] = Math.max(Number(mergedTimestamps[epKey]) || 0, Math.floor(val));
+            }
+        }
+    }
+    localStorage.setItem(STORAGE_TIMESTAMPS, JSON.stringify(mergedTimestamps));
+
+    // Merge exact watch seconds
+    const prevSecs = getExactWatchSeconds();
+    const incomingSecs = (typeof prog.exactWatchSeconds === 'number' && Number.isFinite(prog.exactWatchSeconds) && prog.exactWatchSeconds >= 0)
+        ? Math.min(9000000, Math.floor(prog.exactWatchSeconds))
+        : 0;
+    localStorage.setItem(STORAGE_EXACT_WATCH_SECONDS, String(Math.max(prevSecs, incomingSecs)));
+
+    // Merge streak data cleanly
+    if (prog.streakData && typeof prog.streakData === 'object' && !Array.isArray(prog.streakData)) {
+        const curStreakObj = getStreakData();
+        const incCur = Math.max(0, Math.min(5000, parseInt(prog.streakData.currentStreak, 10) || 0));
+        const incLong = Math.max(0, Math.min(5000, parseInt(prog.streakData.longestStreak, 10) || 0));
+        const incDate = typeof prog.streakData.lastWatchDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(prog.streakData.lastWatchDate)
+            ? prog.streakData.lastWatchDate
+            : '';
+
+        const mergedLongest = Math.max(Number(curStreakObj.longestStreak) || 0, incLong, incCur);
+        const curDate = String(curStreakObj.lastWatchDate || '');
+        const useIncomingStreak = incDate && (!curDate || incDate > curDate || (incDate === curDate && incCur > (Number(curStreakObj.currentStreak) || 0)));
+        const nextStreak = {
+            currentStreak: useIncomingStreak ? incCur : (Number(curStreakObj.currentStreak) || incCur),
+            longestStreak: mergedLongest,
+            lastWatchDate: useIncomingStreak ? incDate : (curDate || incDate)
+        };
+        localStorage.setItem(STORAGE_STREAK, JSON.stringify(nextStreak));
+    }
+
+    // Merge activity log if empty or missing entries
+    if (Array.isArray(prog.activityLog) && prog.activityLog.length > 0) {
+        const currentLog = getRecentActivity(20);
+        if (currentLog.length === 0) {
+            const safeLog = prog.activityLog
+                .slice(0, 20)
+                .filter(item => item && typeof item === 'object' && typeof item.title === 'string')
+                .map(item => ({
+                    type: ['watch', 'streak', 'level'].includes(item.type) ? item.type : 'watch',
+                    title: String(item.title).slice(0, 60),
+                    date: typeof item.date === 'string' ? item.date.slice(0, 40) : new Date().toISOString(),
+                    duration: typeof item.duration === 'number' && Number.isFinite(item.duration) ? item.duration : null
+                }));
+            if (safeLog.length > 0) {
+                localStorage.setItem(STORAGE_ACTIVITY, JSON.stringify(safeLog));
+            }
+        }
+    }
+
+    if (typeof prog.lastOpened === 'string' && /^[A-Za-z0-9_-]{1,32}$/.test(prog.lastOpened) && !localStorage.getItem(STORAGE_LAST_OPENED)) {
+        localStorage.setItem(STORAGE_LAST_OPENED, prog.lastOpened);
+    }
+
+    // Merge local reaction votes
+    if (prog.reactions && typeof prog.reactions === 'object' && !Array.isArray(prog.reactions)) {
+        const localReactions = readJsonObjectFromStorage('tmkoc_episode_reactions');
+        for (const [epKey, vote] of Object.entries(prog.reactions)) {
+            if (/^[A-Za-z0-9_-]{1,32}$/.test(epKey) && (vote === 1 || vote === -1) && localReactions[epKey] === undefined) {
+                localReactions[epKey] = vote;
+            }
+        }
+        localStorage.setItem('tmkoc_episode_reactions', JSON.stringify(localReactions));
+    }
+
+    // Restore identity cleanly when importing into a fresh/empty device (or matching UUID)
+    let restoredNameMsg = '';
+    const incId = parsed.identity && typeof parsed.identity === 'object' ? parsed.identity : null;
+    if (incId) {
+        const hadNoProgressBefore = prevCompleted.length === 0 && prevShorts.length === 0 && !hasUserSelectedCustomName();
+        const curUid = localStorage.getItem('tmkoc_user_uuid');
+        const sameUid = Boolean(curUid && incId.userId && curUid === incId.userId);
+
+        if ((hadNoProgressBefore || sameUid) &&
+            typeof incId.userId === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(incId.userId) &&
+            typeof incId.clientToken === 'string' && /^[A-Za-z0-9_-]{16,128}$/.test(incId.clientToken)) {
+            localStorage.setItem('tmkoc_user_uuid', incId.userId);
+            localStorage.setItem('tmkoc_user_token', incId.clientToken);
+        }
+
+        if ((hadNoProgressBefore || sameUid) && typeof incId.handle === 'string') {
+            const cleanHandle = incId.handle.replace(/[<>"'&\\/]/g, '').trim().slice(0, 30);
+            if (cleanHandle && !cleanHandle.startsWith('Gokuldham resident') && cleanHandle !== '@TMKOCSuperfan') {
+                localStorage.setItem(STORAGE_HANDLE, cleanHandle);
+                localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
+                const handleInput = document.getElementById('user-handle-input');
+                if (handleInput) handleInput.value = cleanHandle;
+                restoredNameMsg = ` & profile "${cleanHandle}"`;
+            }
+        }
+
+        if (incId.avatarId && (hadNoProgressBefore || sameUid || getSelectedAvatarId() === 'default')) {
+            setSelectedAvatarId(incId.avatarId);
+        }
+    }
+
+    refreshAllRenderedCards();
+    refreshAvatarPickersUI();
+    await updateFanDashboard();
+    syncCurrentUserStats().catch(() => {});
+
+    const epLabel = mergedCompleted.length === 1 ? 'episode' : 'episodes';
+    const clipLabel = mergedShorts.length === 1 ? 'clip' : 'clips';
+    setBackupFeedback(`Restored ${mergedCompleted.length} ${epLabel}, ${mergedShorts.length} ${clipLabel}${restoredNameMsg}!`, 'success');
+}
+
+function bindPhase4Controls() {
+    const dlBtn = document.getElementById('download-fan-card-btn');
+    if (dlBtn && !dlBtn.dataset.bound) {
+        dlBtn.dataset.bound = 'true';
+        dlBtn.addEventListener('click', () => triggerFanCardDownload(dlBtn));
+    }
+
+    const previewBtn = document.getElementById('preview-fan-card-btn');
+    if (previewBtn && !previewBtn.dataset.bound) {
+        previewBtn.dataset.bound = 'true';
+        previewBtn.addEventListener('click', openFanCardPreviewModal);
+    }
+
+    const previewModal = document.getElementById('fan-card-preview-modal');
+    if (previewModal && !previewModal.dataset.bound) {
+        previewModal.dataset.bound = 'true';
+        document.getElementById('fan-preview-close-btn')?.addEventListener('click', closeFanCardPreviewModal);
+        document.getElementById('fan-preview-download-btn')?.addEventListener('click', (e) => triggerFanCardDownload(e.currentTarget));
+        previewModal.addEventListener('click', (e) => {
+            if (e.target === previewModal) closeFanCardPreviewModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && previewModal.classList.contains('is-active')) {
+                closeFanCardPreviewModal();
+            }
+        });
+    }
+
+    const exportBtn = document.getElementById('export-progress-btn');
+    if (exportBtn && !exportBtn.dataset.bound) {
+        exportBtn.dataset.bound = 'true';
+        exportBtn.addEventListener('click', exportWatchProgressBackup);
+    }
+
+    const importBtn = document.getElementById('import-progress-btn');
+    const importInput = document.getElementById('import-progress-input');
+    if (importBtn && importInput && !importBtn.dataset.bound) {
+        importBtn.dataset.bound = 'true';
+        importBtn.addEventListener('click', () => importInput.click());
+        importInput.addEventListener('change', async () => {
+            const file = importInput.files && importInput.files[0];
+            if (file) {
+                await importWatchProgressBackup(file);
+            }
+            importInput.value = '';
+        });
+    }
 }

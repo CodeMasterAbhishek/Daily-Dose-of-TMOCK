@@ -943,3 +943,147 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* Phase 4: Superfan Card & Progress Portability */
+.fan-cert-box,
+.fan-backup-box {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fan-backup-box {
+  border-top: 1px dashed var(--border-color);
+}
+
+.fan-backup-header {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.fan-cert-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.fan-cert-actions,
+.fan-backup-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fan-card-primary-btn {
+  flex: 1;
+  min-width: 150px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000000;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.14s ease, opacity 0.18s ease;
+}
+
+.fan-card-primary-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.fan-card-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fan-card-secondary-btn,
+.fan-backup-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fan-backup-btn {
+  flex: 1;
+  min-width: 110px;
+}
+
+.fan-card-secondary-btn:hover,
+.fan-backup-btn:hover {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+
+/* Superfan Card Preview Modal */
+.fan-preview-dialog {
+  width: 100%;
+  max-width: 420px;
+  max-height: 94vh;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 16px 18px 18px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.fan-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fan-preview-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.fan-preview-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #05070d;
+  border-radius: 14px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+}
+
+#fan-card-preview-canvas {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  aspect-ratio: 9 / 16;
+  border-radius: 10px;
+  display: block;
+}
+
+.fan-preview-actions {
+  display: flex;
+}
