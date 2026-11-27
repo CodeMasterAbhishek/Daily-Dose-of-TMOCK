@@ -195,6 +195,7 @@
                         <input type="text" id="user-handle-input" class="handle-bar__input" placeholder="e.g. Jethalal123" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; font-size: 13px; flex: 1;">
                         <button id="save-handle-btn" class="handle-bar__save" onclick="saveUserHandle()" style="padding: 10px 16px; border-radius: 8px;">Save</button>
                     </div>
+                    <div id="handle-feedback" class="handle-feedback" style="display: none;"></div>
                 </div>
 
                 <!-- Quick Stats -->
@@ -311,7 +312,13 @@
         </div>
     </div>
 
+    <!-- Global Custom Toast Notification -->
+    <div id="custom-toast" class="custom-toast" style="display: none;" role="status" aria-live="polite">
+        <span id="custom-toast-icon" class="custom-toast__icon"></span>
+        <span id="custom-toast-msg" class="custom-toast__msg"></span>
+    </div>
+
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=28"></script>
+    <script type="module" src="js/app.js?v=29"></script>
 </body>
 </html>

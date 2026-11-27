@@ -2114,8 +2114,22 @@ export async function updateFanDashboard() {
     }
 
     const handleInput = document.getElementById('user-handle-input');
-    if (handleInput && !handleInput.value) {
+    if (handleInput && (!handleInput.value || document.activeElement !== handleInput)) {
         handleInput.value = savedHandle;
+    }
+
+    // Check if user's local handle is claimed by another user on the leaderboard
+    if (savedHandle && !savedHandle.startsWith('Gokuldham resident') && savedHandle !== '@TMKOCSuperfan') {
+        isHandleTaken(savedHandle, getOrCreateUserId()).then(taken => {
+            if (taken) {
+                const feedback = document.getElementById('handle-feedback');
+                if (feedback) {
+                    feedback.className = 'handle-feedback handle-feedback--error';
+                    feedback.innerHTML = `⚠️ <span><strong>"${escapeHTML(savedHandle)}"</strong> is already claimed by the #1 fan on the Leaderboard. Please choose a unique name!</span>`;
+                    feedback.style.display = 'flex';
+                }
+            }
+        }).catch(() => {});
     }
 
     const cardUserBadge = document.getElementById('card-user-badge');
@@ -2465,53 +2479,115 @@ window.toggleFullScreen = function() {
     }
 };
 
+let toastTimeout = null;
+export function showCustomToast(message, type = 'error') {
+    const toast = document.getElementById('custom-toast');
+    const msgEl = document.getElementById('custom-toast-msg');
+    const iconEl = document.getElementById('custom-toast-icon');
+    if (!toast || !msgEl) return;
+
+    if (toastTimeout) clearTimeout(toastTimeout);
+
+    msgEl.textContent = message;
+    toast.className = `custom-toast custom-toast--${type}`;
+    if (iconEl) {
+        iconEl.innerHTML = type === 'error' ? '⚠️' : '✓';
+    }
+
+    toast.style.display = 'flex';
+    void toast.offsetWidth;
+    toast.classList.add('is-visible');
+
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('is-visible');
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 300);
+    }, 3500);
+}
+
 window.saveUserHandle = async function() {
     const input = document.getElementById('user-handle-input');
     const btn = document.getElementById('save-handle-btn');
-    if (input && input.value.trim()) {
-        const newHandle = input.value.trim();
-        if (newHandle.length < 2 || newHandle.length > 30) {
-            alert('Name must be between 2 and 30 characters.');
-            return;
-        }
-        if (newHandle.toLowerCase().startsWith('gokuldham resident') || newHandle === '@TMKOCSuperfan') {
-            alert('Please choose a personalized name or nickname.');
-            return;
-        }
+    const feedback = document.getElementById('handle-feedback');
 
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Checking...';
-            btn.style.opacity = '0.7';
+    function setFeedback(msg, type = 'error') {
+        if (feedback) {
+            feedback.className = `handle-feedback handle-feedback--${type}`;
+            feedback.innerHTML = `${type === 'error' ? '⚠️' : '✓'} <span>${escapeHTML(msg)}</span>`;
+            feedback.style.display = 'flex';
         }
+        if (type === 'error' && input) {
+            input.classList.remove('input-shake');
+            void input.offsetWidth;
+            input.classList.add('input-shake');
+            setTimeout(() => input.classList.remove('input-shake'), 450);
+        }
+        showCustomToast(msg, type);
+    }
 
+    if (!input || !input.value.trim()) {
+        setFeedback('Please enter a username.', 'error');
+        return;
+    }
+
+    const newHandle = input.value.trim();
+    if (newHandle.length < 2) {
+        setFeedback('Name must be at least 2 characters.', 'error');
+        input.focus();
+        return;
+    }
+    if (newHandle.length > 30) {
+        setFeedback('Name must be 30 characters or less.', 'error');
+        input.focus();
+        return;
+    }
+    if (newHandle.toLowerCase().startsWith('gokuldham resident') || newHandle === '@TMKOCSuperfan') {
+        setFeedback('Please choose a personalized name or nickname.', 'error');
+        input.focus();
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Checking...';
+        btn.style.opacity = '0.7';
+    }
+    if (feedback) feedback.style.display = 'none';
+
+    try {
         const taken = await isHandleTaken(newHandle, getOrCreateUserId());
         if (taken) {
-            alert(`"${newHandle}" is already taken by another fan on the Leaderboard. Please choose a unique name!`);
+            setFeedback(`"${newHandle}" is already taken by another fan. Please choose a unique name!`, 'error');
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = 'Save';
                 btn.style.opacity = '1';
             }
+            input.focus();
             return;
         }
-
-        localStorage.setItem(STORAGE_HANDLE, newHandle);
-        localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
-        if (btn) {
-            btn.textContent = 'Saving...';
-        }
-        await syncCurrentUserStats();
-        await updateFanDashboard();
-        if (btn) {
-            btn.textContent = 'Saved!';
-            setTimeout(() => {
-                btn.textContent = 'Save';
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            }, 1200);
-        }
+    } catch (e) {
+        console.warn('Error checking handle uniqueness:', e);
     }
+
+    localStorage.setItem(STORAGE_HANDLE, newHandle);
+    localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
+    setFeedback(`Saved! Your leaderboard handle is now "${newHandle}".`, 'success');
+
+    if (btn) {
+        btn.textContent = 'Saved!';
+        setTimeout(() => {
+            btn.textContent = 'Save';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }, 1200);
+    }
+
+    // Sync to cloud and update dashboard in background
+    syncCurrentUserStats().then(() => updateFanDashboard()).catch(e => {
+        console.warn('Sync error after saving handle:', e);
+    });
 };
 
 export function hasUserSelectedCustomName() {
@@ -2695,7 +2771,7 @@ window.copyShareCardText = function() {
     const shareText = `I've watched ${countText} (${formatWatchTime(hours)}) of TMKOC on Daily Dose! My Fan Level: ${level.title} (${handle}). Check your level at CodeMasterAbhishek.github.io/Daily-Dose-of-TMOCK/`;
 
     navigator.clipboard.writeText(shareText).then(() => {
-        alert('Copied Social Share Card text to clipboard!');
+        showCustomToast('Copied Social Share Card text to clipboard!', 'success');
     });
 };
 
