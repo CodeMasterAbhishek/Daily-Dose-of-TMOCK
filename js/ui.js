@@ -2121,12 +2121,15 @@ export async function updateFanDashboard() {
     // Check if user's local handle is claimed by another user on the leaderboard
     if (savedHandle && !savedHandle.startsWith('Gokuldham resident') && savedHandle !== '@TMKOCSuperfan') {
         isHandleTaken(savedHandle, getOrCreateUserId()).then(taken => {
-            if (taken) {
-                const feedback = document.getElementById('handle-feedback');
-                if (feedback) {
+            const feedback = document.getElementById('handle-feedback');
+            if (feedback) {
+                if (taken) {
                     feedback.className = 'handle-feedback handle-feedback--error';
-                    feedback.innerHTML = `⚠️ <span><strong>"${escapeHTML(savedHandle)}"</strong> is already claimed by the #1 fan on the Leaderboard. Please choose a unique name!</span>`;
+                    feedback.innerHTML = `⚠️ <span><strong>"${escapeHTML(savedHandle)}"</strong> is already claimed by another fan on the Leaderboard. Please choose a unique name!</span>`;
                     feedback.style.display = 'flex';
+                } else {
+                    feedback.style.display = 'none';
+                    feedback.innerHTML = '';
                 }
             }
         }).catch(() => {});

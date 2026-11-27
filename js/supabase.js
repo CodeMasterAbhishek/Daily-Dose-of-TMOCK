@@ -78,7 +78,7 @@ export async function isHandleTaken(handle, currentUserId) {
 
     try {
         const response = await fetch(
-            `${cleanBaseUrl}/rest/v1/leaderboard?select=user_id,handle&handle=ilike.${encodeURIComponent(cleanHandle)}`,
+            `${cleanBaseUrl}/rest/v1/leaderboard?select=user_id,handle,watched_count&handle=ilike.${encodeURIComponent(cleanHandle)}`,
             {
                 method: 'GET',
                 headers: {
@@ -92,6 +92,16 @@ export async function isHandleTaken(handle, currentUserId) {
         if (!response.ok) return false;
         const matches = await response.json();
         if (Array.isArray(matches) && matches.length > 0) {
+            // Check if current user is among the matching records
+            const myMatch = matches.find(m => m.user_id === myId);
+            if (myMatch) {
+                // If current user is in the database with this handle, verify if they are the primary holder
+                const myCount = Number(myMatch.watched_count) || 0;
+                const otherWithMore = matches.some(m => m.user_id !== myId && (Number(m.watched_count) || 0) > myCount);
+                if (!otherWithMore) {
+                    return false; // Current user is the legitimate owner/holder of this handle!
+                }
+            }
             // Returns true if any match belongs to a DIFFERENT user_id
             return matches.some(m => m.user_id !== myId);
         }

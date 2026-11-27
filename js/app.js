@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal } from './ui.js?v=29';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal } from './ui.js?v=30';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -320,10 +320,28 @@ if (logoEl) {
 }
 
 // Search Bar Handlers (Always Visible)
+function ensureEpisodesViewActive() {
+    const episodesView = document.getElementById('episodes-view');
+    const dashboardView = document.getElementById('fan-dashboard-view');
+    if (dashboardView && dashboardView.style.display !== 'none') {
+        dashboardView.style.display = 'none';
+        if (episodesView) episodesView.style.display = 'block';
+        if (fanStatsBtn) fanStatsBtn.classList.remove('active');
+        const filterChips = document.querySelectorAll('.chip');
+        filterChips.forEach(c => c.classList.remove('active'));
+        const allChip = document.querySelector('.chip[data-category="all"]') || document.querySelector('.chip');
+        if (allChip) allChip.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
 if (searchForm) {
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         searchQuery = searchInput.value.trim().toLowerCase();
+        if (searchQuery) {
+            ensureEpisodesViewActive();
+        }
         currentPage = 1;
         stateVersion++;
         renderPage(false);
@@ -333,6 +351,9 @@ if (searchForm) {
 if (searchInput) {
     searchInput.addEventListener('input', () => {
         searchQuery = searchInput.value.trim().toLowerCase();
+        if (searchQuery) {
+            ensureEpisodesViewActive();
+        }
         currentPage = 1;
         stateVersion++;
         renderPage(false);
