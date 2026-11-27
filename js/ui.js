@@ -2120,7 +2120,7 @@ export async function updateFanDashboard() {
 
     // Check if user's local handle is claimed by another user on the leaderboard
     if (savedHandle && !savedHandle.startsWith('Gokuldham resident') && savedHandle !== '@TMKOCSuperfan') {
-        isHandleTaken(savedHandle, getOrCreateUserId()).then(taken => {
+        isHandleTaken(savedHandle, getOrCreateUserId(), watchedCount).then(taken => {
             const feedback = document.getElementById('handle-feedback');
             if (feedback) {
                 if (taken) {
@@ -2559,7 +2559,8 @@ window.saveUserHandle = async function() {
     if (feedback) feedback.style.display = 'none';
 
     try {
-        const taken = await isHandleTaken(newHandle, getOrCreateUserId());
+        const myEps = getCompletedWatchedList().length;
+        const taken = await isHandleTaken(newHandle, getOrCreateUserId(), myEps);
         if (taken) {
             setFeedback(`"${newHandle}" is already taken by another fan. Please choose a unique name!`, 'error');
             if (btn) {
@@ -2669,7 +2670,8 @@ export function initNamePromptModal() {
         }
 
         try {
-            const taken = await isHandleTaken(val, getOrCreateUserId());
+            const myEps = getCompletedWatchedList().length;
+            const taken = await isHandleTaken(val, getOrCreateUserId(), myEps);
             if (taken) {
                 if (errorEl) {
                     errorEl.textContent = `"${val}" is already taken. Please choose a unique name!`;

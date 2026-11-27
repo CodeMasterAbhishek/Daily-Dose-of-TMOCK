@@ -63,7 +63,7 @@ export function getOrCreateUserToken() {
  * Check if a username / handle is already taken by another registered user.
  * Case-insensitive match via Supabase REST API (ilike).
  */
-export async function isHandleTaken(handle, currentUserId) {
+export async function isHandleTaken(handle, currentUserId, myWatchedCount = 0) {
     if (!isSupabaseConfigured() || !handle) return false;
     const cleanHandle = handle.trim();
     if (!cleanHandle) return false;
@@ -75,10 +75,11 @@ export async function isHandleTaken(handle, currentUserId) {
 
     const cleanBaseUrl = getCleanBaseUrl();
     const myId = currentUserId || getOrCreateUserId();
+    const myCount = Number(myWatchedCount) || 0;
 
     try {
         const response = await fetch(
-            `${cleanBaseUrl}/rest/v1/leaderboard?select=user_id,handle,watched_count&handle=ilike.${encodeURIComponent(cleanHandle)}`,
+            `${cleanBaseUrl}/rest/v1/leaderboard?select=user_id,handle,watched_count,watch_hours&handle=ilike.${encodeURIComponent(cleanHandle)}`,
             {
                 method: 'GET',
                 headers: {
@@ -92,18 +93,32 @@ export async function isHandleTaken(handle, currentUserId) {
         if (!response.ok) return false;
         const matches = await response.json();
         if (Array.isArray(matches) && matches.length > 0) {
-            // Check if current user is among the matching records
+            // Check if current user is one of the matches
             const myMatch = matches.find(m => m.user_id === myId);
             if (myMatch) {
-                // If current user is in the database with this handle, verify if they are the primary holder
-                const myCount = Number(myMatch.watched_count) || 0;
-                const otherWithMore = matches.some(m => m.user_id !== myId && (Number(m.watched_count) || 0) > myCount);
+                const recordedCount = Math.max(myCount, Number(myMatch.watched_count) || 0);
+                const otherWithMore = matches.some(m => m.user_id !== myId && (Number(m.watched_count) || 0) > recordedCount);
                 if (!otherWithMore) {
                     return false; // Current user is the legitimate owner/holder of this handle!
                 }
             }
-            // Returns true if any match belongs to a DIFFERENT user_id
-            return matches.some(m => m.user_id !== myId);
+
+            // Filter to other users who have this handle
+            const otherUsers = matches.filter(m => m.user_id !== myId);
+            if (otherUsers.length === 0) {
+                return false;
+            }
+
+            // An inactive placeholder account with 0 episodes does NOT block a real user with watched episodes!
+            const activeCompetitors = otherUsers.filter(m => {
+                const otherEps = Number(m.watched_count) || 0;
+                if (otherEps === 0 && myCount > 0) {
+                    return false;
+                }
+                return true;
+            });
+
+            return activeCompetitors.length > 0;
         }
         return false;
     } catch (e) {
@@ -125,7 +140,7 @@ export async function syncUserToCloud({ handle, watchedCount, watchHours, fanTie
 
     // Guard against syncing a duplicate handle if taken by someone else
     if (!cleanHandle.startsWith('Gokuldham resident') && cleanHandle !== '@TMKOCSuperfan') {
-        const taken = await isHandleTaken(cleanHandle, userId);
+        const taken = await isHandleTaken(cleanHandle, userId, Number(watchedCount) || 0);
         if (taken) {
             console.warn(`Cannot sync: handle "${cleanHandle}" is already taken by another user.`);
             return { success: false, reason: 'handle_taken' };
