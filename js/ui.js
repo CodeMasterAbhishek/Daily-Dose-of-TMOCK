@@ -1,7 +1,7 @@
 /**
  * UI module for DailyDose TMKOC, Episode Badges, Exact Ranking Search, Real Leaderboard Data, and Clean Theme Card Design.
  */
-import { syncUserToCloud, fetchGlobalLeaderboard, fetchUserGlobalRank, isSupabaseConfigured, getOrCreateUserId, reportDeadLinkToCloud, fetchKnownDeadLinks } from './supabase.js';
+import { syncUserToCloud, fetchGlobalLeaderboard, fetchUserGlobalRank, isSupabaseConfigured, getOrCreateUserId, reportDeadLinkToCloud, fetchKnownDeadLinks, isHandleTaken } from './supabase.js';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -2470,12 +2470,36 @@ window.saveUserHandle = async function() {
     const btn = document.getElementById('save-handle-btn');
     if (input && input.value.trim()) {
         const newHandle = input.value.trim();
+        if (newHandle.length < 2 || newHandle.length > 30) {
+            alert('Name must be between 2 and 30 characters.');
+            return;
+        }
+        if (newHandle.toLowerCase().startsWith('gokuldham resident') || newHandle === '@TMKOCSuperfan') {
+            alert('Please choose a personalized name or nickname.');
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            btn.style.opacity = '0.7';
+        }
+
+        const taken = await isHandleTaken(newHandle, getOrCreateUserId());
+        if (taken) {
+            alert(`"${newHandle}" is already taken by another fan on the Leaderboard. Please choose a unique name!`);
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+                btn.style.opacity = '1';
+            }
+            return;
+        }
+
         localStorage.setItem(STORAGE_HANDLE, newHandle);
         localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
         if (btn) {
-            btn.disabled = true;
             btn.textContent = 'Saving...';
-            btn.style.opacity = '0.7';
         }
         await syncCurrentUserStats();
         await updateFanDashboard();
@@ -2562,7 +2586,25 @@ export function initNamePromptModal() {
         if (errorEl) errorEl.style.display = 'none';
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Saving...';
+            submitBtn.textContent = 'Checking availability...';
+        }
+
+        try {
+            const taken = await isHandleTaken(val, getOrCreateUserId());
+            if (taken) {
+                if (errorEl) {
+                    errorEl.textContent = `"${val}" is already taken. Please choose a unique name!`;
+                    errorEl.style.display = 'block';
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Join Leaderboard';
+                }
+                input.focus();
+                return;
+            }
+        } catch (e) {
+            console.warn('Error checking handle uniqueness:', e);
         }
 
         // Save to localStorage

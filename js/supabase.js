@@ -60,6 +60,49 @@ export function getOrCreateUserToken() {
 }
 
 /**
+ * Check if a username / handle is already taken by another registered user.
+ * Case-insensitive match via Supabase REST API (ilike).
+ */
+export async function isHandleTaken(handle, currentUserId) {
+    if (!isSupabaseConfigured() || !handle) return false;
+    const cleanHandle = handle.trim();
+    if (!cleanHandle) return false;
+
+    // Default placeholder handles are not restricted as unique custom names
+    if (cleanHandle.toLowerCase().startsWith('gokuldham resident') || cleanHandle === '@TMKOCSuperfan') {
+        return false;
+    }
+
+    const cleanBaseUrl = getCleanBaseUrl();
+    const myId = currentUserId || getOrCreateUserId();
+
+    try {
+        const response = await fetch(
+            `${cleanBaseUrl}/rest/v1/leaderboard?select=user_id,handle&handle=ilike.${encodeURIComponent(cleanHandle)}`,
+            {
+                method: 'GET',
+                headers: {
+                    'apikey': SUPABASE_CONFIG.anonKey,
+                    'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                    'Accept': 'application/json'
+                }
+            }
+        );
+
+        if (!response.ok) return false;
+        const matches = await response.json();
+        if (Array.isArray(matches) && matches.length > 0) {
+            // Returns true if any match belongs to a DIFFERENT user_id
+            return matches.some(m => m.user_id !== myId);
+        }
+        return false;
+    } catch (e) {
+        console.warn('Handle uniqueness check error:', e);
+        return false;
+    }
+}
+
+/**
  * Upsert current user's statistics to Supabase via secure RPC function.
  * Validates token ownership, sanitizes handle, and prevents row takeover.
  */
@@ -69,6 +112,16 @@ export async function syncUserToCloud({ handle, watchedCount, watchHours, fanTie
     const userId = getOrCreateUserId();
     const clientToken = getOrCreateUserToken();
     const cleanHandle = (handle || '@TMKOCSuperfan').trim();
+
+    // Guard against syncing a duplicate handle if taken by someone else
+    if (!cleanHandle.startsWith('Gokuldham resident') && cleanHandle !== '@TMKOCSuperfan') {
+        const taken = await isHandleTaken(cleanHandle, userId);
+        if (taken) {
+            console.warn(`Cannot sync: handle "${cleanHandle}" is already taken by another user.`);
+            return { success: false, reason: 'handle_taken' };
+        }
+    }
+
     const cleanBaseUrl = getCleanBaseUrl();
 
     try {
