@@ -30,7 +30,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css?v=1.0.3">
     <link rel="stylesheet" href="css/layout.css?v=1.0.3">
-    <link rel="stylesheet" href="css/style.css?v=1.0.13">
+    <link rel="stylesheet" href="css/style.css?v=1.0.14">
     <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.2">
 </head>
 <body>
@@ -38,10 +38,15 @@
     <header>
         <div class="container header-content" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
             
-            <!-- Left Group: Logo ("Daily Dose of TMKOC") -->
-            <a href="#" class="logo" style="display: flex; align-items: center; gap: 6px; font-size: 1.35rem; font-family: var(--font-sans); font-weight: 800; flex-shrink: 0;">
-                Daily Dose of <small class="logo-sub" style="font-size: 10px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px; margin-left: 2px;">TMKOC</small>
-            </a>
+            <!-- Left Group: Watch Back Button (Watch View only) + Logo ("Daily Dose of TMKOC") -->
+            <div class="header-left-group" style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                <button type="button" id="watch-back-btn" class="yt-header-back-btn" style="display: none;" title="Back to Episodes" aria-label="Back to Episodes">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <a href="#" class="logo" style="display: flex; align-items: center; gap: 6px; font-size: 1.35rem; font-family: var(--font-sans); font-weight: 800; flex-shrink: 0;">
+                    Daily Dose of <small class="logo-sub" style="font-size: 10px; background: var(--text-primary); color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px; margin-left: 2px;">TMKOC</small>
+                </a>
+            </div>
             
             <!-- Middle Group: Search Bar, All Episodes, Storylines, Sort Dropdown -->
             <div class="header-middle-wrap" style="display: flex; align-items: center; gap: 8px;">
@@ -136,14 +141,6 @@
 
     <!-- Full-Page YouTube-Style Watch View (Hidden by default) -->
     <section id="watch-view" class="yt-watch-page" style="display: none;" aria-label="Episode Player">
-        <div class="yt-watch-topbar">
-            <button type="button" id="watch-back-btn" class="yt-back-btn">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                <span>Back to Episodes</span>
-            </button>
-            <span id="watch-storyline-crumb" class="yt-storyline-crumb" style="display: none;"></span>
-        </div>
-
         <div class="yt-watch-layout">
             <!-- Left Primary Column: Player, Title/Actions, Description, Comments -->
             <div class="yt-watch-primary">
@@ -205,6 +202,14 @@
                                 </div>
                             </div>
 
+                            <label class="yt-pill-btn yt-autoplay-pill" title="Autoplay next episode">
+                                <span class="yt-switch-label">Autoplay</span>
+                                <span class="yt-switch">
+                                    <input type="checkbox" id="autoplay-toggle" onchange="toggleAutoplay(this.checked)">
+                                    <span class="yt-switch-slider"></span>
+                                </span>
+                            </label>
+
                             <div class="yt-ep-nav-pills">
                                 <button type="button" class="yt-icon-pill-btn" onclick="navCleanEp(-1)" title="Previous Episode" aria-label="Previous Episode">◀</button>
                                 <button type="button" class="yt-icon-pill-btn" onclick="navCleanEp(1)" title="Next Episode" aria-label="Next Episode">▶</button>
@@ -260,18 +265,8 @@
                 </section>
             </div>
 
-            <!-- Right Secondary Column: Up Next & Recommendations Sidebar -->
+            <!-- Right Secondary Column: Next Episodes & Recommendations Sidebar -->
             <aside class="yt-watch-secondary" aria-label="Recommended episodes">
-                <div class="yt-rec-header">
-                    <h3 class="yt-rec-title">Up Next</h3>
-                    <label class="yt-switch-wrap" title="Autoplay next episode">
-                        <span class="yt-switch-label">Autoplay</span>
-                        <span class="yt-switch">
-                            <input type="checkbox" id="autoplay-toggle" onchange="toggleAutoplay(this.checked)">
-                            <span class="yt-switch-slider"></span>
-                        </span>
-                    </label>
-                </div>
                 <div id="watch-recommendations-list" class="yt-rec-list"></div>
             </aside>
         </div>
@@ -530,6 +525,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=37"></script>
+    <script type="module" src="js/app.js?v=38"></script>
 </body>
 </html>

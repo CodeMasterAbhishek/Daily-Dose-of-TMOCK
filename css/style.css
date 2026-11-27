@@ -1962,57 +1962,39 @@ a:focus-visible {
 .yt-watch-page {
   width: 100%;
   max-width: 1720px;
-  margin: 10px auto 0;
+  margin: 16px auto 0;
   padding: 0 24px 48px;
 }
 
-.yt-watch-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.yt-back-btn {
+.yt-header-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px 5px 8px;
-  border-radius: 9999px;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.06);
   color: var(--text-primary);
-  font-size: 12.5px;
-  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.16s ease;
+  flex-shrink: 0;
+  transition: background-color 0.16s ease, transform 0.14s ease;
 }
 
-.yt-back-btn:hover {
-  background: rgba(0, 0, 0, 0.11);
+.yt-header-back-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
 }
 
-[data-theme="dark"] .yt-back-btn {
-  background: rgba(255, 255, 255, 0.08);
+.yt-header-back-btn:active {
+  transform: scale(0.95);
 }
 
-[data-theme="dark"] .yt-back-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
+[data-theme="dark"] .yt-header-back-btn {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.yt-storyline-crumb {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: rgba(0, 0, 0, 0.045);
-  padding: 4px 12px;
-  border-radius: 9999px;
-}
-
-[data-theme="dark"] .yt-storyline-crumb {
-  background: rgba(255, 255, 255, 0.08);
+[data-theme="dark"] .yt-header-back-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .yt-watch-layout {
@@ -2108,6 +2090,9 @@ a:focus-visible {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
@@ -2188,6 +2173,17 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.yt-autoplay-pill {
+  gap: 8px;
+  padding: 0 10px 0 14px;
+}
+
+.yt-autoplay-pill .yt-switch-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .yt-icon-pill-btn {
@@ -2522,41 +2518,13 @@ a:focus-visible {
   min-width: 0;
 }
 
-.yt-rec-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 4px 6px;
-}
-
-.yt-rec-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--text-primary);
-  margin: 0;
-}
-
 /* Sleek Toggle Switch for Autoplay */
-.yt-switch-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.yt-switch-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
 .yt-switch {
   position: relative;
   display: inline-block;
-  width: 36px;
-  height: 20px;
+  width: 34px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .yt-switch input {
@@ -2576,8 +2544,8 @@ a:focus-visible {
 .yt-switch-slider::before {
   content: '';
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   left: 3px;
   top: 3px;
   background: #ffffff;
@@ -2607,7 +2575,12 @@ a:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.7px;
   color: var(--text-secondary);
-  padding: 6px 4px 0;
+  padding: 8px 4px 2px;
+  line-height: 1.25;
+}
+
+.yt-rec-section-label:first-child {
+  padding-top: 0;
 }
 
 .yt-rec-card {
@@ -2754,7 +2727,14 @@ a:focus-visible {
 @media (max-width: 600px) {
   .yt-watch-page {
     padding: 0 12px 36px;
-    margin-top: 8px;
+    margin-top: 10px;
+  }
+  .header-left-group .logo {
+    font-size: 1.15rem !important;
+  }
+  .yt-header-back-btn {
+    width: 30px;
+    height: 30px;
   }
   .yt-rec-list {
     grid-template-columns: 1fr;

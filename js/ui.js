@@ -20,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=37';
+} from './supabase.js?v=38';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -28,11 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=37';
+} from './avatars.js?v=38';
 import {
     generateFanCardCanvas,
     downloadFanCardPNG
-} from './fan-card.js?v=37';
+} from './fan-card.js?v=38';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -2627,42 +2627,17 @@ function getWatchRecommendationGroups(article) {
     const upNext = [];
     const more = [];
     const seen = new Set([article.id]);
+    const currentEp = Number(article.epNumber) || 0;
 
-    const matchingArc = masterStorylinesList.find(
-        s => article.epNumber >= s.startEp && article.epNumber <= s.endEp
-    );
+    // Next 5 episodes strictly in incrementing episode order
+    const upcomingAscending = masterArticlesList
+        .filter(a => Number(a.epNumber) > currentEp && !seen.has(a.id))
+        .sort((a, b) => Number(a.epNumber) - Number(b.epNumber))
+        .slice(0, 5);
 
-    if (matchingArc) {
-        for (let ep = article.epNumber + 1; ep <= matchingArc.endEp && upNext.length < 6; ep++) {
-            const candidate = masterEpNumberMap[ep];
-            if (candidate && !seen.has(candidate.id)) {
-                upNext.push(candidate);
-                seen.add(candidate.id);
-            }
-        }
-        for (let ep = matchingArc.startEp; ep < article.epNumber && upNext.length < 6; ep++) {
-            const candidate = masterEpNumberMap[ep];
-            if (candidate && !seen.has(candidate.id)) {
-                upNext.push(candidate);
-                seen.add(candidate.id);
-            }
-        }
-    }
-
-    // Fill Up Next sequentially (+1..+8, or -1..-3 if at latest episode)
-    for (let step = 1; step <= 10 && upNext.length < 6; step++) {
-        const nextEp = masterEpNumberMap[article.epNumber + step];
-        if (nextEp && !seen.has(nextEp.id)) {
-            upNext.push(nextEp);
-            seen.add(nextEp.id);
-        }
-    }
-    for (let step = 1; step <= 4 && upNext.length < 6; step++) {
-        const prevEp = masterEpNumberMap[article.epNumber - step];
-        if (prevEp && !seen.has(prevEp.id)) {
-            upNext.push(prevEp);
-            seen.add(prevEp.id);
-        }
+    for (const nextEp of upcomingAscending) {
+        upNext.push(nextEp);
+        seen.add(nextEp.id);
     }
 
     // Curated same-era / classic picks spaced deterministically from masterArticlesList
@@ -2670,7 +2645,7 @@ function getWatchRecommendationGroups(article) {
     const sameCategory = pool.filter(a => a.category === article.category);
     const sourcePool = sameCategory.length >= 8 ? sameCategory : pool;
     const stepSize = Math.max(1, Math.floor(sourcePool.length / 10));
-    const offset = article.epNumber % stepSize;
+    const offset = currentEp % stepSize;
 
     for (let i = offset; i < sourcePool.length && more.length < 10; i += stepSize) {
         const pick = sourcePool[i];
@@ -2680,7 +2655,7 @@ function getWatchRecommendationGroups(article) {
         }
     }
 
-    return { matchingArc, upNext, more };
+    return { upNext, more };
 }
 
 function createRecommendationCardHTML(art, context) {
@@ -2711,20 +2686,10 @@ function createRecommendationCardHTML(art, context) {
 }
 
 function renderWatchRecommendations(article) {
-    const crumbEl = document.getElementById('watch-storyline-crumb');
     const listEl = document.getElementById('watch-recommendations-list');
     if (!listEl) return;
 
-    const { matchingArc, upNext, more } = getWatchRecommendationGroups(article);
-    if (crumbEl) {
-        if (matchingArc) {
-            crumbEl.textContent = `Storyline: ${matchingArc.title} (Ep ${matchingArc.startEp}–${matchingArc.endEp})`;
-            crumbEl.style.display = 'inline-flex';
-        } else {
-            crumbEl.style.display = 'none';
-            crumbEl.textContent = '';
-        }
-    }
+    const { upNext, more } = getWatchRecommendationGroups(article);
 
     const context = {
         completedSet: new Set(getCompletedWatchedList()),
@@ -2733,8 +2698,7 @@ function renderWatchRecommendations(article) {
 
     let html = '';
     if (upNext.length > 0) {
-        const label = matchingArc ? `Next in "${matchingArc.title}"` : 'Next Episodes';
-        html += `<div class="yt-rec-section-label">${escapeHTML(label)}</div>`;
+        html += `<div class="yt-rec-section-label">Next Episodes</div>`;
         html += upNext.map(art => createRecommendationCardHTML(art, context)).join('');
     }
     if (more.length > 0) {
@@ -2928,9 +2892,11 @@ function openCleanPlayer(article, options = {}) {
     const episodesView = document.getElementById('episodes-view');
     const dashboardView = document.getElementById('fan-dashboard-view');
     const watchView = document.getElementById('watch-view');
+    const headerBackBtn = document.getElementById('watch-back-btn');
     if (episodesView) episodesView.style.display = 'none';
     if (dashboardView) dashboardView.style.display = 'none';
     if (watchView) watchView.style.display = 'block';
+    if (headerBackBtn) headerBackBtn.style.display = 'inline-flex';
     document.body.style.overflow = 'auto';
 
     // Deactivate header feed filter chips while watching a video
@@ -3178,7 +3144,9 @@ window.closeCleanPlayer = function(closeOptions = {}) {
 
     closeSharePopover();
     const watchView = document.getElementById('watch-view');
+    const headerBackBtn = document.getElementById('watch-back-btn');
     if (watchView) watchView.style.display = 'none';
+    if (headerBackBtn) headerBackBtn.style.display = 'none';
 
     if (!closeOptions.skipScrollRestore) {
         const episodesView = document.getElementById('episodes-view');
