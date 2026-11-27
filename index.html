@@ -152,10 +152,7 @@
                 <div class="leaderboard-section dash-animate">
                     <div class="leaderboard-header">
                         <h4 class="leaderboard-header__title">Global Superfan Leaderboard (Top 50)</h4>
-                        <span id="leaderboard-status" class="leaderboard-header__live">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                            Live
-                        </span>
+                        <span id="leaderboard-status" style="display: none;"></span>
                     </div>
                     <div id="leaderboard-list">
                         <!-- Rendered by JS -->
@@ -197,9 +194,6 @@
                     <div style="display: flex; gap: 8px;">
                         <input type="text" id="user-handle-input" class="handle-bar__input" placeholder="e.g. Jethalal123" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; font-size: 13px; flex: 1;">
                         <button id="save-handle-btn" class="handle-bar__save" onclick="saveUserHandle()" style="padding: 10px 16px; border-radius: 8px;">Save</button>
-                    </div>
-                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 8px; opacity: 0.8;">
-                        * Synced securely to the Global Leaderboard.
                     </div>
                 </div>
 
@@ -295,6 +289,6 @@
     </footer>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=25"></script>
+    <script type="module" src="js/app.js?v=26"></script>
 </body>
 </html>

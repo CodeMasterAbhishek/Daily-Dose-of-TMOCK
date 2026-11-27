@@ -2283,21 +2283,15 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
     const isConfigured = isSupabaseConfigured();
     const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-    const statusBanner = `
-        <span style="display:flex; align-items:center; gap:6px;">
-            <span class="lb-status__dot ${isConfigured ? 'lb-status__dot--live' : 'lb-status__dot--local'}"></span>
-            ${isConfigured ? 'Live Global Sync' : 'Local'}
-            <span style="opacity: 0.5; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border-color); font-weight: normal;">${nowStr}</span>
-        </span>
-    `;
     const statusEl = document.getElementById('leaderboard-status');
     if (statusEl) {
-        statusEl.innerHTML = statusBanner;
+        statusEl.innerHTML = '';
+        statusEl.style.display = 'none';
     }
 
     // Attempt cloud leaderboard fetch if Supabase is configured
     if (isConfigured) {
-        leaderboardEl.innerHTML = `<div class="lb-loading">Syncing live global rankings...</div>`;
+        leaderboardEl.innerHTML = `<div class="lb-loading">Loading rankings...</div>`;
 
         const leaderboardData = await fetchGlobalLeaderboard(50);
         if (leaderboardData && leaderboardData.fans && leaderboardData.fans.length > 0) {
@@ -2305,14 +2299,8 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
             const totalCount = leaderboardData.totalCount;
 
             if (statusEl) {
-                statusEl.innerHTML = `
-                    <span style="display:flex; align-items:center; gap:6px;">
-                        <span style="opacity: 0.8; margin-right: 4px; padding-right: 8px; border-right: 1px solid var(--border-color); font-weight: 600;">Total Users: ${totalCount}</span>
-                        <span class="lb-status__dot lb-status__dot--live"></span>
-                        Live Global Sync
-                        <span style="opacity: 0.5; margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--border-color); font-weight: normal;">${nowStr}</span>
-                    </span>
-                `;
+                statusEl.innerHTML = '';
+                statusEl.style.display = 'none';
             }
             let rowsHtml = '';
 

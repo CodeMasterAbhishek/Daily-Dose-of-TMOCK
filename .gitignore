@@ -8,3 +8,8 @@ data/*.tmp
 data/dead_mains_to_heal.json
 
 data/episodes_with_compilations_backup.csv
+
+# Confidential metrics (local only)
+total_users.txt
+data/total_users.txt
+

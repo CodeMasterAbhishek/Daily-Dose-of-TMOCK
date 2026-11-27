@@ -613,6 +613,12 @@ def main():
     print(f" Latest Episode in DB: Ep {last_ep}")
     print("=======================================================\n")
 
+    try:
+        from scripts.get_total_users import update_total_users_file
+        update_total_users_file()
+    except Exception:
+        pass
+
 
 if __name__ == "__main__":
     main()
