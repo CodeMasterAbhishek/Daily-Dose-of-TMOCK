@@ -1,7 +1,20 @@
 /**
  * UI module for DailyDose TMKOC, Episode Badges, Exact Ranking Search, Real Leaderboard Data, and Clean Theme Card Design.
  */
-import { syncUserToCloud, fetchGlobalLeaderboard, fetchUserGlobalRank, isSupabaseConfigured, getOrCreateUserId, reportDeadLinkToCloud, fetchKnownDeadLinks, isHandleTaken } from './supabase.js';
+import {
+    syncUserToCloud,
+    fetchGlobalLeaderboard,
+    fetchUserGlobalRank,
+    isSupabaseConfigured,
+    getOrCreateUserId,
+    reportDeadLinkToCloud,
+    fetchKnownDeadLinks,
+    isHandleTaken,
+    fetchEpisodeReactions,
+    setEpisodeReaction,
+    getCachedEpisodeReactionSummary,
+    setCachedEpisodeReactionSummary
+} from './supabase.js?v=32';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -1056,12 +1069,24 @@ function saveCompletedShort(id) {
     } catch(e) {}
 }
 
-window.playEpisode = function(id) {
+window.playEpisode = function(id, options = {}) {
     const article = allArticlesMap[id] || masterEpNumberMap[id];
     if (article) {
-        openCleanPlayer(article);
+        openCleanPlayer(article, options);
     }
 };
+
+export function playEpisodeByParam(epParam, startSeconds = 0) {
+    if (!epParam) return false;
+    const clean = String(epParam).trim();
+    const numMatch = clean.match(/^(?:ep_)?(\d+)$/i);
+    const numericEp = numMatch ? parseInt(numMatch[1], 10) : parseInt(clean, 10);
+    const article = (numericEp && masterEpNumberMap[numericEp]) || allArticlesMap[clean] || (numericEp && allArticlesMap[`ep_${numericEp}`]);
+    if (!article) return false;
+    const cleanSecs = Math.max(0, Math.floor(Number(startSeconds) || 0));
+    openCleanPlayer(article, cleanSecs > 0 ? { startSecondsOverride: cleanSecs } : {});
+    return true;
+}
 
 export function registerMasterArticles(articles) {
     articles.forEach(art => {
@@ -1392,8 +1417,10 @@ function startActiveWatchTracker(articleId) {
             
             pendingExactWatchSeconds = totalSecs;
             
+            currentResumeSeconds = currentEpSecs;
             timestamps[articleId] = currentEpSecs;
             pendingTimestamps = timestamps;
+            updateShareTimestampLabel();
 
             let totalEpSecs = 1260; // fallback to 21 mins
             let segmentOffset = 0;
@@ -1769,7 +1796,228 @@ function renderAllSourcesFailedFallback(article) {
     } catch (e) {}
 }
 
-function openCleanPlayer(article) {
+const reactionRequestSeq = {};
+
+function formatTimestampShort(totalSeconds) {
+    const secs = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) {
+        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function formatCompactCount(num) {
+    const n = Math.max(0, Math.floor(Number(num) || 0));
+    if (n < 1000) return String(n);
+    if (n < 1000000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '')}K`;
+    return `${(n / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+}
+
+function getCurrentPlayerSeconds() {
+    try {
+        if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && !isMainPlayerLoading) {
+            const vd = typeof ytPlayer.getVideoData === 'function' ? ytPlayer.getVideoData() : null;
+            const matchesCurrentVideo = !vd || !vd.video_id || !currentPlayingVideoId || vd.video_id === currentPlayingVideoId;
+            if (matchesCurrentVideo) {
+                const t = Math.floor(ytPlayer.getCurrentTime());
+                if (t > 0) return t;
+            }
+        }
+    } catch (e) {}
+    return Math.max(0, Math.floor(currentResumeSeconds || 0));
+}
+
+function updateShareTimestampLabel() {
+    const labelEl = document.getElementById('share-timestamp-label');
+    if (!labelEl) return;
+    labelEl.textContent = `At ${formatTimestampShort(getCurrentPlayerSeconds())}`;
+}
+
+function renderReactionBar(summary) {
+    const likeBtn = document.getElementById('ep-like-btn');
+    const dislikeBtn = document.getElementById('ep-dislike-btn');
+    const likeCountEl = document.getElementById('ep-like-count');
+    const dislikeCountEl = document.getElementById('ep-dislike-count');
+    if (!likeBtn || !dislikeBtn || !likeCountEl || !dislikeCountEl) return;
+
+    const likes = Math.max(0, Number(summary?.likes) || 0);
+    const dislikes = Math.max(0, Number(summary?.dislikes) || 0);
+    const userReaction = Number(summary?.userReaction) || 0;
+
+    likeCountEl.textContent = formatCompactCount(likes);
+    dislikeCountEl.textContent = formatCompactCount(dislikes);
+
+    likeBtn.classList.toggle('is-active', userReaction === 1);
+    likeBtn.setAttribute('aria-pressed', userReaction === 1 ? 'true' : 'false');
+    likeBtn.title = `${likes} ${likes === 1 ? 'like' : 'likes'}`;
+
+    dislikeBtn.classList.toggle('is-active', userReaction === -1);
+    dislikeBtn.setAttribute('aria-pressed', userReaction === -1 ? 'true' : 'false');
+    dislikeBtn.title = `${dislikes} ${dislikes === 1 ? 'dislike' : 'dislikes'}`;
+}
+
+async function loadEpisodeReactions(episodeId) {
+    if (!episodeId) return;
+    renderReactionBar(getCachedEpisodeReactionSummary(episodeId));
+    const seq = (reactionRequestSeq[episodeId] || 0) + 1;
+    reactionRequestSeq[episodeId] = seq;
+
+    const summary = await fetchEpisodeReactions(episodeId);
+    if (reactionRequestSeq[episodeId] === seq && currentModalArticle && currentModalArticle.id === episodeId) {
+        renderReactionBar(summary);
+    }
+}
+
+function pulseActionButton(btn) {
+    if (!btn) return;
+    btn.classList.remove('is-popping');
+    void btn.offsetWidth;
+    btn.classList.add('is-popping');
+    setTimeout(() => btn.classList.remove('is-popping'), 280);
+}
+
+async function handleEpisodeReactionClick(vote) {
+    if (!currentModalArticle) return;
+    const epId = currentModalArticle.id;
+    const current = getCachedEpisodeReactionSummary(epId);
+    const nextVote = current.userReaction === vote ? 0 : vote;
+
+    let nextLikes = current.likes;
+    let nextDislikes = current.dislikes;
+    if (current.userReaction === 1) nextLikes = Math.max(0, nextLikes - 1);
+    if (current.userReaction === -1) nextDislikes = Math.max(0, nextDislikes - 1);
+    if (nextVote === 1) nextLikes += 1;
+    if (nextVote === -1) nextDislikes += 1;
+
+    const optimistic = {
+        likes: nextLikes,
+        dislikes: nextDislikes,
+        userReaction: nextVote,
+        synced: current.synced
+    };
+    setCachedEpisodeReactionSummary(epId, optimistic);
+    renderReactionBar(optimistic);
+    pulseActionButton(document.getElementById(vote === 1 ? 'ep-like-btn' : 'ep-dislike-btn'));
+
+    const seq = (reactionRequestSeq[epId] || 0) + 1;
+    reactionRequestSeq[epId] = seq;
+
+    const result = await setEpisodeReaction(epId, nextVote);
+    if (reactionRequestSeq[epId] === seq && currentModalArticle && currentModalArticle.id === epId) {
+        renderReactionBar(result);
+    }
+}
+
+function buildEpisodeShareUrl(article, includeTimestamp) {
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('ep', String(article.epNumber));
+    if (includeTimestamp) {
+        const secs = getCurrentPlayerSeconds();
+        if (secs > 0) {
+            url.searchParams.set('t', String(secs));
+        }
+    }
+    return url.toString();
+}
+
+async function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (e) {}
+    }
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+    } catch (e) {
+        return false;
+    }
+}
+
+let shareCopiedTimeout = null;
+
+async function handleEpisodeShareClick() {
+    if (!currentModalArticle) return;
+    const includeTs = Boolean(document.getElementById('share-at-timestamp')?.checked);
+    const secs = includeTs ? getCurrentPlayerSeconds() : 0;
+    const shareUrl = buildEpisodeShareUrl(currentModalArticle, includeTs);
+    const epNum = currentModalArticle.epNumber;
+
+    const isMobileTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (isMobileTouch && typeof navigator.share === 'function') {
+        try {
+            await navigator.share({
+                title: `EP ${epNum}: ${currentModalArticle.title}`,
+                text: `Watch TMKOC Episode ${epNum} on Daily Dose of TMKOC!`,
+                url: shareUrl
+            });
+            return;
+        } catch (err) {
+            if (err && err.name === 'AbortError') return;
+        }
+    }
+
+    const copied = await copyTextToClipboard(shareUrl);
+    if (copied) {
+        const shareBtn = document.getElementById('ep-share-btn');
+        const shareLabel = document.getElementById('ep-share-label');
+        if (shareBtn && shareLabel) {
+            shareBtn.classList.add('is-copied');
+            shareLabel.textContent = 'Copied!';
+            if (shareCopiedTimeout) clearTimeout(shareCopiedTimeout);
+            shareCopiedTimeout = setTimeout(() => {
+                shareBtn.classList.remove('is-copied');
+                shareLabel.textContent = 'Share';
+            }, 1800);
+        }
+        const msg = secs > 0
+            ? `Copied link for Episode ${epNum} (at ${formatTimestampShort(secs)})!`
+            : `Copied link for Episode ${epNum}!`;
+        showCustomToast(msg, 'success');
+    } else {
+        showCustomToast('Could not copy link automatically. Copy from address bar.', 'error');
+    }
+}
+
+function handleWhatsAppShareClick() {
+    if (!currentModalArticle) return;
+    const includeTs = Boolean(document.getElementById('share-at-timestamp')?.checked);
+    const shareUrl = buildEpisodeShareUrl(currentModalArticle, includeTs);
+    const text = `Watch TMKOC Episode ${currentModalArticle.epNumber}: ${currentModalArticle.title} ${shareUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+}
+
+function syncUrlWithEpisode(epNumberOrNull) {
+    if (!window.location.protocol.startsWith('http') || !window.history || typeof window.history.replaceState !== 'function') {
+        return;
+    }
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('t');
+        if (epNumberOrNull) {
+            url.searchParams.set('ep', String(epNumberOrNull));
+        } else {
+            url.searchParams.delete('ep');
+        }
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    } catch (e) {}
+}
+
+function openCleanPlayer(article, options = {}) {
     playbackSessionId += 1;
     const activeSessionId = playbackSessionId;
 
@@ -1801,6 +2049,32 @@ function openCleanPlayer(article) {
                 <div class="tmkoc-video-viewport">
                     <div id="clean-iframe-container"></div>
                 </div>
+                <div id="clean-action-bar" class="tmkoc-action-bar">
+                    <div class="tmkoc-reaction-group" role="group" aria-label="Episode reactions">
+                        <button type="button" id="ep-like-btn" class="tmkoc-action-pill tmkoc-like-btn" aria-pressed="false" title="Like this episode">
+                            <svg class="tmkoc-action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                            <span id="ep-like-count">0</span>
+                        </button>
+                        <span class="tmkoc-reaction-divider" aria-hidden="true"></span>
+                        <button type="button" id="ep-dislike-btn" class="tmkoc-action-pill tmkoc-dislike-btn" aria-pressed="false" title="Dislike this episode">
+                            <svg class="tmkoc-action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+                            <span id="ep-dislike-count">0</span>
+                        </button>
+                    </div>
+                    <div class="tmkoc-share-group">
+                        <label class="tmkoc-timestamp-toggle" title="Include current timestamp in shared link">
+                            <input type="checkbox" id="share-at-timestamp">
+                            <span id="share-timestamp-label">At 0:00</span>
+                        </label>
+                        <button type="button" id="ep-whatsapp-btn" class="tmkoc-action-pill tmkoc-whatsapp-btn" title="Share on WhatsApp" aria-label="Share on WhatsApp">
+                            <svg class="tmkoc-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                        </button>
+                        <button type="button" id="ep-share-btn" class="tmkoc-action-pill tmkoc-share-btn" title="Share episode link">
+                            <svg class="tmkoc-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                            <span id="ep-share-label">Share</span>
+                        </button>
+                    </div>
+                </div>
                 <div id="clean-description" class="tmkoc-modal-desc" style="padding: 16px 20px; color: var(--text-secondary, #a1a1aa); font-size: 14px; line-height: 1.5; border-bottom: 1px solid var(--border-color, #27272a); max-height: 100px; overflow-y: auto;"></div>
                 <div class="tmkoc-modal-footer" style="justify-content: space-between; align-items: center; display: flex;">
                     <button class="tmkoc-nav-btn" onclick="navCleanEp(-1)">◀ Previous Ep</button>
@@ -1816,10 +2090,22 @@ function openCleanPlayer(article) {
         `;
         // Deliberately do not close on backdrop click: prevent accidental dismissal while watching
         document.body.appendChild(backdrop);
+
+        document.getElementById('ep-like-btn')?.addEventListener('click', () => handleEpisodeReactionClick(1));
+        document.getElementById('ep-dislike-btn')?.addEventListener('click', () => handleEpisodeReactionClick(-1));
+        document.getElementById('ep-share-btn')?.addEventListener('click', handleEpisodeShareClick);
+        document.getElementById('ep-whatsapp-btn')?.addEventListener('click', handleWhatsAppShareClick);
     }
 
     document.getElementById('clean-title').textContent = article.title;
     document.getElementById('clean-badge').textContent = `EP ${article.epNumber}`;
+
+    const shareTsToggle = document.getElementById('share-at-timestamp');
+    if (shareTsToggle) shareTsToggle.checked = false;
+    const shareBtnEl = document.getElementById('ep-share-btn');
+    const shareLabelEl = document.getElementById('ep-share-label');
+    if (shareBtnEl) shareBtnEl.classList.remove('is-copied');
+    if (shareLabelEl) shareLabelEl.textContent = 'Share';
 
     const descEl = document.getElementById('clean-description');
     if (descEl) {
@@ -1833,7 +2119,8 @@ function openCleanPlayer(article) {
     }
 
     const timestamps = getTimestamps();
-    let resumeSeconds = timestamps[article.id] || 0;
+    const overrideSecs = Number(options?.startSecondsOverride) || 0;
+    let resumeSeconds = overrideSecs > 0 ? Math.floor(overrideSecs) : (timestamps[article.id] || 0);
 
     // If opening an upgraded full episode after previously watching only a short clip, start fresh from 0:00!
     const completedShorts = getCompletedShortsList();
@@ -1844,7 +2131,7 @@ function openCleanPlayer(article) {
         if (parts.length === 3) epDurSecs = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
         else if (parts.length === 2) epDurSecs = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
     }
-    if (completedShorts.includes(article.id) && !completedFull.includes(article.id) && epDurSecs >= 900 && resumeSeconds <= 720) {
+    if (overrideSecs <= 0 && completedShorts.includes(article.id) && !completedFull.includes(article.id) && epDurSecs >= 900 && resumeSeconds <= 720) {
         resumeSeconds = 0;
     }
 
@@ -1854,6 +2141,7 @@ function openCleanPlayer(article) {
     const candidates = getEpisodeCandidates(article);
     const chosenCandidate = getBestStartCandidate(candidates);
 
+    currentActiveEpId = article.id;
     currentResumeSeconds = resumeSeconds;
     currentCandidates = candidates;
     currentActiveCandidate = chosenCandidate;
@@ -1861,6 +2149,10 @@ function openCleanPlayer(article) {
     sessionTriedVideoIds = new Set(chosenCandidate ? [chosenCandidate.videoId] : []);
     pendingAttachIframeSessionId = null;
     isMainPlayerLoading = Boolean(chosenCandidate);
+
+    syncUrlWithEpisode(article.epNumber);
+    updateShareTimestampLabel();
+    loadEpisodeReactions(article.id);
 
     if (mainLoadingTimeout) clearTimeout(mainLoadingTimeout);
     mainLoadingTimeout = setTimeout(() => {
@@ -2020,6 +2312,7 @@ window.closeCleanPlayer = function() {
 
     document.body.style.overflow = 'auto';
     stopBackgroundAudioKeepAlive();
+    syncUrlWithEpisode(null);
     currentModalArticle = null;
     currentModalEpNum = null;
     currentActiveEpId = null;

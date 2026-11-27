@@ -11,6 +11,63 @@ export const SUPABASE_CONFIG = {
 
 const STORAGE_USER_ID = 'tmkoc_user_uuid';
 const STORAGE_USER_TOKEN = 'tmkoc_user_token';
+const STORAGE_LOCAL_REACTIONS = 'tmkoc_episode_reactions';
+
+let reactionsBackendMissing = false;
+const reactionSummaryCache = new Map();
+
+function readLocalReactionsMap() {
+    try {
+        const raw = localStorage.getItem(STORAGE_LOCAL_REACTIONS);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function writeLocalReaction(episodeId, reaction) {
+    if (!episodeId) return;
+    try {
+        const map = readLocalReactionsMap();
+        if (reaction === 1 || reaction === -1) {
+            map[episodeId] = reaction;
+        } else {
+            delete map[episodeId];
+        }
+        localStorage.setItem(STORAGE_LOCAL_REACTIONS, JSON.stringify(map));
+    } catch (e) {}
+}
+
+export function getLocalEpisodeReaction(episodeId) {
+    if (!episodeId) return 0;
+    const map = readLocalReactionsMap();
+    const val = Number(map[episodeId]);
+    return (val === 1 || val === -1) ? val : 0;
+}
+
+export function getCachedEpisodeReactionSummary(episodeId) {
+    if (!episodeId) return { likes: 0, dislikes: 0, userReaction: 0, synced: false };
+    const cached = reactionSummaryCache.get(episodeId);
+    if (cached) return { ...cached };
+    const localVote = getLocalEpisodeReaction(episodeId);
+    return {
+        likes: localVote === 1 ? 1 : 0,
+        dislikes: localVote === -1 ? 1 : 0,
+        userReaction: localVote,
+        synced: false
+    };
+}
+
+export function setCachedEpisodeReactionSummary(episodeId, summary) {
+    if (!episodeId || !summary) return;
+    reactionSummaryCache.set(episodeId, {
+        likes: Math.max(0, Number(summary.likes) || 0),
+        dislikes: Math.max(0, Number(summary.dislikes) || 0),
+        userReaction: (summary.userReaction === 1 || summary.userReaction === -1) ? summary.userReaction : 0,
+        synced: Boolean(summary.synced)
+    });
+}
 
 export function isSupabaseConfigured() {
     return Boolean(
@@ -300,4 +357,128 @@ export async function fetchUserGlobalRank(watchedCount, watchHours) {
         const getCount = (r) => { const cr = r.headers.get('Content-Range'); return cr ? parseInt(cr.split('/')[1], 10) : 0; };
         return getCount(res1) + getCount(res2) + 1;
     } catch (e) { return null; }
+}
+
+/**
+ * Fetch aggregated community likes/dislikes and current user's vote for an episode.
+ * Falls back gracefully to localStorage if the Supabase RPC is not yet deployed or offline.
+ */
+export async function fetchEpisodeReactions(episodeId) {
+    const cleanEp = String(episodeId || '').trim();
+    const localFallback = getCachedEpisodeReactionSummary(cleanEp);
+    if (!cleanEp || !isSupabaseConfigured() || reactionsBackendMissing) {
+        return localFallback;
+    }
+
+    const cleanBaseUrl = getCleanBaseUrl();
+    const userId = getOrCreateUserId();
+
+    try {
+        const response = await fetch(`${cleanBaseUrl}/rest/v1/rpc/get_episode_reactions`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_CONFIG.anonKey,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                p_episode_id: cleanEp,
+                p_user_id: userId
+            })
+        });
+
+        if (response.status === 404) {
+            reactionsBackendMissing = true;
+            console.info('Episode reactions RPC not initialized on Supabase yet; using local reactions fallback.');
+            return localFallback;
+        }
+
+        if (!response.ok) {
+            return localFallback;
+        }
+
+        const data = await response.json();
+        if (data && data.success) {
+            const userReaction = (data.user_reaction === 1 || data.user_reaction === -1) ? data.user_reaction : 0;
+            writeLocalReaction(cleanEp, userReaction);
+            const summary = {
+                likes: Math.max(0, Number(data.likes_count) || 0),
+                dislikes: Math.max(0, Number(data.dislikes_count) || 0),
+                userReaction,
+                synced: true
+            };
+            setCachedEpisodeReactionSummary(cleanEp, summary);
+            return summary;
+        }
+        return localFallback;
+    } catch (e) {
+        return localFallback;
+    }
+}
+
+/**
+ * Submit or clear a Like (1), Dislike (-1), or Neutral (0) vote for an episode.
+ */
+export async function setEpisodeReaction(episodeId, reaction) {
+    const cleanEp = String(episodeId || '').trim();
+    const normalized = (reaction === 1 || reaction === -1) ? reaction : 0;
+    if (!cleanEp) return { success: false, reason: 'invalid_episode' };
+
+    writeLocalReaction(cleanEp, normalized);
+    const fallbackSummary = getCachedEpisodeReactionSummary(cleanEp);
+
+    if (!isSupabaseConfigured() || reactionsBackendMissing) {
+        return { success: true, ...fallbackSummary, synced: false };
+    }
+
+    const cleanBaseUrl = getCleanBaseUrl();
+    const userId = getOrCreateUserId();
+    const clientToken = getOrCreateUserToken();
+
+    try {
+        const response = await fetch(`${cleanBaseUrl}/rest/v1/rpc/set_episode_reaction`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_CONFIG.anonKey,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                p_user_id: userId,
+                p_client_token: clientToken,
+                p_episode_id: cleanEp,
+                p_reaction: normalized
+            })
+        });
+
+        if (response.status === 404) {
+            reactionsBackendMissing = true;
+            console.info('Episode reactions RPC not initialized on Supabase yet; stored reaction locally.');
+            return { success: true, ...fallbackSummary, synced: false };
+        }
+
+        if (!response.ok) {
+            const errText = await response.text().catch(() => '');
+            console.warn('Episode reaction sync failed:', response.status, errText);
+            return { success: false, ...fallbackSummary, synced: false };
+        }
+
+        const data = await response.json();
+        if (data && data.success) {
+            const serverVote = (data.user_reaction === 1 || data.user_reaction === -1) ? data.user_reaction : 0;
+            writeLocalReaction(cleanEp, serverVote);
+            const summary = {
+                likes: Math.max(0, Number(data.likes_count) || 0),
+                dislikes: Math.max(0, Number(data.dislikes_count) || 0),
+                userReaction: serverVote,
+                synced: true
+            };
+            setCachedEpisodeReactionSummary(cleanEp, summary);
+            return { success: true, ...summary };
+        }
+
+        return { success: false, error: data && data.error, ...fallbackSummary, synced: false };
+    } catch (err) {
+        return { success: true, ...fallbackSummary, synced: false };
+    }
 }

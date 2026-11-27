@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal } from './ui.js?v=31';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal, playEpisodeByParam } from './ui.js?v=32';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -95,8 +95,16 @@ async function init() {
         // Initialize sidebar fan stats and sync profile to the Global Leaderboard
         updateFanDashboard();
 
-        // Prompt for username if user has not yet chosen a custom name
-        initNamePromptModal();
+        // Handle deep link (?ep=2442&t=120) if present in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const deepEp = urlParams.get('ep');
+        const deepTs = parseInt(urlParams.get('t') || '0', 10) || 0;
+        const openedFromDeepLink = deepEp ? playEpisodeByParam(deepEp, deepTs) : false;
+
+        // Prompt for username if user has not yet chosen a custom name (skip if deep-link video opened)
+        if (!openedFromDeepLink) {
+            initNamePromptModal();
+        }
     } catch (error) {
         console.error("Initialization failed:", error);
         document.getElementById('news-container').innerHTML = '<p style="color:red">Failed to load dataset. Please try again later.</p>';
