@@ -1126,12 +1126,14 @@ a:focus-visible {
 }
 
 .name-prompt-badge {
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   margin: 0 auto 16px;
   border-radius: 50%;
+  overflow: hidden;
+  padding: 0;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(239, 68, 68, 0.15));
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 2px solid rgba(245, 158, 11, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;

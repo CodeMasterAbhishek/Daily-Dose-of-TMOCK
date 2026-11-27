@@ -20,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=42';
+} from './supabase.js?v=43';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -28,11 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=42';
+} from './avatars.js?v=43';
 import {
     generateFanCardCanvas,
     downloadFanCardPNG
-} from './fan-card.js?v=42';
+} from './fan-card.js?v=43';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -3813,8 +3813,8 @@ export function initNamePromptModal() {
             modalAvatarLabel.textContent = info ? info.name : 'Initial';
         }
         if (modalBadge) {
-            if (info) {
-                modalBadge.innerHTML = `<span style="font-size: 28px;">${info.emoji}</span>`;
+            if (info && info.photo) {
+                modalBadge.innerHTML = `<img src="${escapeHTML(info.photo)}" alt="${escapeHTML(info.name)}" class="gokuldham-avatar-img">`;
                 modalBadge.style.background = info.bg;
                 modalBadge.style.borderColor = info.color;
             } else {

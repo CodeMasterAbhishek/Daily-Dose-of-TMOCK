@@ -2,7 +2,17 @@
  * Client-side HTML5 Canvas generator for 9:16 (1080x1920) TMKOC Superfan Status Cards.
  * Pure local rendering with zero external CORS dependencies or video/image uploads.
  */
-import { getAvatarInfo, getMonogramColor } from './avatars.js?v=42';
+import { getAvatarInfo, getMonogramColor } from './avatars.js?v=43';
+
+function loadImageSafe(src) {
+    return new Promise((resolve) => {
+        if (!src) return resolve(null);
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+    });
+}
 
 function traceRoundRect(ctx, x, y, width, height, radius) {
     const r = Math.min(radius, width / 2, height / 2);
@@ -151,17 +161,27 @@ export async function generateFanCardCanvas(stats, targetCanvas = null) {
 
     ctx.beginPath();
     ctx.arc(cx, medY, medR, 0, Math.PI * 2);
-    if (avatarInfo) {
+    if (avatarInfo && avatarInfo.photo) {
         ctx.fillStyle = avatarInfo.bg;
         ctx.fill();
+        const portraitImg = await loadImageSafe(avatarInfo.photo);
+        if (portraitImg) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, medY, medR - 3, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(portraitImg, cx - medR, medY - medR, medR * 2, medR * 2);
+            ctx.restore();
+        } else {
+            const initial = [...handle][0]?.toUpperCase() || 'G';
+            drawFittedCenteredText(ctx, initial, cx, medY + 4, 160, 108, 72, 900, '#ffffff');
+        }
+        ctx.beginPath();
+        ctx.arc(cx, medY, medR, 0, Math.PI * 2);
         ctx.lineWidth = 6;
         ctx.strokeStyle = accentColor;
         ctx.stroke();
-
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = '112px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
-        ctx.fillText(avatarInfo.emoji, cx, medY + 6);
     } else {
         ctx.fillStyle = getMonogramColor(handle);
         ctx.fill();
