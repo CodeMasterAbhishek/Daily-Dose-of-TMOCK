@@ -368,32 +368,11 @@
                 </div>
 
                 <div class="profile-col">
-                    <!-- Continue Watching Card -->
-                    <div class="sidebar-brand dash-animate">
-                        <div class="sidebar-brand__header" style="flex-direction: row; align-items: center; gap: 8px;">
-                            <div class="sidebar-brand__name">Daily Dose of <strong>TMKOC</strong></div>
-                        </div>
-                        <div class="sidebar-brand__episode">
-                            <div class="sidebar-brand__play-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                            </div>
-                            <div class="sidebar-brand__ep-info">
-                                <div class="sidebar-brand__ep-label">Latest Episode</div>
-                                <div id="brand-ep-title" class="sidebar-brand__ep-title">No episodes yet</div>
-                                <div id="brand-ep-sub" class="sidebar-brand__ep-sub">Start watching to track progress</div>
-                            </div>
-                        </div>
-                        <button id="continue-watching-btn" class="sidebar-brand__continue">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                            Continue Watching
-                        </button>
-                    </div>
-
-                    <!-- Phase 4: Superfan Status Card & Watch Progress Portability -->
+                    <!-- Phase 4: Superfan Status Card -->
                     <div class="sidebar-section dash-animate fan-portability-card">
                         <div class="sidebar-section__header">
                             <span class="sidebar-section__title" style="display: flex; align-items: center; gap: 8px;">
-                                🏅 Superfan Card &amp; Backup
+                                🏅 Superfan Status Card
                             </span>
                         </div>
                         <div class="fan-cert-box">
@@ -405,22 +384,6 @@
                                 </button>
                                 <button type="button" id="preview-fan-card-btn" class="fan-card-secondary-btn" title="Preview certificate before downloading">Preview</button>
                             </div>
-                        </div>
-                        <div class="fan-backup-box">
-                            <div class="fan-backup-header">Watch Progress Backup</div>
-                            <p class="fan-cert-desc">Save your watched episodes &amp; streaks as a file or restore them on another device.</p>
-                            <div class="fan-backup-actions">
-                                <button type="button" id="export-progress-btn" class="fan-backup-btn">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                    Backup (.json)
-                                </button>
-                                <button type="button" id="import-progress-btn" class="fan-backup-btn">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                    Restore (.json)
-                                </button>
-                                <input type="file" id="import-progress-input" accept=".json,application/json" style="display: none;" />
-                            </div>
-                            <div id="backup-feedback" class="handle-feedback" style="display: none;"></div>
                         </div>
                     </div>
 
@@ -567,6 +530,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=41"></script>
+    <script type="module" src="js/app.js?v=42"></script>
 </body>
 </html>
