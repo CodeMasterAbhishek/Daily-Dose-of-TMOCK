@@ -848,6 +848,12 @@
   text-align: left;
 }
 
+.avatar-picker-section--modal .avatar-picker-grid--compact {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
 .avatar-picker-header {
   display: flex;
   align-items: center;

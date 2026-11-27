@@ -5,16 +5,34 @@
 export const STORAGE_USER_AVATAR = 'tmkoc_user_avatar';
 
 export const GOKULDHAM_AVATARS = [
-    { id: 'jethalal', name: 'Jethalal', photo: 'assets/avatars/jethalal.png?v=44', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.16)', tagline: 'Gada Electronics' },
-    { id: 'daya', name: 'Daya', photo: 'assets/avatars/daya.png?v=44', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.16)', tagline: 'Garba Queen' },
-    { id: 'bhide', name: 'Bhide', photo: 'assets/avatars/bhide.png?v=44', color: '#10b981', bg: 'rgba(16, 185, 129, 0.16)', tagline: 'Ekameva Secretary' },
-    { id: 'popatlal', name: 'Popatlal', photo: 'assets/avatars/popatlal.png?v=44', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.16)', tagline: 'Toofan Express' },
-    { id: 'sodhi', name: 'Sodhi', photo: 'assets/avatars/sodhi.png?v=44', color: '#f97316', bg: 'rgba(249, 115, 22, 0.16)', tagline: 'Balle Balle!' },
-    { id: 'babita', name: 'Babita', photo: 'assets/avatars/babita.png?v=44', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.16)', tagline: 'Gokuldham Glam' },
-    { id: 'champaklal', name: 'Bapuji', photo: 'assets/avatars/champaklal.png?v=44', color: '#d97706', bg: 'rgba(217, 119, 6, 0.16)', tagline: 'Champak Chacha' },
-    { id: 'tapu', name: 'Tapu', photo: 'assets/avatars/tapu.png?v=44', color: '#2563eb', bg: 'rgba(37, 99, 235, 0.16)', tagline: 'Tapu Sena Captain' },
-    { id: 'hathi', name: 'Dr. Hathi', photo: 'assets/avatars/hathi.png?v=44', color: '#16a34a', bg: 'rgba(22, 163, 74, 0.16)', tagline: 'Sahi Baat Hai!' },
-    { id: 'mehta', name: 'Mehta Saheb', photo: 'assets/avatars/mehta.png?v=44', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.16)', tagline: 'Fire Brigade' }
+    { id: 'jethalal', name: 'Jethalal', photo: 'assets/avatars/jethalal.png?v=45', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.16)', tagline: 'Gada Electronics' },
+    { id: 'daya', name: 'Daya', photo: 'assets/avatars/daya.png?v=45', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.16)', tagline: 'Garba Queen' },
+    { id: 'champaklal', name: 'Bapuji', photo: 'assets/avatars/champaklal.png?v=45', color: '#eab308', bg: 'rgba(234, 179, 8, 0.16)', tagline: 'Champak Chacha' },
+    { id: 'tapu', name: 'Tapu', photo: 'assets/avatars/tapu.png?v=45', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.16)', tagline: 'Tapu Sena Captain' },
+    { id: 'mehta', name: 'Taarak', photo: 'assets/avatars/mehta.png?v=45', color: '#10b981', bg: 'rgba(16, 185, 129, 0.16)', tagline: 'Fire Brigade & Writer' },
+    { id: 'anjali', name: 'Anjali', photo: 'assets/avatars/anjali.png?v=45', color: '#f97316', bg: 'rgba(249, 115, 22, 0.16)', tagline: 'Diet Specialist' },
+    { id: 'bhide', name: 'Bhide', photo: 'assets/avatars/bhide.png?v=45', color: '#d97706', bg: 'rgba(217, 119, 6, 0.16)', tagline: 'Ekameva Secretary' },
+    { id: 'madhavi', name: 'Madhavi', photo: 'assets/avatars/madhavi.png?v=45', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.16)', tagline: 'Achar Papad Queen' },
+    { id: 'sonu', name: 'Sonu', photo: 'assets/avatars/sonu.png?v=45', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.16)', tagline: 'Tapu Sena' },
+    { id: 'sodhi', name: 'Sodhi', photo: 'assets/avatars/sodhi.png?v=45', color: '#0284c7', bg: 'rgba(2, 132, 199, 0.16)', tagline: 'Balle Balle!' },
+    { id: 'roshan', name: 'Roshan', photo: 'assets/avatars/roshan.png?v=45', color: '#be185d', bg: 'rgba(190, 24, 93, 0.16)', tagline: 'Roshan Bhabhi' },
+    { id: 'gogi', name: 'Gogi', photo: 'assets/avatars/gogi.png?v=45', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.16)', tagline: 'Chhota Sardar' },
+    { id: 'hathi', name: 'Dr. Hathi', photo: 'assets/avatars/hathi.png?v=45', color: '#4338ca', bg: 'rgba(67, 56, 202, 0.16)', tagline: 'Sahi Baat Hai!' },
+    { id: 'komal', name: 'Komal', photo: 'assets/avatars/komal.png?v=45', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.16)', tagline: 'Oh Come On!' },
+    { id: 'goli', name: 'Goli', photo: 'assets/avatars/goli.png?v=45', color: '#ea580c', bg: 'rgba(234, 88, 12, 0.16)', tagline: 'Khaane Ka Shaukeen' },
+    { id: 'iyer', name: 'Iyer', photo: 'assets/avatars/iyer.png?v=45', color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.16)', tagline: 'Scientist' },
+    { id: 'babita', name: 'Babita', photo: 'assets/avatars/babita.png?v=45', color: '#db2777', bg: 'rgba(219, 39, 119, 0.16)', tagline: 'Gokuldham Glam' },
+    { id: 'popatlal', name: 'Popatlal', photo: 'assets/avatars/popatlal.png?v=45', color: '#f97316', bg: 'rgba(249, 115, 22, 0.16)', tagline: 'Duniya Hila Dunga!' },
+    { id: 'pinku', name: 'Pinku', photo: 'assets/avatars/pinku.png?v=45', color: '#059669', bg: 'rgba(5, 150, 105, 0.16)', tagline: 'Tapu Sena' },
+    { id: 'abdul', name: 'Abdul', photo: 'assets/avatars/abdul.png?v=45', color: '#d97706', bg: 'rgba(217, 119, 6, 0.16)', tagline: 'All-in-One Soda Shop' },
+    { id: 'nattukaka', name: 'Nattu Kaka', photo: 'assets/avatars/nattukaka.png?v=45', color: '#0d9488', bg: 'rgba(13, 148, 136, 0.16)', tagline: 'Sethji Salary Badhao!' },
+    { id: 'bagha', name: 'Bagha', photo: 'assets/avatars/bagha.png?v=45', color: '#e11d48', bg: 'rgba(225, 29, 72, 0.16)', tagline: 'Jaisi Jiski Soch' },
+    { id: 'bawri', name: 'Bawri', photo: 'assets/avatars/bawri.png?v=45', color: '#0d9488', bg: 'rgba(13, 148, 136, 0.16)', tagline: 'Galti Se Mistake' },
+    { id: 'chalupandey', name: 'Chalu Pandey', photo: 'assets/avatars/chalupandey.png?v=45', color: '#991b1b', bg: 'rgba(153, 27, 27, 0.16)', tagline: 'Inspector Chalu Pandey' },
+    { id: 'sundar', name: 'Sundar', photo: 'assets/avatars/sundar.png?v=45', color: '#059669', bg: 'rgba(5, 150, 105, 0.16)', tagline: 'Sundar Topi King' },
+    { id: 'magan', name: 'Magan', photo: 'assets/avatars/magan.png?v=45', color: '#475569', bg: 'rgba(71, 85, 105, 0.16)', tagline: 'Gada Electronics' },
+    { id: 'rita', name: 'Rita', photo: 'assets/avatars/rita.png?v=45', color: '#0284c7', bg: 'rgba(2, 132, 199, 0.16)', tagline: 'Kal Tak Reporter' },
+    { id: 'asitmodi', name: 'Asit Modi', photo: 'assets/avatars/asitmodi.png?v=45', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.16)', tagline: 'Creator of Gokuldham' }
 ];
 
 const AVATAR_MAP = new Map(GOKULDHAM_AVATARS.map(a => [a.id, a]));
