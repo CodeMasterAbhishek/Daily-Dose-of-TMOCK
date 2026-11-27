@@ -20,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=46';
+} from './supabase.js?v=47';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -28,11 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=46';
+} from './avatars.js?v=47';
 import {
     generateFanCardCanvas,
     downloadFanCardPNG
-} from './fan-card.js?v=46';
+} from './fan-card.js?v=47';
 
 function escapeHTML(str) {
     if (str == null) return '';
