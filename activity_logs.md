@@ -1,3 +1,20 @@
+## 🔄 Sync Report: 27 Nov 2026 (01:28 UTC)
+
+### 📊 Insights & Summary
+- **New Episodes Added:** 0 (Latest remains Ep 4878)
+- **Links Upgraded:** 2 (Replaced promos or dead links with full episodes)
+
+### 📈 Upgrades (2)
+<details>
+<summary>Click to view all upgraded episodes</summary>
+
+- **Ep 4858**: 10m ➡️ 22m
+- **Ep 4841**: 21m ➡️ 21m
+
+</details>
+
+---
+
 ## 🔄 Sync Report: 26 Nov 2026 (16:04 UTC)
 
 ### 📊 Insights & Summary
