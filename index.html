@@ -30,7 +30,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css?v=1.0.3">
     <link rel="stylesheet" href="css/layout.css?v=1.0.3">
-    <link rel="stylesheet" href="css/style.css?v=1.0.14">
+    <link rel="stylesheet" href="css/style.css?v=1.0.15">
     <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.2">
 </head>
 <body>
@@ -210,9 +210,16 @@
                                 </span>
                             </label>
 
-                            <div class="yt-ep-nav-pills">
-                                <button type="button" class="yt-icon-pill-btn" onclick="navCleanEp(-1)" title="Previous Episode" aria-label="Previous Episode">◀</button>
-                                <button type="button" class="yt-icon-pill-btn" onclick="navCleanEp(1)" title="Next Episode" aria-label="Next Episode">▶</button>
+                            <div class="yt-pill-group yt-ep-nav-group" role="group" aria-label="Episode navigation">
+                                <button type="button" id="watch-prev-ep-btn" class="yt-action-pill yt-ep-nav-btn" onclick="navCleanEp(-1)" title="Go to previous episode" aria-label="Previous Episode">
+                                    <svg class="tmkoc-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                                    <span>Prev Ep</span>
+                                </button>
+                                <span class="yt-pill-divider" aria-hidden="true"></span>
+                                <button type="button" id="watch-next-ep-btn" class="yt-action-pill yt-ep-nav-btn" onclick="navCleanEp(1)" title="Go to next episode" aria-label="Next Episode">
+                                    <span>Next Ep</span>
+                                    <svg class="tmkoc-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                                </button>
                             </div>
                         </div>
                     </div>

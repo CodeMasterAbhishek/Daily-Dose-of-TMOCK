@@ -2169,10 +2169,10 @@ a:focus-visible {
   background: rgba(255, 255, 255, 0.18);
 }
 
-.yt-ep-nav-pills {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.yt-ep-nav-btn {
+  padding: 0 12px;
+  gap: 5px;
+  font-size: 13px;
 }
 
 .yt-autoplay-pill {
