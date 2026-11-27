@@ -13,8 +13,12 @@ import {
     fetchEpisodeReactions,
     setEpisodeReaction,
     getCachedEpisodeReactionSummary,
-    setCachedEpisodeReactionSummary
-} from './supabase.js?v=32';
+    setCachedEpisodeReactionSummary,
+    fetchEpisodeComments,
+    postEpisodeComment,
+    toggleCommentLike,
+    deleteEpisodeComment
+} from './supabase.js?v=33';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -1421,6 +1425,7 @@ function startActiveWatchTracker(articleId) {
             timestamps[articleId] = currentEpSecs;
             pendingTimestamps = timestamps;
             updateShareTimestampLabel();
+            updateCommentInsertTimestampLabel();
 
             let totalEpSecs = 1260; // fallback to 21 mins
             let segmentOffset = 0;
@@ -2017,6 +2022,461 @@ function syncUrlWithEpisode(epNumberOrNull) {
     } catch (e) {}
 }
 
+// ----------------------------------------------------
+// PHASE 2: IN-HOUSE EPISODE COMMENTS & TIMESTAMP JUMPS
+// ----------------------------------------------------
+const COMMENT_AVATAR_COLORS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2'];
+let commentRequestSeq = 0;
+let commentsState = {
+    episodeId: null,
+    sort: 'top',
+    totalCount: 0,
+    comments: [],
+    loading: false
+};
+let commentCooldownUntil = 0;
+let commentCooldownInterval = null;
+let pendingDeleteCommentId = null;
+let pendingDeleteTimer = null;
+
+function getCommentAvatarColor(handle) {
+    const str = String(handle || 'G');
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+    }
+    return COMMENT_AVATAR_COLORS[Math.abs(hash) % COMMENT_AVATAR_COLORS.length];
+}
+
+function getCurrentCommentHandle() {
+    const saved = (localStorage.getItem(STORAGE_HANDLE) || '').trim();
+    return saved || 'Gokuldham Resident';
+}
+
+function updateComposerIdentity() {
+    const handle = getCurrentCommentHandle();
+    const handleEl = document.getElementById('comment-composer-handle');
+    const avatarEl = document.getElementById('comment-composer-avatar');
+    if (handleEl) handleEl.textContent = handle;
+    if (avatarEl) {
+        const initial = [...handle][0]?.toUpperCase() || 'G';
+        avatarEl.textContent = initial;
+        avatarEl.style.backgroundColor = getCommentAvatarColor(handle);
+    }
+}
+
+function updateCommentInsertTimestampLabel() {
+    const labelEl = document.getElementById('comment-insert-ts-label');
+    if (!labelEl) return;
+    labelEl.textContent = formatTimestampShort(getCurrentPlayerSeconds());
+}
+
+function formatRelativeTime(isoDate) {
+    if (!isoDate) return 'just now';
+    const ts = new Date(isoDate).getTime();
+    if (Number.isNaN(ts)) return 'just now';
+    const diffSecs = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (diffSecs < 60) return 'just now';
+    if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
+    if (diffSecs < 86400) return `${Math.floor(diffSecs / 3600)}h ago`;
+    if (diffSecs < 604800) return `${Math.floor(diffSecs / 86400)}d ago`;
+    return new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatCommentContentHTML(rawText) {
+    const str = String(rawText || '');
+    const tsRegex = /\b(?:([0-2]):)?([0-5]?\d):([0-5]\d)\b/g;
+    let out = '';
+    let lastIndex = 0;
+    let match;
+    while ((match = tsRegex.exec(str)) !== null) {
+        if (match.index > lastIndex) {
+            out += escapeHTML(str.slice(lastIndex, match.index));
+        }
+        const hrs = match[1] ? parseInt(match[1], 10) : 0;
+        const mins = parseInt(match[2], 10);
+        const secs = parseInt(match[3], 10);
+        const totalSecs = hrs * 3600 + mins * 60 + secs;
+        const label = escapeHTML(match[0]);
+        out += `<button type="button" class="tmkoc-comment-ts" data-seek-sec="${totalSecs}" title="Jump video to ${label}">${label}</button>`;
+        lastIndex = tsRegex.lastIndex;
+    }
+    if (lastIndex < str.length) {
+        out += escapeHTML(str.slice(lastIndex));
+    }
+    return out.replace(/\n/g, '<br>');
+}
+
+function seekPlayerToSeconds(targetSeconds) {
+    let seekSec = Math.max(0, Math.floor(Number(targetSeconds) || 0));
+    if (currentModalArticle) {
+        if (currentModalArticle.startTime && currentModalArticle.endTime) {
+            if (seekSec < currentModalArticle.startTime) {
+                seekSec = currentModalArticle.startTime + seekSec;
+            }
+            if (seekSec > currentModalArticle.endTime) {
+                seekSec = currentModalArticle.startTime;
+            }
+        }
+    }
+
+    currentResumeSeconds = seekSec;
+    updateShareTimestampLabel();
+    updateCommentInsertTimestampLabel();
+
+    const dlg = document.querySelector('.tmkoc-modal-dialog');
+    if (dlg && dlg.scrollTop > 0) {
+        dlg.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
+        if (mutedForWarmReuse) {
+            mutedForWarmReuse = false;
+            try { ytPlayer.unMute(); } catch (e) {}
+        }
+        try { ytPlayer.seekTo(seekSec, true); } catch (e) {}
+        try {
+            if (typeof ytPlayer.playVideo === 'function') ytPlayer.playVideo();
+        } catch (e) {}
+    } else if (pendingMainPlayerLoad) {
+        pendingMainPlayerLoad.startSeconds = seekSec;
+    } else {
+        const directIframe = document.getElementById('clean-iframe');
+        if (directIframe && directIframe.src && directIframe.src.includes('/embed/')) {
+            try {
+                const iframeUrl = new URL(directIframe.src);
+                iframeUrl.searchParams.set('start', String(seekSec));
+                iframeUrl.searchParams.set('autoplay', '1');
+                directIframe.src = iframeUrl.toString();
+            } catch (e) {}
+        }
+    }
+
+    showCustomToast(`Jumped to ${formatTimestampShort(seekSec)}`, 'success');
+}
+
+function showCommentError(msg) {
+    const errEl = document.getElementById('ep-comment-error');
+    const inputEl = document.getElementById('ep-comment-input');
+    if (errEl) {
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+    }
+    if (inputEl) {
+        inputEl.classList.remove('input-shake');
+        void inputEl.offsetWidth;
+        inputEl.classList.add('input-shake');
+        setTimeout(() => inputEl.classList.remove('input-shake'), 420);
+    }
+}
+
+function clearCommentError() {
+    const errEl = document.getElementById('ep-comment-error');
+    if (errEl) {
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+    }
+}
+
+function updateCommentSubmitButtonState() {
+    const submitBtn = document.getElementById('ep-comment-submit');
+    if (!submitBtn) return;
+    const remSecs = Math.ceil((commentCooldownUntil - Date.now()) / 1000);
+    if (remSecs > 0) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = `Wait ${remSecs}s`;
+    } else {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Post Comment';
+        if (commentCooldownInterval) {
+            clearInterval(commentCooldownInterval);
+            commentCooldownInterval = null;
+        }
+    }
+}
+
+function startCommentCooldown(seconds) {
+    const cleanSecs = Math.max(1, Math.min(60, Math.ceil(Number(seconds) || 30)));
+    commentCooldownUntil = Date.now() + cleanSecs * 1000;
+    if (commentCooldownInterval) {
+        clearInterval(commentCooldownInterval);
+        commentCooldownInterval = null;
+    }
+    updateCommentSubmitButtonState();
+    commentCooldownInterval = setInterval(updateCommentSubmitButtonState, 1000);
+}
+
+function insertCurrentTimestampIntoComment() {
+    const textarea = document.getElementById('ep-comment-input');
+    const charCountEl = document.getElementById('ep-comment-char-count');
+    if (!textarea) return;
+
+    clearCommentError();
+    const tsText = formatTimestampShort(getCurrentPlayerSeconds());
+    const val = textarea.value || '';
+    const start = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : val.length;
+    const end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : val.length;
+
+    const before = val.slice(0, start);
+    const after = val.slice(end);
+    const needsLeadingSpace = before.length > 0 && !/\s$/.test(before);
+    const insertToken = `${needsLeadingSpace ? ' ' : ''}${tsText} `;
+    const nextVal = (before + insertToken + after).slice(0, 500);
+
+    textarea.value = nextVal;
+    const newCursorPos = Math.min(nextVal.length, before.length + insertToken.length);
+    textarea.focus();
+    try { textarea.setSelectionRange(newCursorPos, newCursorPos); } catch (e) {}
+
+    if (charCountEl) {
+        charCountEl.textContent = `${nextVal.length} / 500`;
+    }
+}
+
+function renderCommentsUI() {
+    const countEl = document.getElementById('ep-comments-count');
+    const listEl = document.getElementById('ep-comments-list');
+    const moreWrap = document.getElementById('ep-comments-more-wrap');
+    const topBtn = document.getElementById('comments-sort-top');
+    const newestBtn = document.getElementById('comments-sort-newest');
+
+    if (topBtn) topBtn.classList.toggle('is-active', commentsState.sort === 'top');
+    if (newestBtn) newestBtn.classList.toggle('is-active', commentsState.sort === 'newest');
+    if (countEl) countEl.textContent = formatCompactCount(commentsState.totalCount);
+    if (!listEl) return;
+
+    if (commentsState.loading && commentsState.comments.length === 0) {
+        listEl.innerHTML = `
+            <div class="tmkoc-comment-skeleton">
+                <div class="skeleton" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;"></div>
+                <div style="flex:1;"><div class="skeleton skeleton-text short"></div><div class="skeleton skeleton-text"></div></div>
+            </div>
+            <div class="tmkoc-comment-skeleton">
+                <div class="skeleton" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;"></div>
+                <div style="flex:1;"><div class="skeleton skeleton-text short"></div><div class="skeleton skeleton-text"></div></div>
+            </div>
+        `;
+        if (moreWrap) moreWrap.style.display = 'none';
+        return;
+    }
+
+    if (commentsState.comments.length === 0) {
+        const epLabel = currentModalArticle ? `Episode ${currentModalArticle.epNumber}` : 'this episode';
+        listEl.innerHTML = `
+            <div class="tmkoc-comments-empty">
+                No comments yet for ${escapeHTML(epLabel)}. Be the first Gokuldham fan to share a thought or funny timestamp!
+            </div>
+        `;
+        if (moreWrap) moreWrap.style.display = 'none';
+        return;
+    }
+
+    listEl.innerHTML = commentsState.comments.map(c => {
+        const author = c.user_handle || 'Gokuldham Resident';
+        const initial = [...author][0]?.toUpperCase() || 'G';
+        const avatarBg = getCommentAvatarColor(author);
+        const relTime = formatRelativeTime(c.created_at);
+        const likeCount = Math.max(0, Number(c.likes_count) || 0);
+        const isConfirmingDelete = pendingDeleteCommentId === String(c.id);
+        const cid = escapeHTML(String(c.id));
+
+        return `
+            <article class="tmkoc-comment-item" data-comment-id="${cid}">
+                <div class="tmkoc-comment-avatar" style="background-color: ${avatarBg};">${escapeHTML(initial)}</div>
+                <div class="tmkoc-comment-body">
+                    <div class="tmkoc-comment-meta">
+                        <span class="tmkoc-comment-author">${escapeHTML(author)}</span>
+                        ${c.is_own ? '<span class="tmkoc-comment-you">YOU</span>' : ''}
+                        <span class="tmkoc-comment-time">${escapeHTML(relTime)}</span>
+                    </div>
+                    <p class="tmkoc-comment-text">${formatCommentContentHTML(c.content)}</p>
+                    <div class="tmkoc-comment-item-actions">
+                        <button type="button" class="tmkoc-comment-like-btn ${c.user_liked ? 'is-active' : ''}" data-comment-id="${cid}" aria-pressed="${c.user_liked ? 'true' : 'false'}" title="Upvote comment">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                            <span class="tmkoc-comment-like-num">${formatCompactCount(likeCount)}</span>
+                        </button>
+                        ${c.is_own ? `
+                            <button type="button" class="tmkoc-comment-delete-btn ${isConfirmingDelete ? 'is-confirming' : ''}" data-comment-id="${cid}" title="Delete your comment">
+                                ${isConfirmingDelete ? 'Confirm delete?' : 'Delete'}
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
+
+    if (moreWrap) {
+        const hasMore = commentsState.comments.length < commentsState.totalCount;
+        moreWrap.style.display = hasMore ? 'flex' : 'none';
+    }
+}
+
+async function loadEpisodeComments(episodeId, reset = true) {
+    if (!episodeId) return;
+    commentRequestSeq += 1;
+    const reqId = commentRequestSeq;
+
+    if (reset) {
+        pendingDeleteCommentId = null;
+        if (pendingDeleteTimer) {
+            clearTimeout(pendingDeleteTimer);
+            pendingDeleteTimer = null;
+        }
+        commentsState = {
+            episodeId,
+            sort: commentsState.sort || 'top',
+            totalCount: 0,
+            comments: [],
+            loading: true
+        };
+        renderCommentsUI();
+    } else {
+        commentsState.loading = true;
+    }
+
+    const offset = reset ? 0 : commentsState.comments.length;
+    const res = await fetchEpisodeComments(episodeId, {
+        sort: commentsState.sort,
+        limit: 20,
+        offset
+    });
+
+    if (reqId !== commentRequestSeq || !currentModalArticle || currentModalArticle.id !== episodeId) {
+        return;
+    }
+
+    commentsState.loading = false;
+    if (res && res.success) {
+        commentsState.totalCount = res.total_count;
+        if (reset) {
+            commentsState.comments = res.comments;
+        } else {
+            const seen = new Set(commentsState.comments.map(c => c.id));
+            const appended = res.comments.filter(c => !seen.has(c.id));
+            commentsState.comments = [...commentsState.comments, ...appended];
+        }
+    }
+    renderCommentsUI();
+}
+
+async function handleCommentFormSubmit() {
+    if (!currentModalArticle) return;
+    const epId = currentModalArticle.id;
+    const inputEl = document.getElementById('ep-comment-input');
+    const submitBtn = document.getElementById('ep-comment-submit');
+    const charCountEl = document.getElementById('ep-comment-char-count');
+    if (!inputEl || !submitBtn) return;
+
+    const remSecs = Math.ceil((commentCooldownUntil - Date.now()) / 1000);
+    if (remSecs > 0) {
+        showCommentError(`Please wait ${remSecs}s before posting another comment.`);
+        updateCommentSubmitButtonState();
+        return;
+    }
+
+    const rawText = inputEl.value.trim();
+    if (rawText.length < 2) {
+        showCommentError('Please write at least 2 characters before posting.');
+        return;
+    }
+
+    clearCommentError();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Posting...';
+
+    const handle = getCurrentCommentHandle();
+    const res = await postEpisodeComment(epId, handle, rawText);
+
+    if (!currentModalArticle || currentModalArticle.id !== epId) return;
+
+    if (!res || !res.success) {
+        if (res && res.code === 'rate_limited' && res.retry_after) {
+            startCommentCooldown(res.retry_after);
+        } else {
+            updateCommentSubmitButtonState();
+        }
+        showCommentError((res && res.error) || 'Could not post comment. Please try again.');
+        return;
+    }
+
+    inputEl.value = '';
+    if (charCountEl) charCountEl.textContent = '0 / 500';
+    if (res.comment) {
+        commentsState.comments = [res.comment, ...commentsState.comments];
+        commentsState.totalCount += 1;
+    }
+    renderCommentsUI();
+    startCommentCooldown(30);
+    showCustomToast('Comment posted!', 'success');
+}
+
+async function handleCommentLikeClick(commentId) {
+    if (!commentId) return;
+    const target = commentsState.comments.find(c => String(c.id) === String(commentId));
+    if (!target) return;
+
+    const prevLiked = Boolean(target.user_liked);
+    const prevCount = Math.max(0, Number(target.likes_count) || 0);
+    target.user_liked = !prevLiked;
+    target.likes_count = Math.max(0, prevCount + (target.user_liked ? 1 : -1));
+    renderCommentsUI();
+
+    const res = await toggleCommentLike(commentId);
+    if (res && res.success) {
+        const current = commentsState.comments.find(c => String(c.id) === String(commentId));
+        if (current) {
+            current.user_liked = Boolean(res.user_liked);
+            current.likes_count = Math.max(0, Number(res.likes_count) || 0);
+            renderCommentsUI();
+        }
+    } else {
+        target.user_liked = prevLiked;
+        target.likes_count = prevCount;
+        renderCommentsUI();
+    }
+}
+
+async function handleCommentDeleteClick(commentId) {
+    if (!commentId) return;
+    const cidStr = String(commentId);
+
+    if (pendingDeleteCommentId !== cidStr) {
+        pendingDeleteCommentId = cidStr;
+        if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer);
+        pendingDeleteTimer = setTimeout(() => {
+            if (pendingDeleteCommentId === cidStr) {
+                pendingDeleteCommentId = null;
+                renderCommentsUI();
+            }
+        }, 4000);
+        renderCommentsUI();
+        return;
+    }
+
+    pendingDeleteCommentId = null;
+    if (pendingDeleteTimer) {
+        clearTimeout(pendingDeleteTimer);
+        pendingDeleteTimer = null;
+    }
+
+    const prevComments = [...commentsState.comments];
+    const prevTotal = commentsState.totalCount;
+    commentsState.comments = commentsState.comments.filter(c => String(c.id) !== cidStr);
+    commentsState.totalCount = Math.max(0, commentsState.totalCount - 1);
+    renderCommentsUI();
+
+    const res = await deleteEpisodeComment(cidStr);
+    if (!res || !res.success) {
+        commentsState.comments = prevComments;
+        commentsState.totalCount = prevTotal;
+        renderCommentsUI();
+        showCustomToast((res && res.error) || 'Failed to delete comment.', 'error');
+        return;
+    }
+    showCustomToast('Comment deleted.', 'success');
+}
+
 function openCleanPlayer(article, options = {}) {
     playbackSessionId += 1;
     const activeSessionId = playbackSessionId;
@@ -2086,6 +2546,38 @@ function openCleanPlayer(article, options = {}) {
                     </div>
                     <button class="tmkoc-nav-btn" onclick="navCleanEp(1)">Next Ep ▶</button>
                 </div>
+                <section id="clean-comments-section" class="tmkoc-comments-section" aria-label="Episode comments">
+                    <div class="tmkoc-comments-header">
+                        <div class="tmkoc-comments-heading-wrap">
+                            <h4 class="tmkoc-comments-title">Gokuldham Comments</h4>
+                            <span id="ep-comments-count" class="tmkoc-comments-badge">0</span>
+                        </div>
+                        <div class="tmkoc-comments-sort" role="group" aria-label="Sort comments">
+                            <button type="button" id="comments-sort-top" class="tmkoc-sort-chip is-active" data-sort="top">Top</button>
+                            <button type="button" id="comments-sort-newest" class="tmkoc-sort-chip" data-sort="newest">Newest</button>
+                        </div>
+                    </div>
+                    <form id="ep-comment-form" class="tmkoc-comment-form" onsubmit="return false;">
+                        <div class="tmkoc-comment-composer-meta">
+                            <div class="tmkoc-comment-avatar tmkoc-comment-avatar--self" id="comment-composer-avatar">G</div>
+                            <span class="tmkoc-comment-as">Commenting as <strong id="comment-composer-handle">Gokuldham Resident</strong></span>
+                            <button type="button" id="comment-insert-ts-btn" class="tmkoc-insert-ts-btn" title="Insert current video timestamp into comment">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                <span id="comment-insert-ts-label">0:00</span>
+                            </button>
+                        </div>
+                        <textarea id="ep-comment-input" class="tmkoc-comment-textarea" rows="2" maxlength="500" placeholder="Share a funny scene or comment... Tip: type 04:15 to link a moment!"></textarea>
+                        <div id="ep-comment-error" class="tmkoc-comment-error" style="display: none;"></div>
+                        <div class="tmkoc-comment-actions">
+                            <span id="ep-comment-char-count" class="tmkoc-comment-chars">0 / 500</span>
+                            <button type="submit" id="ep-comment-submit" class="tmkoc-comment-submit-btn">Post Comment</button>
+                        </div>
+                    </form>
+                    <div id="ep-comments-list" class="tmkoc-comments-list"></div>
+                    <div id="ep-comments-more-wrap" class="tmkoc-comments-more-wrap" style="display: none;">
+                        <button type="button" id="ep-comments-load-more" class="tmkoc-comments-more-btn">Load more comments</button>
+                    </div>
+                </section>
             </div>
         `;
         // Deliberately do not close on backdrop click: prevent accidental dismissal while watching
@@ -2095,6 +2587,61 @@ function openCleanPlayer(article, options = {}) {
         document.getElementById('ep-dislike-btn')?.addEventListener('click', () => handleEpisodeReactionClick(-1));
         document.getElementById('ep-share-btn')?.addEventListener('click', handleEpisodeShareClick);
         document.getElementById('ep-whatsapp-btn')?.addEventListener('click', handleWhatsAppShareClick);
+
+        document.getElementById('comment-insert-ts-btn')?.addEventListener('click', insertCurrentTimestampIntoComment);
+        const commentForm = document.getElementById('ep-comment-form');
+        const commentInput = document.getElementById('ep-comment-input');
+        const charCountEl = document.getElementById('ep-comment-char-count');
+
+        commentForm?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleCommentFormSubmit();
+        });
+        commentInput?.addEventListener('input', () => {
+            clearCommentError();
+            if (charCountEl) {
+                charCountEl.textContent = `${commentInput.value.length} / 500`;
+            }
+        });
+        commentInput?.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                handleCommentFormSubmit();
+            }
+        });
+
+        document.getElementById('comments-sort-top')?.addEventListener('click', () => {
+            if (commentsState.sort === 'top') return;
+            commentsState.sort = 'top';
+            if (currentModalArticle) loadEpisodeComments(currentModalArticle.id, true);
+        });
+        document.getElementById('comments-sort-newest')?.addEventListener('click', () => {
+            if (commentsState.sort === 'newest') return;
+            commentsState.sort = 'newest';
+            if (currentModalArticle) loadEpisodeComments(currentModalArticle.id, true);
+        });
+        document.getElementById('ep-comments-load-more')?.addEventListener('click', () => {
+            if (currentModalArticle && !commentsState.loading) {
+                loadEpisodeComments(currentModalArticle.id, false);
+            }
+        });
+
+        document.getElementById('ep-comments-list')?.addEventListener('click', (e) => {
+            const tsBtn = e.target.closest('.tmkoc-comment-ts');
+            if (tsBtn) {
+                seekPlayerToSeconds(Number(tsBtn.dataset.seekSec));
+                return;
+            }
+            const likeBtn = e.target.closest('.tmkoc-comment-like-btn');
+            if (likeBtn) {
+                handleCommentLikeClick(likeBtn.dataset.commentId);
+                return;
+            }
+            const deleteBtn = e.target.closest('.tmkoc-comment-delete-btn');
+            if (deleteBtn) {
+                handleCommentDeleteClick(deleteBtn.dataset.commentId);
+            }
+        });
     }
 
     document.getElementById('clean-title').textContent = article.title;
@@ -2106,6 +2653,14 @@ function openCleanPlayer(article, options = {}) {
     const shareLabelEl = document.getElementById('ep-share-label');
     if (shareBtnEl) shareBtnEl.classList.remove('is-copied');
     if (shareLabelEl) shareLabelEl.textContent = 'Share';
+
+    const commentInputEl = document.getElementById('ep-comment-input');
+    const charCountResetEl = document.getElementById('ep-comment-char-count');
+    if (commentInputEl) commentInputEl.value = '';
+    if (charCountResetEl) charCountResetEl.textContent = '0 / 500';
+    clearCommentError();
+    updateComposerIdentity();
+    updateCommentSubmitButtonState();
 
     const descEl = document.getElementById('clean-description');
     if (descEl) {
@@ -2152,7 +2707,9 @@ function openCleanPlayer(article, options = {}) {
 
     syncUrlWithEpisode(article.epNumber);
     updateShareTimestampLabel();
+    updateCommentInsertTimestampLabel();
     loadEpisodeReactions(article.id);
+    loadEpisodeComments(article.id, true);
 
     if (mainLoadingTimeout) clearTimeout(mainLoadingTimeout);
     mainLoadingTimeout = setTimeout(() => {
@@ -2313,6 +2870,12 @@ window.closeCleanPlayer = function() {
     document.body.style.overflow = 'auto';
     stopBackgroundAudioKeepAlive();
     syncUrlWithEpisode(null);
+    commentRequestSeq += 1;
+    pendingDeleteCommentId = null;
+    if (pendingDeleteTimer) {
+        clearTimeout(pendingDeleteTimer);
+        pendingDeleteTimer = null;
+    }
     currentModalArticle = null;
     currentModalEpNum = null;
     currentActiveEpId = null;
@@ -2870,6 +3433,7 @@ window.saveUserHandle = async function() {
 
     localStorage.setItem(STORAGE_HANDLE, newHandle);
     localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
+    updateComposerIdentity();
     setFeedback(`Saved! Your leaderboard handle is now "${newHandle}".`, 'success');
 
     if (btn) {
@@ -2984,6 +3548,7 @@ export function initNamePromptModal() {
         // Save to localStorage
         localStorage.setItem(STORAGE_HANDLE, val);
         localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
+        updateComposerIdentity();
 
         // Update sidebar input if present
         const sidebarInput = document.getElementById('user-handle-input');

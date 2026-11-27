@@ -12,8 +12,10 @@ export const SUPABASE_CONFIG = {
 const STORAGE_USER_ID = 'tmkoc_user_uuid';
 const STORAGE_USER_TOKEN = 'tmkoc_user_token';
 const STORAGE_LOCAL_REACTIONS = 'tmkoc_episode_reactions';
+const STORAGE_LOCAL_COMMENTS = 'tmkoc_episode_comments_local';
 
 let reactionsBackendMissing = false;
+let commentsBackendMissing = false;
 const reactionSummaryCache = new Map();
 
 function readLocalReactionsMap() {
@@ -480,5 +482,268 @@ export async function setEpisodeReaction(episodeId, reaction) {
         return { success: false, error: data && data.error, ...fallbackSummary, synced: false };
     } catch (err) {
         return { success: true, ...fallbackSummary, synced: false };
+    }
+}
+
+const CLIENT_COMMENT_PROFANITY_RE = /\b(fuck|fucking|fucker|shit|bitch|asshole|cunt|whore|slut|bastard|madarchod|behenchod|bhenchod|bhosdike|chutiya|gandu|randi)\b/i;
+
+function readLocalCommentsStore() {
+    try {
+        const raw = localStorage.getItem(STORAGE_LOCAL_COMMENTS);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function writeLocalCommentsStore(store) {
+    try {
+        localStorage.setItem(STORAGE_LOCAL_COMMENTS, JSON.stringify(store));
+    } catch (e) {}
+}
+
+async function callSupabaseRpc(rpcName, payload) {
+    const cleanBaseUrl = getCleanBaseUrl();
+    return fetch(`${cleanBaseUrl}/rest/v1/rpc/${rpcName}`, {
+        method: 'POST',
+        headers: {
+            'apikey': SUPABASE_CONFIG.anonKey,
+            'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+}
+
+function sortAndPaginateLocalComments(episodeId, sort, limit, offset) {
+    const store = readLocalCommentsStore();
+    const list = Array.isArray(store[episodeId]) ? [...store[episodeId]] : [];
+    list.sort((a, b) => {
+        if (sort === 'top') {
+            const diff = (Number(b.likes_count) || 0) - (Number(a.likes_count) || 0);
+            if (diff !== 0) return diff;
+        }
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    return {
+        success: true,
+        episode_id: episodeId,
+        total_count: list.length,
+        comments: list.slice(offset, offset + limit),
+        synced: false
+    };
+}
+
+/**
+ * Fetch paginated comments for an episode.
+ */
+export async function fetchEpisodeComments(episodeId, { sort = 'top', limit = 30, offset = 0 } = {}) {
+    const cleanEp = String(episodeId || '').trim();
+    if (!cleanEp) return { success: false, total_count: 0, comments: [], synced: false };
+
+    if (!isSupabaseConfigured() || commentsBackendMissing) {
+        return sortAndPaginateLocalComments(cleanEp, sort, limit, offset);
+    }
+
+    try {
+        const response = await callSupabaseRpc('get_episode_comments', {
+            p_episode_id: cleanEp,
+            p_user_id: getOrCreateUserId(),
+            p_sort: sort === 'newest' ? 'newest' : 'top',
+            p_limit: limit,
+            p_offset: offset
+        });
+
+        if (response.status === 404) {
+            commentsBackendMissing = true;
+            console.info('Episode comments RPC not initialized on Supabase yet; using local comments fallback.');
+            return sortAndPaginateLocalComments(cleanEp, sort, limit, offset);
+        }
+
+        if (!response.ok) {
+            return sortAndPaginateLocalComments(cleanEp, sort, limit, offset);
+        }
+
+        const data = await response.json();
+        if (data && data.success) {
+            return {
+                success: true,
+                episode_id: cleanEp,
+                total_count: Number(data.total_count) || 0,
+                comments: Array.isArray(data.comments) ? data.comments : [],
+                synced: true
+            };
+        }
+        return sortAndPaginateLocalComments(cleanEp, sort, limit, offset);
+    } catch (e) {
+        return sortAndPaginateLocalComments(cleanEp, sort, limit, offset);
+    }
+}
+
+/**
+ * Post a sanitized comment for an episode with client + server rate-limit and profanity checks.
+ */
+export async function postEpisodeComment(episodeId, handle, content) {
+    const cleanEp = String(episodeId || '').trim();
+    const cleanContent = String(content || '').trim();
+    const cleanHandle = (String(handle || 'Gokuldham Resident').trim() || 'Gokuldham Resident').slice(0, 30);
+
+    if (!cleanEp) return { success: false, error: 'Invalid episode ID.' };
+    if (cleanContent.length < 2) return { success: false, code: 'too_short', error: 'Comment must be at least 2 characters.' };
+    if (cleanContent.length > 500) return { success: false, code: 'too_long', error: 'Comment must be 500 characters or fewer.' };
+    if (CLIENT_COMMENT_PROFANITY_RE.test(cleanContent)) {
+        return { success: false, code: 'profanity', error: 'Please keep Gokuldham comments respectful and family-friendly!' };
+    }
+
+    const postLocalFallback = () => {
+        const store = readLocalCommentsStore();
+        const existingList = Array.isArray(store[cleanEp]) ? store[cleanEp] : [];
+        const allLocal = Object.values(store).flat();
+        const latestOwn = allLocal
+            .filter(c => c && c.is_own && c.created_at)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+        if (latestOwn) {
+            const elapsed = (Date.now() - new Date(latestOwn.created_at).getTime()) / 1000;
+            if (elapsed < 30) {
+                const wait = Math.max(1, Math.ceil(30 - elapsed));
+                return { success: false, code: 'rate_limited', retry_after: wait, error: `Please wait ${wait}s before posting another comment.`, synced: false };
+            }
+        }
+        const localComment = {
+            id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            episode_id: cleanEp,
+            user_handle: cleanHandle,
+            content: cleanContent,
+            likes_count: 0,
+            user_liked: false,
+            is_own: true,
+            created_at: new Date().toISOString()
+        };
+        store[cleanEp] = [localComment, ...existingList];
+        writeLocalCommentsStore(store);
+        return { success: true, comment: localComment, synced: false };
+    };
+
+    if (!isSupabaseConfigured() || commentsBackendMissing) {
+        return postLocalFallback();
+    }
+
+    try {
+        const response = await callSupabaseRpc('post_episode_comment', {
+            p_user_id: getOrCreateUserId(),
+            p_client_token: getOrCreateUserToken(),
+            p_episode_id: cleanEp,
+            p_handle: cleanHandle,
+            p_content: cleanContent
+        });
+
+        if (response.status === 404) {
+            commentsBackendMissing = true;
+            console.info('Episode comments RPC not initialized on Supabase yet; stored comment locally.');
+            return postLocalFallback();
+        }
+
+        if (!response.ok) {
+            return { success: false, error: 'Unable to post comment right now. Please try again.' };
+        }
+
+        const data = await response.json();
+        return { ...(data || { success: false }), synced: true };
+    } catch (e) {
+        return { success: false, error: 'Network error while posting comment. Please try again.' };
+    }
+}
+
+/**
+ * Toggle upvote on an episode comment.
+ */
+export async function toggleCommentLike(commentId) {
+    const cleanId = String(commentId || '').trim();
+    if (!cleanId) return { success: false, error: 'Invalid comment ID' };
+
+    const toggleLocal = () => {
+        const store = readLocalCommentsStore();
+        for (const epId of Object.keys(store)) {
+            const arr = store[epId];
+            if (!Array.isArray(arr)) continue;
+            const target = arr.find(c => c.id === cleanId);
+            if (target) {
+                target.user_liked = !target.user_liked;
+                target.likes_count = Math.max(0, (Number(target.likes_count) || 0) + (target.user_liked ? 1 : -1));
+                writeLocalCommentsStore(store);
+                return { success: true, comment_id: cleanId, likes_count: target.likes_count, user_liked: target.user_liked, synced: false };
+            }
+        }
+        return { success: false, error: 'Comment not found' };
+    };
+
+    if (cleanId.startsWith('local_') || !isSupabaseConfigured() || commentsBackendMissing) {
+        return toggleLocal();
+    }
+
+    try {
+        const response = await callSupabaseRpc('toggle_comment_like', {
+            p_user_id: getOrCreateUserId(),
+            p_client_token: getOrCreateUserToken(),
+            p_comment_id: cleanId
+        });
+
+        if (response.status === 404) {
+            commentsBackendMissing = true;
+            return toggleLocal();
+        }
+
+        if (!response.ok) return { success: false, error: 'Failed to update comment like' };
+        const data = await response.json();
+        return { ...(data || { success: false }), synced: true };
+    } catch (e) {
+        return { success: false, error: 'Network error while updating like' };
+    }
+}
+
+/**
+ * Delete own comment from an episode.
+ */
+export async function deleteEpisodeComment(commentId) {
+    const cleanId = String(commentId || '').trim();
+    if (!cleanId) return { success: false, error: 'Invalid comment ID' };
+
+    const deleteLocal = () => {
+        const store = readLocalCommentsStore();
+        for (const epId of Object.keys(store)) {
+            const arr = store[epId];
+            if (!Array.isArray(arr)) continue;
+            const next = arr.filter(c => c.id !== cleanId);
+            if (next.length !== arr.length) {
+                store[epId] = next;
+                writeLocalCommentsStore(store);
+                return { success: true, deleted_id: cleanId, synced: false };
+            }
+        }
+        return { success: false, error: 'Comment not found' };
+    };
+
+    if (cleanId.startsWith('local_') || !isSupabaseConfigured() || commentsBackendMissing) {
+        return deleteLocal();
+    }
+
+    try {
+        const response = await callSupabaseRpc('delete_episode_comment', {
+            p_user_id: getOrCreateUserId(),
+            p_client_token: getOrCreateUserToken(),
+            p_comment_id: cleanId
+        });
+
+        if (response.status === 404) {
+            commentsBackendMissing = true;
+            return deleteLocal();
+        }
+
+        if (!response.ok) return { success: false, error: 'Failed to delete comment' };
+        const data = await response.json();
+        return { ...(data || { success: false }), synced: true };
+    } catch (e) {
+        return { success: false, error: 'Network error while deleting comment' };
     }
 }
