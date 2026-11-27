@@ -30,8 +30,8 @@
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css?v=1.0.3">
     <link rel="stylesheet" href="css/layout.css?v=1.0.3">
-    <link rel="stylesheet" href="css/style.css?v=1.0.9">
-    <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.0">
+    <link rel="stylesheet" href="css/style.css?v=1.0.10">
+    <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.1">
 </head>
 <body>
 
@@ -196,6 +196,13 @@
                         <button id="save-handle-btn" class="handle-bar__save" onclick="saveUserHandle()" style="padding: 10px 16px; border-radius: 8px;">Save</button>
                     </div>
                     <div id="handle-feedback" class="handle-feedback" style="display: none;"></div>
+                    <div id="avatar-picker-section" class="avatar-picker-section">
+                        <div class="avatar-picker-header">
+                            <span class="avatar-picker-title">Gokuldham Avatar</span>
+                            <span id="selected-avatar-name" class="avatar-picker-selected">Initial</span>
+                        </div>
+                        <div id="sidebar-avatar-grid" class="avatar-picker-grid" role="radiogroup" aria-label="Choose Gokuldham character avatar"></div>
+                    </div>
                 </div>
 
                 <!-- Quick Stats -->
@@ -293,15 +300,22 @@
     <div id="name-prompt-modal" class="name-prompt-backdrop" style="display: none;" aria-hidden="true">
         <div class="name-prompt-card" role="dialog" aria-modal="true" aria-labelledby="name-prompt-title">
             <button class="name-prompt-close" id="name-prompt-close-btn" aria-label="Close" title="Close">✕</button>
-            <div class="name-prompt-badge">
+            <div class="name-prompt-badge" id="name-prompt-badge">
                 <span style="font-size: 28px;">🏆</span>
             </div>
             <h3 id="name-prompt-title" class="name-prompt-title">Choose Your Leaderboard Name</h3>
-            <p class="name-prompt-sub">Enter your name or nickname to show up on the Gokuldham Superfan Leaderboard!</p>
+            <p class="name-prompt-sub">Enter your name and pick a Gokuldham character to show up on the Superfan Leaderboard!</p>
             
-            <form id="name-prompt-form" onsubmit="return false;" style="margin-top: 18px;">
+            <form id="name-prompt-form" onsubmit="return false;" style="margin-top: 14px;">
                 <div class="name-prompt-input-group">
                     <input type="text" id="name-prompt-input" class="name-prompt-input" placeholder="e.g. Jethalal, BabitaFan, Tapu..." maxlength="30" autocomplete="off" spellcheck="false" />
+                </div>
+                <div class="avatar-picker-section avatar-picker-section--modal">
+                    <div class="avatar-picker-header">
+                        <span class="avatar-picker-title">Pick Your Character</span>
+                        <span id="modal-selected-avatar-name" class="avatar-picker-selected">Initial</span>
+                    </div>
+                    <div id="name-prompt-avatar-grid" class="avatar-picker-grid avatar-picker-grid--compact" role="radiogroup" aria-label="Pick Gokuldham character"></div>
                 </div>
                 <div id="name-prompt-error" class="name-prompt-error" style="display: none;"></div>
                 <div class="name-prompt-actions">
@@ -319,6 +333,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=33"></script>
+    <script type="module" src="js/app.js?v=34"></script>
 </body>
 </html>

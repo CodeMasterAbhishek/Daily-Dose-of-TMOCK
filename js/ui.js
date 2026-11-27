@@ -17,8 +17,17 @@ import {
     fetchEpisodeComments,
     postEpisodeComment,
     toggleCommentLike,
-    deleteEpisodeComment
-} from './supabase.js?v=33';
+    deleteEpisodeComment,
+    saveUserAvatarToCloud
+} from './supabase.js?v=34';
+import {
+    getSelectedAvatarId,
+    setSelectedAvatarId,
+    getAvatarInfo,
+    normalizeAvatarId,
+    renderAvatarBadgeHTML,
+    renderAvatarPickerHTML
+} from './avatars.js?v=34';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -2023,9 +2032,8 @@ function syncUrlWithEpisode(epNumberOrNull) {
 }
 
 // ----------------------------------------------------
-// PHASE 2: IN-HOUSE EPISODE COMMENTS & TIMESTAMP JUMPS
+// PHASE 2 & 3: IN-HOUSE COMMENTS, TIMESTAMPS & AVATARS
 // ----------------------------------------------------
-const COMMENT_AVATAR_COLORS = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2'];
 let commentRequestSeq = 0;
 let commentsState = {
     episodeId: null,
@@ -2039,15 +2047,6 @@ let commentCooldownInterval = null;
 let pendingDeleteCommentId = null;
 let pendingDeleteTimer = null;
 
-function getCommentAvatarColor(handle) {
-    const str = String(handle || 'G');
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
-    }
-    return COMMENT_AVATAR_COLORS[Math.abs(hash) % COMMENT_AVATAR_COLORS.length];
-}
-
 function getCurrentCommentHandle() {
     const saved = (localStorage.getItem(STORAGE_HANDLE) || '').trim();
     return saved || 'Gokuldham Resident';
@@ -2055,13 +2054,87 @@ function getCurrentCommentHandle() {
 
 function updateComposerIdentity() {
     const handle = getCurrentCommentHandle();
+    const avatarId = getSelectedAvatarId();
     const handleEl = document.getElementById('comment-composer-handle');
-    const avatarEl = document.getElementById('comment-composer-avatar');
+    const avatarBtn = document.getElementById('comment-composer-avatar-btn');
     if (handleEl) handleEl.textContent = handle;
-    if (avatarEl) {
-        const initial = [...handle][0]?.toUpperCase() || 'G';
-        avatarEl.textContent = initial;
-        avatarEl.style.backgroundColor = getCommentAvatarColor(handle);
+    if (avatarBtn) {
+        avatarBtn.innerHTML = renderAvatarBadgeHTML(avatarId, handle, 'sm', 'tmkoc-comment-avatar--self', 'comment-composer-avatar');
+    }
+    const tray = document.getElementById('comment-avatar-tray');
+    if (tray && tray.style.display !== 'none') {
+        tray.innerHTML = renderAvatarPickerHTML(avatarId, true);
+    }
+}
+
+function refreshAvatarPickersUI() {
+    const activeId = getSelectedAvatarId();
+    const info = getAvatarInfo(activeId);
+    const labelName = info ? info.name : 'Initial';
+
+    const sidebarGrid = document.getElementById('sidebar-avatar-grid');
+    const sidebarLabel = document.getElementById('selected-avatar-name');
+    if (sidebarGrid) {
+        sidebarGrid.innerHTML = renderAvatarPickerHTML(activeId, false);
+    }
+    if (sidebarLabel) sidebarLabel.textContent = labelName;
+
+    updateComposerIdentity();
+
+    if (commentsState.comments.length > 0) {
+        let changed = false;
+        commentsState.comments.forEach(c => {
+            if (c.is_own) {
+                c.avatar_id = activeId;
+                changed = true;
+            }
+        });
+        if (changed) renderCommentsUI();
+    }
+}
+
+async function selectAndPersistAvatar(avatarId) {
+    const clean = setSelectedAvatarId(avatarId);
+    refreshAvatarPickersUI();
+
+    const tray = document.getElementById('comment-avatar-tray');
+    if (tray) tray.style.display = 'none';
+
+    const info = getAvatarInfo(clean);
+    showCustomToast(
+        info ? `Character avatar set to ${info.name}!` : 'Avatar reset to initial badge.',
+        'success'
+    );
+
+    await saveUserAvatarToCloud(clean);
+
+    // Refresh leaderboard view cleanly if currently mounted
+    const lbContainer = document.getElementById('leaderboard-list');
+    if (lbContainer && document.getElementById('fan-dashboard-view')?.style.display !== 'none') {
+        const savedHandle = getCurrentCommentHandle();
+        const completedCount = getCompletedWatchedList().length;
+        const decimalHours = getExactWatchSeconds() / 3600;
+        const level = getFanLevel(completedCount);
+        renderLeaderboardList(savedHandle, completedCount, decimalHours, level.title);
+    }
+}
+
+function bindSidebarAvatarPicker() {
+    const grid = document.getElementById('sidebar-avatar-grid');
+    if (!grid) return;
+    const activeId = getSelectedAvatarId();
+    const info = getAvatarInfo(activeId);
+    const label = document.getElementById('selected-avatar-name');
+    grid.innerHTML = renderAvatarPickerHTML(activeId, false);
+    if (label) label.textContent = info ? info.name : 'Initial';
+
+    if (!grid.dataset.avatarBound) {
+        grid.dataset.avatarBound = 'true';
+        grid.addEventListener('click', (e) => {
+            const btn = e.target.closest('.avatar-picker-option');
+            if (!btn || !btn.dataset.avatarChoice) return;
+            selectAndPersistAvatar(btn.dataset.avatarChoice);
+        });
     }
 }
 
@@ -2273,8 +2346,8 @@ function renderCommentsUI() {
 
     listEl.innerHTML = commentsState.comments.map(c => {
         const author = c.user_handle || 'Gokuldham Resident';
-        const initial = [...author][0]?.toUpperCase() || 'G';
-        const avatarBg = getCommentAvatarColor(author);
+        const effectiveAvatar = c.is_own ? getSelectedAvatarId() : normalizeAvatarId(c.avatar_id || 'default');
+        const avatarHtml = renderAvatarBadgeHTML(effectiveAvatar, author, 'md', 'tmkoc-comment-avatar');
         const relTime = formatRelativeTime(c.created_at);
         const likeCount = Math.max(0, Number(c.likes_count) || 0);
         const isConfirmingDelete = pendingDeleteCommentId === String(c.id);
@@ -2282,7 +2355,7 @@ function renderCommentsUI() {
 
         return `
             <article class="tmkoc-comment-item" data-comment-id="${cid}">
-                <div class="tmkoc-comment-avatar" style="background-color: ${avatarBg};">${escapeHTML(initial)}</div>
+                ${avatarHtml}
                 <div class="tmkoc-comment-body">
                     <div class="tmkoc-comment-meta">
                         <span class="tmkoc-comment-author">${escapeHTML(author)}</span>
@@ -2559,13 +2632,14 @@ function openCleanPlayer(article, options = {}) {
                     </div>
                     <form id="ep-comment-form" class="tmkoc-comment-form" onsubmit="return false;">
                         <div class="tmkoc-comment-composer-meta">
-                            <div class="tmkoc-comment-avatar tmkoc-comment-avatar--self" id="comment-composer-avatar">G</div>
+                            <button type="button" id="comment-composer-avatar-btn" class="tmkoc-composer-avatar-btn" title="Choose Gokuldham character avatar" aria-label="Choose Gokuldham character avatar"></button>
                             <span class="tmkoc-comment-as">Commenting as <strong id="comment-composer-handle">Gokuldham Resident</strong></span>
                             <button type="button" id="comment-insert-ts-btn" class="tmkoc-insert-ts-btn" title="Insert current video timestamp into comment">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                                 <span id="comment-insert-ts-label">0:00</span>
                             </button>
                         </div>
+                        <div id="comment-avatar-tray" class="tmkoc-inline-avatar-tray" style="display: none;" role="radiogroup" aria-label="Quick select Gokuldham character"></div>
                         <textarea id="ep-comment-input" class="tmkoc-comment-textarea" rows="2" maxlength="500" placeholder="Share a funny scene or comment... Tip: type 04:15 to link a moment!"></textarea>
                         <div id="ep-comment-error" class="tmkoc-comment-error" style="display: none;"></div>
                         <div class="tmkoc-comment-actions">
@@ -2589,6 +2663,23 @@ function openCleanPlayer(article, options = {}) {
         document.getElementById('ep-whatsapp-btn')?.addEventListener('click', handleWhatsAppShareClick);
 
         document.getElementById('comment-insert-ts-btn')?.addEventListener('click', insertCurrentTimestampIntoComment);
+        const composerAvatarBtn = document.getElementById('comment-composer-avatar-btn');
+        const avatarTrayEl = document.getElementById('comment-avatar-tray');
+        composerAvatarBtn?.addEventListener('click', () => {
+            if (!avatarTrayEl) return;
+            const willOpen = avatarTrayEl.style.display === 'none';
+            if (willOpen) {
+                avatarTrayEl.innerHTML = renderAvatarPickerHTML(getSelectedAvatarId(), true);
+                avatarTrayEl.style.display = 'grid';
+            } else {
+                avatarTrayEl.style.display = 'none';
+            }
+        });
+        avatarTrayEl?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.avatar-picker-option');
+            if (!btn || !btn.dataset.avatarChoice) return;
+            selectAndPersistAvatar(btn.dataset.avatarChoice);
+        });
         const commentForm = document.getElementById('ep-comment-form');
         const commentInput = document.getElementById('ep-comment-input');
         const charCountEl = document.getElementById('ep-comment-char-count');
@@ -2974,6 +3065,8 @@ export async function updateFanDashboard() {
         handleInput.value = savedHandle;
     }
 
+    bindSidebarAvatarPicker();
+
     // Check if user's local handle is claimed by another user on the leaderboard
     if (savedHandle && !savedHandle.startsWith('Gokuldham resident') && savedHandle !== '@TMKOCSuperfan') {
         isHandleTaken(savedHandle, getOrCreateUserId(), watchedCount).then(taken => {
@@ -3109,19 +3202,28 @@ function createPodiumCardHTML(item) {
         bronze: '#d97706'
     };
     const fillHex = fillColors[colorClass];
+    const effectiveAvatar = item.isUser ? getSelectedAvatarId() : normalizeAvatarId(item.avatarId || 'default');
+    const avatarHtml = renderAvatarBadgeHTML(effectiveAvatar, item.handle, 'lg', 'lb-podium__avatar');
 
     return `
         <div class="lb-podium-card lb-podium-card--${colorClass}${item.isUser ? ' lb-podium-card--you' : ''}">
-            <div class="lb-podium__rank lb-podium__rank--${colorClass}" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="${fillHex}" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+            <div class="lb-podium__top">
+                <div class="lb-podium__rank lb-podium__rank--${colorClass}" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="${fillHex}" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+                </div>
+                ${avatarHtml}
             </div>
-            <div class="lb-podium__handle" style="margin-top: 4px;">
-                ${escapeHTML(item.handle)}
-                ${item.isUser ? '<span class="lb-you-badge">YOU</span>' : ''}
+            <div class="lb-podium__identity">
+                <div class="lb-podium__handle">
+                    ${escapeHTML(item.handle)}
+                    ${item.isUser ? '<span class="lb-you-badge">YOU</span>' : ''}
+                </div>
+                <div class="lb-podium__level">${escapeHTML(item.level)}</div>
             </div>
-            <div class="lb-podium__level">${escapeHTML(item.level)}</div>
-            <div class="lb-podium__stats">${item.count} Eps</div>
-            <div class="lb-podium__hours">${formatWatchTime(item.hours)}</div>
+            <div class="lb-podium__numbers">
+                <div class="lb-podium__stats">${item.count} Eps</div>
+                <div class="lb-podium__hours">${formatWatchTime(item.hours)}</div>
+            </div>
         </div>
     `;
 }
@@ -3129,10 +3231,13 @@ function createPodiumCardHTML(item) {
 function createLeaderboardRowHTML(item, isHidden = false) {
     const hiddenStyle = isHidden ? ' style="display:none;"' : '';
     const extraClass = isHidden ? ' lb-row-hidden' : '';
+    const effectiveAvatar = item.isUser ? getSelectedAvatarId() : normalizeAvatarId(item.avatarId || 'default');
+    const avatarHtml = renderAvatarBadgeHTML(effectiveAvatar, item.handle, 'sm', 'lb-row__avatar');
     return `
         <div class="lb-row${item.isUser ? ' lb-row--you' : ''}${extraClass}"${hiddenStyle}>
             <div class="lb-row__left">
                 <span class="lb-row__rank">#${item.rank}</span>
+                ${avatarHtml}
                 <div class="lb-row__info">
                     <div class="lb-row__handle">
                         ${escapeHTML(item.handle)}
@@ -3475,6 +3580,41 @@ export function initNamePromptModal() {
     const closeBtn = document.getElementById('name-prompt-close-btn');
     const errorEl = document.getElementById('name-prompt-error');
     const form = document.getElementById('name-prompt-form');
+    const modalBadge = document.getElementById('name-prompt-badge');
+    const modalAvatarGrid = document.getElementById('name-prompt-avatar-grid');
+    const modalAvatarLabel = document.getElementById('modal-selected-avatar-name');
+    let modalSelectedAvatar = getSelectedAvatarId();
+
+    function updateModalAvatarPreview() {
+        const info = getAvatarInfo(modalSelectedAvatar);
+        if (modalAvatarLabel) {
+            modalAvatarLabel.textContent = info ? info.name : 'Initial';
+        }
+        if (modalBadge) {
+            if (info) {
+                modalBadge.innerHTML = `<span style="font-size: 28px;">${info.emoji}</span>`;
+                modalBadge.style.background = info.bg;
+                modalBadge.style.borderColor = info.color;
+            } else {
+                modalBadge.innerHTML = `<span style="font-size: 28px;">🏆</span>`;
+                modalBadge.style.background = '';
+                modalBadge.style.borderColor = '';
+            }
+        }
+        if (modalAvatarGrid) {
+            modalAvatarGrid.innerHTML = renderAvatarPickerHTML(modalSelectedAvatar, true);
+        }
+    }
+
+    if (modalAvatarGrid) {
+        updateModalAvatarPreview();
+        modalAvatarGrid.addEventListener('click', (e) => {
+            const btn = e.target.closest('.avatar-picker-option');
+            if (!btn || !btn.dataset.avatarChoice) return;
+            modalSelectedAvatar = normalizeAvatarId(btn.dataset.avatarChoice);
+            updateModalAvatarPreview();
+        });
+    }
 
     function closeModal() {
         modal.classList.remove('is-active');
@@ -3548,7 +3688,8 @@ export function initNamePromptModal() {
         // Save to localStorage
         localStorage.setItem(STORAGE_HANDLE, val);
         localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
-        updateComposerIdentity();
+        setSelectedAvatarId(modalSelectedAvatar);
+        refreshAvatarPickersUI();
 
         // Update sidebar input if present
         const sidebarInput = document.getElementById('user-handle-input');

@@ -762,3 +762,184 @@
 }
 
 #leaderboard-list { flex-grow: 1; display: flex; flex-direction: column; }
+
+/* Phase 3: Gokuldham Character Avatars in Leaderboard & Sidebar */
+.lb-podium__top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.lb-podium__identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.lb-podium__numbers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gokuldham-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  flex-shrink: 0;
+  user-select: none;
+  line-height: 1;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.gokuldham-avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.gokuldham-avatar--md {
+  width: 34px;
+  height: 34px;
+  font-size: 17px;
+}
+
+.gokuldham-avatar--lg {
+  width: 46px;
+  height: 46px;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.gokuldham-avatar--monogram {
+  border-color: transparent;
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+.gokuldham-avatar--monogram.gokuldham-avatar--sm { font-size: 12px; }
+.gokuldham-avatar--monogram.gokuldham-avatar--md { font-size: 13.5px; }
+.gokuldham-avatar--monogram.gokuldham-avatar--lg { font-size: 18px; }
+
+.avatar-picker-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.avatar-picker-section--modal {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding-top: 10px;
+  text-align: left;
+}
+
+.avatar-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.avatar-picker-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.avatar-picker-selected {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.avatar-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.avatar-picker-grid--compact {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.avatar-picker-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
+}
+
+.avatar-picker-option:hover {
+  transform: translateY(-1px);
+  border-color: var(--avatar-accent, var(--text-primary));
+}
+
+.avatar-picker-option.is-selected {
+  border-color: var(--avatar-accent, #f59e0b);
+  background: rgba(245, 158, 11, 0.14);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.22);
+}
+
+.avatar-picker-emoji {
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.avatar-picker-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.avatar-picker-option.is-selected .avatar-picker-label {
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .lb-podium__top {
+    flex-direction: row;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .lb-podium__identity {
+    flex: 1;
+    min-width: 0;
+    align-items: flex-start;
+  }
+  .lb-podium__handle {
+    justify-content: flex-start;
+  }
+  .lb-podium__numbers {
+    text-align: right;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .avatar-picker-grid--compact {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

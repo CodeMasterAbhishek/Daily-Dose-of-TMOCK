@@ -3,6 +3,7 @@
  * 100% Serverless, $0/month, powered by Supabase REST API.
  * Uses native fetch for zero latency and zero CDN dependency.
  */
+import { getSelectedAvatarId, normalizeAvatarId } from './avatars.js?v=34';
 
 export const SUPABASE_CONFIG = {
     url: 'https://rxubsmawvuigofveqyza.supabase.co',
@@ -16,6 +17,8 @@ const STORAGE_LOCAL_COMMENTS = 'tmkoc_episode_comments_local';
 
 let reactionsBackendMissing = false;
 let commentsBackendMissing = false;
+let avatarColumnMissing = false;
+let avatarRpcParamUnsupported = false;
 const reactionSummaryCache = new Map();
 
 function readLocalReactionsMap() {
@@ -190,12 +193,13 @@ export async function isHandleTaken(handle, currentUserId, myWatchedCount = 0) {
  * Upsert current user's statistics to Supabase via secure RPC function.
  * Validates token ownership, sanitizes handle, and prevents row takeover.
  */
-export async function syncUserToCloud({ handle, watchedCount, watchHours, fanTier }) {
+export async function syncUserToCloud({ handle, watchedCount, watchHours, fanTier, avatarId }) {
     if (!isSupabaseConfigured()) return { success: false, reason: 'unconfigured' };
 
     const userId = getOrCreateUserId();
     const clientToken = getOrCreateUserToken();
     const cleanHandle = (handle || '@TMKOCSuperfan').trim();
+    const resolvedAvatar = normalizeAvatarId(avatarId || getSelectedAvatarId());
 
     // Guard against syncing a duplicate handle if taken by someone else
     if (!cleanHandle.startsWith('Gokuldham resident') && cleanHandle !== '@TMKOCSuperfan') {
@@ -207,24 +211,34 @@ export async function syncUserToCloud({ handle, watchedCount, watchHours, fanTie
     }
 
     const cleanBaseUrl = getCleanBaseUrl();
+    const basePayload = {
+        p_user_id: userId,
+        p_client_token: clientToken,
+        p_handle: cleanHandle,
+        p_watched_count: Math.max(0, Math.min(5000, Number(watchedCount) || 0)),
+        p_watch_hours: Math.max(0, Math.min(2500, Number(watchHours) || 0)),
+        p_fan_tier: fanTier || 'Gokuldham Resident'
+    };
 
     try {
-        const response = await fetch(`${cleanBaseUrl}/rest/v1/rpc/sync_fan_stats`, {
+        const postSync = (payload) => fetch(`${cleanBaseUrl}/rest/v1/rpc/sync_fan_stats`, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_CONFIG.anonKey,
                 'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                p_user_id: userId,
-                p_client_token: clientToken,
-                p_handle: cleanHandle,
-                p_watched_count: Math.max(0, Math.min(5000, Number(watchedCount) || 0)),
-                p_watch_hours: Math.max(0, Math.min(2500, Number(watchHours) || 0)),
-                p_fan_tier: fanTier || 'Gokuldham Resident'
-            })
+            body: JSON.stringify(payload)
         });
+
+        let response = await postSync(
+            avatarRpcParamUnsupported ? basePayload : { ...basePayload, p_avatar_id: resolvedAvatar }
+        );
+
+        if (!avatarRpcParamUnsupported && (response.status === 404 || response.status === 400)) {
+            avatarRpcParamUnsupported = true;
+            response = await postSync(basePayload);
+        }
 
         if (!response.ok) {
             const errText = await response.text();
@@ -303,18 +317,29 @@ export async function fetchGlobalLeaderboard(limit = 50) {
     const cleanBaseUrl = getCleanBaseUrl();
 
     try {
-        const response = await fetch(
-            `${cleanBaseUrl}/rest/v1/leaderboard?select=user_id,handle,watched_count,watch_hours,fan_tier,updated_at&order=watched_count.desc,watch_hours.desc&limit=${limit}`,
-            {
-                method: 'GET',
-                headers: {
-                    'apikey': SUPABASE_CONFIG.anonKey,
-                    'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-                    'Accept': 'application/json',
-                    'Prefer': 'count=exact'
+        const fetchLb = (includeAvatar) => {
+            const cols = includeAvatar
+                ? 'user_id,handle,watched_count,watch_hours,fan_tier,avatar_id,updated_at'
+                : 'user_id,handle,watched_count,watch_hours,fan_tier,updated_at';
+            return fetch(
+                `${cleanBaseUrl}/rest/v1/leaderboard?select=${cols}&order=watched_count.desc,watch_hours.desc&limit=${limit}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_CONFIG.anonKey,
+                        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                        'Accept': 'application/json',
+                        'Prefer': 'count=exact'
+                    }
                 }
-            }
-        );
+            );
+        };
+
+        let response = await fetchLb(!avatarColumnMissing);
+        if (!avatarColumnMissing && response.status === 400) {
+            avatarColumnMissing = true;
+            response = await fetchLb(false);
+        }
 
         if (!response.ok) {
             console.warn('Leaderboard fetch returned HTTP status:', response.status);
@@ -339,6 +364,7 @@ export async function fetchGlobalLeaderboard(limit = 50) {
             count: Number(row.watched_count) || 0,
             hours: Number(row.watch_hours) || 0,
             level: row.fan_tier,
+            avatarId: normalizeAvatarId(row.avatar_id || 'default'),
             isUser: row.user_id === myUserId
         }));
         
@@ -584,10 +610,11 @@ export async function fetchEpisodeComments(episodeId, { sort = 'top', limit = 30
 /**
  * Post a sanitized comment for an episode with client + server rate-limit and profanity checks.
  */
-export async function postEpisodeComment(episodeId, handle, content) {
+export async function postEpisodeComment(episodeId, handle, content, avatarId = null) {
     const cleanEp = String(episodeId || '').trim();
     const cleanContent = String(content || '').trim();
     const cleanHandle = (String(handle || 'Gokuldham Resident').trim() || 'Gokuldham Resident').slice(0, 30);
+    const resolvedAvatar = normalizeAvatarId(avatarId || getSelectedAvatarId());
 
     if (!cleanEp) return { success: false, error: 'Invalid episode ID.' };
     if (cleanContent.length < 2) return { success: false, code: 'too_short', error: 'Comment must be at least 2 characters.' };
@@ -614,6 +641,7 @@ export async function postEpisodeComment(episodeId, handle, content) {
             id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             episode_id: cleanEp,
             user_handle: cleanHandle,
+            avatar_id: resolvedAvatar,
             content: cleanContent,
             likes_count: 0,
             user_liked: false,
@@ -629,14 +657,24 @@ export async function postEpisodeComment(episodeId, handle, content) {
         return postLocalFallback();
     }
 
+    const basePayload = {
+        p_user_id: getOrCreateUserId(),
+        p_client_token: getOrCreateUserToken(),
+        p_episode_id: cleanEp,
+        p_handle: cleanHandle,
+        p_content: cleanContent
+    };
+
     try {
-        const response = await callSupabaseRpc('post_episode_comment', {
-            p_user_id: getOrCreateUserId(),
-            p_client_token: getOrCreateUserToken(),
-            p_episode_id: cleanEp,
-            p_handle: cleanHandle,
-            p_content: cleanContent
-        });
+        let response = await callSupabaseRpc(
+            'post_episode_comment',
+            avatarRpcParamUnsupported ? basePayload : { ...basePayload, p_avatar_id: resolvedAvatar }
+        );
+
+        if (!avatarRpcParamUnsupported && (response.status === 404 || response.status === 400)) {
+            avatarRpcParamUnsupported = true;
+            response = await callSupabaseRpc('post_episode_comment', basePayload);
+        }
 
         if (response.status === 404) {
             commentsBackendMissing = true;
@@ -652,6 +690,38 @@ export async function postEpisodeComment(episodeId, handle, content) {
         return { ...(data || { success: false }), synced: true };
     } catch (e) {
         return { success: false, error: 'Network error while posting comment. Please try again.' };
+    }
+}
+
+/**
+ * Save selected Gokuldham character avatar locally and sync via set_user_avatar RPC.
+ */
+export async function saveUserAvatarToCloud(avatarId) {
+    const cleanAvatar = normalizeAvatarId(avatarId);
+    if (!isSupabaseConfigured()) {
+        return { success: true, avatar_id: cleanAvatar, synced: false };
+    }
+
+    try {
+        const response = await callSupabaseRpc('set_user_avatar', {
+            p_user_id: getOrCreateUserId(),
+            p_client_token: getOrCreateUserToken(),
+            p_avatar_id: cleanAvatar
+        });
+
+        if (response.status === 404) {
+            console.info('set_user_avatar RPC not initialized on Supabase yet; stored avatar locally.');
+            return { success: true, avatar_id: cleanAvatar, synced: false };
+        }
+
+        if (!response.ok) {
+            return { success: false, avatar_id: cleanAvatar, synced: false };
+        }
+
+        const data = await response.json();
+        return { ...(data || { success: true, avatar_id: cleanAvatar }), synced: true };
+    } catch (e) {
+        return { success: true, avatar_id: cleanAvatar, synced: false };
     }
 }
 

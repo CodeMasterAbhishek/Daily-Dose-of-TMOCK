@@ -1922,4 +1922,38 @@ a:focus-visible {
   }
 }
 
+/* Phase 3: Inline Character Avatar Selector inside Comment Composer */
+.tmkoc-composer-avatar-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tmkoc-composer-avatar-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+}
+
+.tmkoc-inline-avatar-tray {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+@media (max-width: 480px) {
+  .tmkoc-inline-avatar-tray {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 
