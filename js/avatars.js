@@ -5,9 +5,16 @@
 export const STORAGE_USER_AVATAR = 'tmkoc_user_avatar';
 
 export const GOKULDHAM_AVATARS = [
-    { id: 'jethalal', name: 'Jethalal', photo: 'assets/avatars/jethalal.png?v=43', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.16)', tagline: 'Gada Electronics' },
-    { id: 'sodhi', name: 'Sodhi', photo: 'assets/avatars/sodhi.png?v=43', color: '#f97316', bg: 'rgba(249, 115, 22, 0.16)', tagline: 'Balle Balle!' },
-    { id: 'babita', name: 'Babita', photo: 'assets/avatars/babita.png?v=43', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.16)', tagline: 'Gokuldham Glam' }
+    { id: 'jethalal', name: 'Jethalal', photo: 'assets/avatars/jethalal.png?v=44', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.16)', tagline: 'Gada Electronics' },
+    { id: 'daya', name: 'Daya', photo: 'assets/avatars/daya.png?v=44', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.16)', tagline: 'Garba Queen' },
+    { id: 'bhide', name: 'Bhide', photo: 'assets/avatars/bhide.png?v=44', color: '#10b981', bg: 'rgba(16, 185, 129, 0.16)', tagline: 'Ekameva Secretary' },
+    { id: 'popatlal', name: 'Popatlal', photo: 'assets/avatars/popatlal.png?v=44', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.16)', tagline: 'Toofan Express' },
+    { id: 'sodhi', name: 'Sodhi', photo: 'assets/avatars/sodhi.png?v=44', color: '#f97316', bg: 'rgba(249, 115, 22, 0.16)', tagline: 'Balle Balle!' },
+    { id: 'babita', name: 'Babita', photo: 'assets/avatars/babita.png?v=44', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.16)', tagline: 'Gokuldham Glam' },
+    { id: 'champaklal', name: 'Bapuji', photo: 'assets/avatars/champaklal.png?v=44', color: '#d97706', bg: 'rgba(217, 119, 6, 0.16)', tagline: 'Champak Chacha' },
+    { id: 'tapu', name: 'Tapu', photo: 'assets/avatars/tapu.png?v=44', color: '#2563eb', bg: 'rgba(37, 99, 235, 0.16)', tagline: 'Tapu Sena Captain' },
+    { id: 'hathi', name: 'Dr. Hathi', photo: 'assets/avatars/hathi.png?v=44', color: '#16a34a', bg: 'rgba(22, 163, 74, 0.16)', tagline: 'Sahi Baat Hai!' },
+    { id: 'mehta', name: 'Mehta Saheb', photo: 'assets/avatars/mehta.png?v=44', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.16)', tagline: 'Fire Brigade' }
 ];
 
 const AVATAR_MAP = new Map(GOKULDHAM_AVATARS.map(a => [a.id, a]));
