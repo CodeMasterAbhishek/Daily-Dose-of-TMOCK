@@ -49,6 +49,7 @@ const STORAGE_COMPLETED_SHORTS = 'tmkoc_completed_shorts'; // Only >= 90% comple
 const STORAGE_TIMESTAMPS = 'tmkoc_timestamps';
 const STORAGE_EXACT_WATCH_SECONDS = 'tmkoc_exact_watch_seconds';
 const STORAGE_HANDLE = 'tmkoc_user_handle';
+const STORAGE_CUSTOM_NAME_SET = 'tmkoc_custom_name_set';
 const STORAGE_STREAK = 'tmkoc_streak_data';
 const STORAGE_ACTIVITY = 'tmkoc_activity_log';
 const STORAGE_LAST_OPENED = 'tmkoc_last_opened';
@@ -2470,6 +2471,7 @@ window.saveUserHandle = async function() {
     if (input && input.value.trim()) {
         const newHandle = input.value.trim();
         localStorage.setItem(STORAGE_HANDLE, newHandle);
+        localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
         if (btn) {
             btn.disabled = true;
             btn.textContent = 'Saving...';
@@ -2487,6 +2489,155 @@ window.saveUserHandle = async function() {
         }
     }
 };
+
+export function hasUserSelectedCustomName() {
+    if (localStorage.getItem(STORAGE_CUSTOM_NAME_SET) === 'true') {
+        return true;
+    }
+    const current = (localStorage.getItem(STORAGE_HANDLE) || '').trim();
+    if (current && !current.startsWith('Gokuldham resident') && current !== '@TMKOCSuperfan') {
+        localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
+        return true;
+    }
+    return false;
+}
+
+export function initNamePromptModal() {
+    if (hasUserSelectedCustomName()) return;
+
+    const modal = document.getElementById('name-prompt-modal');
+    if (!modal) return;
+
+    const input = document.getElementById('name-prompt-input');
+    const submitBtn = document.getElementById('name-prompt-submit-btn');
+    const skipBtn = document.getElementById('name-prompt-skip-btn');
+    const closeBtn = document.getElementById('name-prompt-close-btn');
+    const errorEl = document.getElementById('name-prompt-error');
+    const form = document.getElementById('name-prompt-form');
+
+    function closeModal() {
+        modal.classList.remove('is-active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+
+    function openModal() {
+        modal.style.display = 'flex';
+        void modal.offsetWidth; // trigger reflow for smooth animation
+        modal.classList.add('is-active');
+        setTimeout(() => {
+            if (input) input.focus();
+        }, 150);
+    }
+
+    async function handleSave() {
+        if (!input) return;
+        const val = input.value.trim();
+        if (!val || val.length < 2) {
+            if (errorEl) {
+                errorEl.textContent = 'Please enter at least 2 characters.';
+                errorEl.style.display = 'block';
+            }
+            input.focus();
+            return;
+        }
+        if (val.length > 30) {
+            if (errorEl) {
+                errorEl.textContent = 'Name must be 30 characters or less.';
+                errorEl.style.display = 'block';
+            }
+            input.focus();
+            return;
+        }
+        if (val.toLowerCase().startsWith('gokuldham resident') || val === '@TMKOCSuperfan') {
+            if (errorEl) {
+                errorEl.textContent = 'Please choose a personalized name or nickname.';
+                errorEl.style.display = 'block';
+            }
+            input.focus();
+            return;
+        }
+
+        if (errorEl) errorEl.style.display = 'none';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+        }
+
+        // Save to localStorage
+        localStorage.setItem(STORAGE_HANDLE, val);
+        localStorage.setItem(STORAGE_CUSTOM_NAME_SET, 'true');
+
+        // Update sidebar input if present
+        const sidebarInput = document.getElementById('user-handle-input');
+        if (sidebarInput) sidebarInput.value = val;
+
+        // Close modal immediately for instant feedback
+        closeModal();
+
+        // Sync with cloud and update dashboard in background
+        syncCurrentUserStats().then(() => updateFanDashboard()).catch(e => {
+            console.warn('Sync after name prompt error:', e);
+        });
+    }
+
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleSave();
+        });
+    }
+
+    if (submitBtn) {
+        submitBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleSave();
+        });
+    }
+
+    if (input) {
+        input.addEventListener('input', () => {
+            if (errorEl) errorEl.style.display = 'none';
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSave();
+            } else if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    }
+
+    if (skipBtn) {
+        skipBtn.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+
+    // Close when clicking backdrop outside card
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+    // Display after 600ms on page load
+    setTimeout(() => {
+        const playerBackdrop = document.querySelector('.tmkoc-modal-backdrop');
+        if (playerBackdrop && playerBackdrop.style.display === 'flex') {
+            return;
+        }
+        openModal();
+    }, 600);
+}
 
 window.copyShareCardText = function() {
     const handle = localStorage.getItem(STORAGE_HANDLE) || '@TMKOCSuperfan';

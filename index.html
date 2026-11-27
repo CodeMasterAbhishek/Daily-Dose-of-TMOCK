@@ -288,7 +288,30 @@
         </div>
     </footer>
 
+    <!-- Name Prompt Modal (Displayed if user has not set a custom name) -->
+    <div id="name-prompt-modal" class="name-prompt-backdrop" style="display: none;" aria-hidden="true">
+        <div class="name-prompt-card" role="dialog" aria-modal="true" aria-labelledby="name-prompt-title">
+            <button class="name-prompt-close" id="name-prompt-close-btn" aria-label="Close" title="Close">✕</button>
+            <div class="name-prompt-badge">
+                <span style="font-size: 28px;">🏆</span>
+            </div>
+            <h3 id="name-prompt-title" class="name-prompt-title">Choose Your Leaderboard Name</h3>
+            <p class="name-prompt-sub">Enter your name or nickname to show up on the Gokuldham Superfan Leaderboard!</p>
+            
+            <form id="name-prompt-form" onsubmit="return false;" style="margin-top: 18px;">
+                <div class="name-prompt-input-group">
+                    <input type="text" id="name-prompt-input" class="name-prompt-input" placeholder="e.g. Jethalal, BabitaFan, Tapu..." maxlength="30" autocomplete="off" spellcheck="false" />
+                </div>
+                <div id="name-prompt-error" class="name-prompt-error" style="display: none;"></div>
+                <div class="name-prompt-actions">
+                    <button type="submit" id="name-prompt-submit-btn" class="name-prompt-btn name-prompt-btn--primary">Join Leaderboard</button>
+                    <button type="button" id="name-prompt-skip-btn" class="name-prompt-btn name-prompt-btn--ghost">Maybe Later</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=26"></script>
+    <script type="module" src="js/app.js?v=27"></script>
 </body>
 </html>

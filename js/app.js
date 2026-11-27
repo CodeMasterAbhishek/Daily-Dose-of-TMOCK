@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats } from './ui.js?v=26';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal } from './ui.js?v=27';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -94,6 +94,9 @@ async function init() {
 
         // Initialize sidebar fan stats and sync profile to the Global Leaderboard
         updateFanDashboard();
+
+        // Prompt for username if user has not yet chosen a custom name
+        initNamePromptModal();
     } catch (error) {
         console.error("Initialization failed:", error);
         document.getElementById('news-container').innerHTML = '<p style="color:red">Failed to load dataset. Please try again later.</p>';
