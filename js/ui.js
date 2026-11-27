@@ -20,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=38';
+} from './supabase.js?v=39';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -28,11 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=38';
+} from './avatars.js?v=39';
 import {
     generateFanCardCanvas,
     downloadFanCardPNG
-} from './fan-card.js?v=38';
+} from './fan-card.js?v=39';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -1999,45 +1999,43 @@ function updateSharePopoverUrl() {
     previewInput.value = buildEpisodeShareUrl(currentModalArticle, includeTs);
 }
 
+function updateShareScrollButtonState() {
+    const track = document.getElementById('share-targets-track');
+    const nextBtn = document.getElementById('share-targets-next');
+    if (!track || !nextBtn) return;
+    const hasOverflow = track.scrollWidth > track.clientWidth + 4;
+    const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+    nextBtn.style.display = hasOverflow && !atEnd ? 'inline-flex' : 'none';
+}
+
 function closeSharePopover() {
-    const pop = document.getElementById('ep-share-popover');
+    const backdrop = document.getElementById('ep-share-backdrop');
     const shareBtn = document.getElementById('ep-share-btn');
-    if (pop) pop.style.display = 'none';
+    if (backdrop) {
+        backdrop.style.display = 'none';
+        backdrop.setAttribute('aria-hidden', 'true');
+    }
     if (shareBtn) shareBtn.setAttribute('aria-expanded', 'false');
 }
 
 function openSharePopover() {
-    const pop = document.getElementById('ep-share-popover');
+    const backdrop = document.getElementById('ep-share-backdrop');
     const shareBtn = document.getElementById('ep-share-btn');
-    if (!pop) return;
+    const track = document.getElementById('share-targets-track');
+    if (!backdrop) return;
     updateShareTimestampLabel();
     updateSharePopoverUrl();
-    pop.style.display = 'block';
+    backdrop.style.display = 'flex';
+    backdrop.setAttribute('aria-hidden', 'false');
     if (shareBtn) shareBtn.setAttribute('aria-expanded', 'true');
+    if (track) track.scrollLeft = 0;
+    requestAnimationFrame(updateShareScrollButtonState);
 }
 
-async function handleEpisodeShareClick() {
+function handleEpisodeShareClick() {
     if (!currentModalArticle) return;
-    const includeTs = Boolean(document.getElementById('share-at-timestamp')?.checked);
-    const shareUrl = buildEpisodeShareUrl(currentModalArticle, includeTs);
-    const epNum = currentModalArticle.epNumber;
-
-    const isMobileTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    if (isMobileTouch && typeof navigator.share === 'function') {
-        try {
-            await navigator.share({
-                title: `EP ${epNum}: ${currentModalArticle.title}`,
-                text: `Watch TMKOC Episode ${epNum} on Daily Dose of TMKOC!`,
-                url: shareUrl
-            });
-            return;
-        } catch (err) {
-            if (err && err.name === 'AbortError') return;
-        }
-    }
-
-    const pop = document.getElementById('ep-share-popover');
-    if (pop && pop.style.display !== 'none') {
+    const backdrop = document.getElementById('ep-share-backdrop');
+    if (backdrop && backdrop.style.display !== 'none') {
         closeSharePopover();
     } else {
         openSharePopover();
@@ -2072,12 +2070,35 @@ async function handleShareCopyButtonClick() {
     }
 }
 
-function handleWhatsAppShareClick() {
-    if (!currentModalArticle) return;
+function buildSocialShareDestination(platform, shareUrl, article) {
+    const epNum = article.epNumber;
+    const title = `EP ${epNum}: ${article.title}`;
+    const text = `Watch TMKOC Episode ${epNum}: ${article.title}`;
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const encodedText = encodeURIComponent(text);
+    const routes = {
+        whatsapp: `https://wa.me/?text=${encodeURIComponent(`${text} ${shareUrl}`)}`,
+        x: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+        telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+        reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(title)}`,
+        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+        email: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${text}\n\n${shareUrl}`)}`
+    };
+    return routes[platform] || '';
+}
+
+function handleSocialShareClick(platform) {
+    if (!currentModalArticle || !platform) return;
     const includeTs = Boolean(document.getElementById('share-at-timestamp')?.checked);
     const shareUrl = buildEpisodeShareUrl(currentModalArticle, includeTs);
-    const text = `Watch TMKOC Episode ${currentModalArticle.epNumber}: ${currentModalArticle.title} ${shareUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    const targetUrl = buildSocialShareDestination(platform, shareUrl, currentModalArticle);
+    if (!targetUrl) return;
+    if (platform === 'email') {
+        window.location.href = targetUrl;
+    } else {
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
     closeSharePopover();
 }
 
@@ -2721,7 +2742,6 @@ function bindWatchViewControls() {
     document.getElementById('ep-like-btn')?.addEventListener('click', () => handleEpisodeReactionClick(1));
     document.getElementById('ep-dislike-btn')?.addEventListener('click', () => handleEpisodeReactionClick(-1));
     document.getElementById('ep-share-btn')?.addEventListener('click', handleEpisodeShareClick);
-    document.getElementById('ep-whatsapp-btn')?.addEventListener('click', handleWhatsAppShareClick);
 
     document.getElementById('comment-insert-ts-btn')?.addEventListener('click', insertCurrentTimestampIntoComment);
     const composerAvatarBtn = document.getElementById('comment-composer-avatar-btn');
@@ -2769,6 +2789,21 @@ function bindWatchViewControls() {
         collapseCommentComposer(true);
     });
 
+    document.getElementById('ep-share-backdrop')?.addEventListener('click', (e) => {
+        if (e.target.id === 'ep-share-backdrop') {
+            closeSharePopover();
+            return;
+        }
+        const targetBtn = e.target.closest('[data-share-platform]');
+        if (targetBtn) {
+            handleSocialShareClick(targetBtn.dataset.sharePlatform);
+        }
+    });
+    document.getElementById('share-targets-track')?.addEventListener('scroll', updateShareScrollButtonState, { passive: true });
+    document.getElementById('share-targets-next')?.addEventListener('click', () => {
+        const track = document.getElementById('share-targets-track');
+        if (track) track.scrollBy({ left: 220, behavior: 'smooth' });
+    });
     document.getElementById('share-pop-close')?.addEventListener('click', () => {
         closeSharePopover();
     });
@@ -2790,17 +2825,10 @@ function bindWatchViewControls() {
         toggleBtn.textContent = shouldCollapse ? '...more' : 'Show less';
         toggleBtn.setAttribute('aria-expanded', shouldCollapse ? 'false' : 'true');
     });
-    document.addEventListener('click', (e) => {
-        const pop = document.getElementById('ep-share-popover');
-        if (!pop || pop.style.display === 'none') return;
-        if (!e.target.closest('.yt-share-anchor')) {
-            closeSharePopover();
-        }
-    });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            const pop = document.getElementById('ep-share-popover');
-            if (pop && pop.style.display !== 'none') {
+            const backdrop = document.getElementById('ep-share-backdrop');
+            if (backdrop && backdrop.style.display !== 'none') {
                 closeSharePopover();
             }
         }

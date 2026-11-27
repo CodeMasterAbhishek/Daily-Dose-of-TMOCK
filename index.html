@@ -30,7 +30,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css?v=1.0.3">
     <link rel="stylesheet" href="css/layout.css?v=1.0.3">
-    <link rel="stylesheet" href="css/style.css?v=1.0.15">
+    <link rel="stylesheet" href="css/style.css?v=1.0.16">
     <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.2">
 </head>
 <body>
@@ -174,33 +174,10 @@
                                 </button>
                             </div>
 
-                            <div class="yt-share-anchor">
-                                <button type="button" id="ep-share-btn" class="yt-pill-btn tmkoc-share-btn" aria-expanded="false" aria-haspopup="true" title="Share">
-                                    <svg class="tmkoc-action-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
-                                    <span id="ep-share-label">Share</span>
-                                </button>
-
-                                <div id="ep-share-popover" class="yt-share-popover" style="display: none;" role="dialog" aria-label="Share episode">
-                                    <div class="yt-share-pop-head">
-                                        <span>Share Episode</span>
-                                        <button type="button" id="share-pop-close" class="yt-share-pop-close" aria-label="Close">✕</button>
-                                    </div>
-                                    <div class="yt-share-url-row">
-                                        <input type="text" id="share-url-preview-input" class="yt-share-url-input" readonly aria-label="Episode link">
-                                        <button type="button" id="share-copy-btn" class="yt-share-copy-btn">Copy</button>
-                                    </div>
-                                    <div class="yt-share-pop-foot">
-                                        <label class="yt-share-ts-check">
-                                            <input type="checkbox" id="share-at-timestamp">
-                                            <span id="share-timestamp-label">Start at 0:00</span>
-                                        </label>
-                                        <button type="button" id="ep-whatsapp-btn" class="yt-wa-pill-btn" title="Share on WhatsApp">
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.03 2C6.5 2 2 6.48 2 12c0 1.77.46 3.5 1.35 5.02L2 22l5.12-1.33A10.02 10.02 0 0 0 12.03 22C17.55 22 22 17.52 22 12S17.55 2 12.03 2zm5.84 14.12c-.25.7-1.45 1.35-2.01 1.43-.52.08-1.18.12-1.91-.12-.44-.14-1-.33-1.72-.64-3.03-1.3-5-4.37-5.15-4.57-.15-.2-1.23-1.63-1.23-3.11 0-1.48.78-2.21 1.05-2.51.28-.3.6-.38.8-.38.2 0 .4 0 .58.01.19.01.44-.07.68.52.25.6.85 2.08.92 2.23.08.15.13.33.03.53-.1.2-.15.33-.3.5-.15.18-.32.4-.45.54-.15.15-.31.32-.13.62.18.3.78 1.29 1.68 2.09 1.15 1.03 2.13 1.35 2.43 1.5.3.15.48.13.66-.08.18-.2.75-.88.95-1.18.2-.3.4-.25.68-.15.28.1 1.75.83 2.05.98.3.15.5.22.58.35.07.12.07.72-.18 1.42z"></path></svg>
-                                            WhatsApp
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <button type="button" id="ep-share-btn" class="yt-pill-btn tmkoc-share-btn" aria-expanded="false" aria-haspopup="dialog" title="Share">
+                                <svg class="tmkoc-action-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                                <span id="ep-share-label">Share</span>
+                            </button>
 
                             <label class="yt-pill-btn yt-autoplay-pill" title="Autoplay next episode">
                                 <span class="yt-switch-label">Autoplay</span>
@@ -525,6 +502,76 @@
         </div>
     </div>
 
+    <!-- YouTube-Style Center Share Modal -->
+    <div id="ep-share-backdrop" class="yt-share-backdrop" style="display: none;" aria-hidden="true">
+        <div id="ep-share-popover" class="yt-share-modal" role="dialog" aria-modal="true" aria-labelledby="yt-share-modal-title">
+            <div class="yt-share-modal-head">
+                <h3 id="yt-share-modal-title" class="yt-share-modal-title">Share</h3>
+                <button type="button" id="share-pop-close" class="yt-share-pop-close" aria-label="Close" title="Close">✕</button>
+            </div>
+
+            <div class="yt-share-targets-wrap">
+                <div id="share-targets-track" class="yt-share-targets">
+                    <button type="button" id="ep-whatsapp-btn" class="yt-share-target" data-share-platform="whatsapp" title="Share on WhatsApp">
+                        <span class="yt-share-circle yt-share-circle--wa" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12.03 2C6.5 2 2 6.48 2 12c0 1.77.46 3.5 1.35 5.02L2 22l5.12-1.33A10.02 10.02 0 0 0 12.03 22C17.55 22 22 17.52 22 12S17.55 2 12.03 2zm5.84 14.12c-.25.7-1.45 1.35-2.01 1.43-.52.08-1.18.12-1.91-.12-.44-.14-1-.33-1.72-.64-3.03-1.3-5-4.37-5.15-4.57-.15-.2-1.23-1.63-1.23-3.11 0-1.48.78-2.21 1.05-2.51.28-.3.6-.38.8-.38.2 0 .4 0 .58.01.19.01.44-.07.68.52.25.6.85 2.08.92 2.23.08.15.13.33.03.53-.1.2-.15.33-.3.5-.15.18-.32.4-.45.54-.15.15-.31.32-.13.62.18.3.78 1.29 1.68 2.09 1.15 1.03 2.13 1.35 2.43 1.5.3.15.48.13.66-.08.18-.2.75-.88.95-1.18.2-.3.4-.25.68-.15.28.1 1.75.83 2.05.98.3.15.5.22.58.35.07.12.07.72-.18 1.42z"/></svg>
+                        </span>
+                        <span class="yt-share-target-label">WhatsApp</span>
+                    </button>
+                    <button type="button" class="yt-share-target" data-share-platform="x" title="Share on X">
+                        <span class="yt-share-circle yt-share-circle--x" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </span>
+                        <span class="yt-share-target-label">X</span>
+                    </button>
+                    <button type="button" class="yt-share-target" data-share-platform="facebook" title="Share on Facebook">
+                        <span class="yt-share-circle yt-share-circle--fb" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg>
+                        </span>
+                        <span class="yt-share-target-label">Facebook</span>
+                    </button>
+                    <button type="button" class="yt-share-target" data-share-platform="telegram" title="Share on Telegram">
+                        <span class="yt-share-circle yt-share-circle--tg" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+                        </span>
+                        <span class="yt-share-target-label">Telegram</span>
+                    </button>
+                    <button type="button" class="yt-share-target" data-share-platform="reddit" title="Share on Reddit">
+                        <span class="yt-share-circle yt-share-circle--rd" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+                        </span>
+                        <span class="yt-share-target-label">Reddit</span>
+                    </button>
+                    <button type="button" class="yt-share-target" data-share-platform="linkedin" title="Share on LinkedIn">
+                        <span class="yt-share-circle yt-share-circle--li" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                        </span>
+                        <span class="yt-share-target-label">LinkedIn</span>
+                    </button>
+                    <button type="button" class="yt-share-target" data-share-platform="email" title="Share via Email">
+                        <span class="yt-share-circle yt-share-circle--em" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </span>
+                        <span class="yt-share-target-label">Email</span>
+                    </button>
+                </div>
+                <button type="button" id="share-targets-next" class="yt-share-scroll-btn" aria-label="Scroll share options right" title="More platforms">›</button>
+            </div>
+
+            <div class="yt-share-url-row">
+                <input type="text" id="share-url-preview-input" class="yt-share-url-input" readonly aria-label="Episode link">
+                <button type="button" id="share-copy-btn" class="yt-share-copy-btn">Copy</button>
+            </div>
+
+            <div class="yt-share-pop-foot">
+                <label class="yt-share-ts-check">
+                    <input type="checkbox" id="share-at-timestamp">
+                    <span id="share-timestamp-label">Start at 0:00</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
     <!-- Global Custom Toast Notification -->
     <div id="custom-toast" class="custom-toast" style="display: none;" role="status" aria-live="polite">
         <span id="custom-toast-icon" class="custom-toast__icon"></span>
@@ -532,6 +579,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=38"></script>
+    <script type="module" src="js/app.js?v=39"></script>
 </body>
 </html>

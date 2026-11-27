@@ -2192,54 +2192,178 @@ a:focus-visible {
   font-size: 12px;
 }
 
-/* YouTube-Style Share Popover */
-.yt-share-anchor {
-  position: relative;
+/* YouTube-Style Center Share Modal */
+@keyframes ytShareModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.yt-share-popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 320px;
+.yt-share-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.56);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.yt-share-modal {
+  width: min(500px, calc(100vw - 24px));
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
-  z-index: 400;
+  border-radius: 16px;
+  padding: 20px 22px 18px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
+  animation: ytShareModalPop 0.16s ease-out;
 }
 
-[data-theme="dark"] .yt-share-popover {
-  background: #18181b;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+[data-theme="dark"] .yt-share-modal {
+  background: #212124;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72);
 }
 
-.yt-share-pop-head {
+.yt-share-modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13.5px;
+  gap: 12px;
+}
+
+.yt-share-modal-title {
+  margin: 0;
+  font-size: 16.5px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .yt-share-pop-close {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: 17px;
   cursor: pointer;
-  padding: 2px 6px;
   border-radius: 50%;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .yt-share-pop-close:hover {
   background: rgba(128, 128, 128, 0.16);
   color: var(--text-primary);
+}
+
+.yt-share-targets-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.yt-share-targets {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  padding: 4px 28px 2px 2px;
+  width: 100%;
+}
+
+.yt-share-targets::-webkit-scrollbar {
+  display: none;
+}
+
+.yt-share-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  width: 60px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.yt-share-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.yt-share-target:hover .yt-share-circle {
+  transform: translateY(-2px);
+  filter: brightness(1.07);
+}
+
+.yt-share-circle--wa { background: #25d366; }
+.yt-share-circle--x { background: #0f1419; }
+[data-theme="dark"] .yt-share-circle--x {
+  background: #111114;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+.yt-share-circle--fb { background: #1877f2; }
+.yt-share-circle--tg { background: #229ed9; }
+.yt-share-circle--rd { background: #ff4500; }
+.yt-share-circle--li { background: #0a66c2; }
+.yt-share-circle--em { background: #64748b; }
+
+.yt-share-target-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.yt-share-scroll-btn {
+  position: absolute;
+  right: 0;
+  top: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transition: background-color 0.15s ease, transform 0.14s ease;
+}
+
+.yt-share-scroll-btn:hover {
+  transform: scale(1.06);
 }
 
 .yt-share-url-row {
@@ -2248,8 +2372,8 @@ a:focus-visible {
   gap: 8px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 5px 5px 5px 10px;
+  border-radius: 12px;
+  padding: 6px 6px 6px 14px;
 }
 
 .yt-share-url-input {
@@ -2258,77 +2382,56 @@ a:focus-visible {
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 13px;
   font-family: var(--font-body);
   outline: none;
 }
 
 .yt-share-copy-btn {
-  padding: 6px 14px;
+  padding: 8px 18px;
   border-radius: 9999px;
   border: none;
-  background: #2563eb;
+  background: #065fd4;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .yt-share-copy-btn:hover {
-  opacity: 0.9;
+  opacity: 0.92;
+}
+
+.yt-share-copy-btn.is-copied {
+  background: #16a34a;
 }
 
 .yt-share-pop-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 4px;
+  padding-top: 14px;
   border-top: 1px solid var(--border-color);
 }
 
 .yt-share-ts-check {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
+  user-select: none;
 }
 
 .yt-share-ts-check input {
-  width: 15px;
-  height: 15px;
-  accent-color: #2563eb;
+  width: 16px;
+  height: 16px;
+  accent-color: #065fd4;
   cursor: pointer;
-}
-
-.yt-wa-pill-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 9999px;
-  border: none;
-  background: rgba(22, 163, 74, 0.14);
-  color: #16a34a;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.yt-wa-pill-btn:hover {
-  background: rgba(22, 163, 74, 0.24);
-}
-
-[data-theme="dark"] .yt-wa-pill-btn {
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.16);
 }
 
 /* Soft Borderless YouTube Description Box */
@@ -2707,20 +2810,6 @@ a:focus-visible {
   }
   .yt-rec-section-label {
     grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 760px) {
-  .yt-share-popover {
-    position: fixed;
-    top: auto;
-    bottom: 24px;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(348px, calc(100vw - 24px));
-    z-index: 250;
-    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.36);
   }
 }
 

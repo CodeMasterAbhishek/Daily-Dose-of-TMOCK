@@ -3,7 +3,7 @@
  * 100% Serverless, $0/month, powered by Supabase REST API.
  * Uses native fetch for zero latency and zero CDN dependency.
  */
-import { getSelectedAvatarId, normalizeAvatarId } from './avatars.js?v=38';
+import { getSelectedAvatarId, normalizeAvatarId } from './avatars.js?v=39';
 
 export const SUPABASE_CONFIG = {
     url: 'https://rxubsmawvuigofveqyza.supabase.co',
