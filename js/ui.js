@@ -20,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=35';
+} from './supabase.js?v=36';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -28,11 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=35';
+} from './avatars.js?v=36';
 import {
     generateFanCardCanvas,
     downloadFanCardPNG
-} from './fan-card.js?v=35';
+} from './fan-card.js?v=36';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -72,7 +72,12 @@ function formatWatchTime(decimalHours) {
 
 let allArticlesMap = {};
 let masterEpNumberMap = {};
+let masterArticlesList = [];
+let masterStorylinesList = [];
 let currentModalEpNum = null;
+let savedFeedScrollY = 0;
+let pendingManualSeek = { sec: 0, until: 0 };
+const DEFAULT_PAGE_TITLE = document.title || 'Daily Dose of TMKOC | Taarak Mehta Ka Ooltah Chashmah';
 
 // LocalStorage Keys
 const STORAGE_COMPLETED = 'tmkoc_completed_watched_eps'; // Only >= 90% completed full episodes
@@ -1107,10 +1112,15 @@ export function playEpisodeByParam(epParam, startSeconds = 0) {
 }
 
 export function registerMasterArticles(articles) {
+    masterArticlesList = Array.isArray(articles) ? articles : [];
     articles.forEach(art => {
         allArticlesMap[art.id] = art;
         masterEpNumberMap[art.epNumber] = art;
     });
+}
+
+export function registerMasterStorylines(storylines) {
+    masterStorylinesList = Array.isArray(storylines) ? storylines : [];
 }
 
 function createHeroHTML(articles) {
@@ -1428,7 +1438,14 @@ function startActiveWatchTracker(articleId) {
             
             // Sync to exactly where they are in the video (absolute time)
             if (typeof ytPlayer.getCurrentTime === 'function') {
-                currentEpSecs = Math.floor(ytPlayer.getCurrentTime());
+                const liveSecs = Math.floor(ytPlayer.getCurrentTime());
+                const waitingForSeek = Date.now() < pendingManualSeek.until && Math.abs(liveSecs - pendingManualSeek.sec) > 5;
+                if (!waitingForSeek) {
+                    currentEpSecs = liveSecs;
+                    pendingManualSeek.until = 0;
+                } else {
+                    currentEpSecs = pendingManualSeek.sec;
+                }
             } else {
                 currentEpSecs += 1;
             }
@@ -1836,6 +1853,9 @@ function formatCompactCount(num) {
 }
 
 function getCurrentPlayerSeconds() {
+    if (Date.now() < pendingManualSeek.until) {
+        return Math.max(0, Math.floor(pendingManualSeek.sec || 0));
+    }
     try {
         if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && !isMainPlayerLoading) {
             const vd = typeof ytPlayer.getVideoData === 'function' ? ytPlayer.getVideoData() : null;
@@ -2020,7 +2040,7 @@ function handleWhatsAppShareClick() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
 }
 
-function syncUrlWithEpisode(epNumberOrNull) {
+function syncUrlWithEpisode(epNumberOrNull, usePushState = false) {
     if (!window.location.protocol.startsWith('http') || !window.history || typeof window.history.replaceState !== 'function') {
         return;
     }
@@ -2032,7 +2052,12 @@ function syncUrlWithEpisode(epNumberOrNull) {
         } else {
             url.searchParams.delete('ep');
         }
-        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+        const nextUrl = url.pathname + url.search + url.hash;
+        if (epNumberOrNull && usePushState && typeof window.history.pushState === 'function') {
+            window.history.pushState({ view: 'watch', ep: epNumberOrNull }, '', nextUrl);
+        } else {
+            window.history.replaceState({ view: epNumberOrNull ? 'watch' : 'feed' }, '', nextUrl);
+        }
     } catch (e) {}
 }
 
@@ -2198,13 +2223,13 @@ function seekPlayerToSeconds(targetSeconds) {
         }
     }
 
+    pendingManualSeek = { sec: seekSec, until: Date.now() + 2500 };
     currentResumeSeconds = seekSec;
     updateShareTimestampLabel();
     updateCommentInsertTimestampLabel();
 
-    const dlg = document.querySelector('.tmkoc-modal-dialog');
-    if (dlg && dlg.scrollTop > 0) {
-        dlg.scrollTo({ top: 0, behavior: 'smooth' });
+    if (window.scrollY > 120) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
@@ -2229,8 +2254,6 @@ function seekPlayerToSeconds(targetSeconds) {
             } catch (e) {}
         }
     }
-
-    showCustomToast(`Jumped to ${formatTimestampShort(seekSec)}`, 'success');
 }
 
 function showCommentError(msg) {
@@ -2555,9 +2578,237 @@ async function handleCommentDeleteClick(commentId) {
     showCustomToast('Comment deleted.', 'success');
 }
 
+function isWatchViewOpen() {
+    const watchView = document.getElementById('watch-view');
+    return Boolean(watchView && watchView.style.display !== 'none');
+}
+
+function getWatchRecommendationGroups(article) {
+    const upNext = [];
+    const more = [];
+    const seen = new Set([article.id]);
+
+    const matchingArc = masterStorylinesList.find(
+        s => article.epNumber >= s.startEp && article.epNumber <= s.endEp
+    );
+
+    if (matchingArc) {
+        for (let ep = article.epNumber + 1; ep <= matchingArc.endEp && upNext.length < 6; ep++) {
+            const candidate = masterEpNumberMap[ep];
+            if (candidate && !seen.has(candidate.id)) {
+                upNext.push(candidate);
+                seen.add(candidate.id);
+            }
+        }
+        for (let ep = matchingArc.startEp; ep < article.epNumber && upNext.length < 6; ep++) {
+            const candidate = masterEpNumberMap[ep];
+            if (candidate && !seen.has(candidate.id)) {
+                upNext.push(candidate);
+                seen.add(candidate.id);
+            }
+        }
+    }
+
+    // Fill Up Next sequentially (+1..+8, or -1..-3 if at latest episode)
+    for (let step = 1; step <= 10 && upNext.length < 6; step++) {
+        const nextEp = masterEpNumberMap[article.epNumber + step];
+        if (nextEp && !seen.has(nextEp.id)) {
+            upNext.push(nextEp);
+            seen.add(nextEp.id);
+        }
+    }
+    for (let step = 1; step <= 4 && upNext.length < 6; step++) {
+        const prevEp = masterEpNumberMap[article.epNumber - step];
+        if (prevEp && !seen.has(prevEp.id)) {
+            upNext.push(prevEp);
+            seen.add(prevEp.id);
+        }
+    }
+
+    // Curated same-era / classic picks spaced deterministically from masterArticlesList
+    const pool = masterArticlesList.filter(a => !seen.has(a.id));
+    const sameCategory = pool.filter(a => a.category === article.category);
+    const sourcePool = sameCategory.length >= 8 ? sameCategory : pool;
+    const stepSize = Math.max(1, Math.floor(sourcePool.length / 10));
+    const offset = article.epNumber % stepSize;
+
+    for (let i = offset; i < sourcePool.length && more.length < 10; i += stepSize) {
+        const pick = sourcePool[i];
+        if (pick && !seen.has(pick.id)) {
+            more.push(pick);
+            seen.add(pick.id);
+        }
+    }
+
+    return { matchingArc, upNext, more };
+}
+
+function createRecommendationCardHTML(art, context) {
+    const isWatched = context.completedSet.has(art.id);
+    const savedSec = context.timestamps[art.id] || 0;
+    let epSecs = 1260;
+    if (art.durationText) {
+        const parts = art.durationText.split(':');
+        if (parts.length === 3) epSecs = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+        else if (parts.length === 2) epSecs = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    }
+    const progPct = savedSec > 0 ? Math.min(100, Math.round((savedSec / epSecs) * 100)) : 0;
+
+    return `
+        <button type="button" class="yt-rec-card" data-rec-ep-id="${escapeHTML(art.id)}">
+            <div class="yt-rec-thumb-wrap">
+                <img src="${escapeHTML(art.image)}" alt="${escapeHTML(art.title)}" loading="lazy" class="yt-rec-thumb" onerror="this.src='https://via.placeholder.com/320x180/18181b/818cf8?text=TMKOC'">
+                <span class="yt-rec-dur">${escapeHTML(art.durationText || '21:45')}</span>
+                ${isWatched ? '<span class="yt-rec-watched-tag">✓ Watched</span>' : ''}
+                ${progPct > 0 ? `<div class="yt-rec-prog-bar"><div class="yt-rec-prog-fill" style="width: ${progPct}%;"></div></div>` : ''}
+            </div>
+            <div class="yt-rec-info">
+                <span class="yt-rec-ep-badge">EP ${art.epNumber} • ${escapeHTML(art.category)}</span>
+                <h4 class="yt-rec-card-title">${escapeHTML(art.title)}</h4>
+                <span class="yt-rec-card-meta">${escapeHTML(art.airDate || '')}</span>
+            </div>
+        </button>
+    `;
+}
+
+function renderWatchRecommendations(article) {
+    const crumbEl = document.getElementById('watch-storyline-crumb');
+    const listEl = document.getElementById('watch-recommendations-list');
+    if (!listEl) return;
+
+    const { matchingArc, upNext, more } = getWatchRecommendationGroups(article);
+    if (crumbEl) {
+        if (matchingArc) {
+            crumbEl.textContent = `Storyline: ${matchingArc.title} (Ep ${matchingArc.startEp}–${matchingArc.endEp})`;
+            crumbEl.style.display = 'inline-flex';
+        } else {
+            crumbEl.style.display = 'none';
+            crumbEl.textContent = '';
+        }
+    }
+
+    const context = {
+        completedSet: new Set(getCompletedWatchedList()),
+        timestamps: getTimestamps()
+    };
+
+    let html = '';
+    if (upNext.length > 0) {
+        const label = matchingArc ? `Next in "${matchingArc.title}"` : 'Next Episodes';
+        html += `<div class="yt-rec-section-label">${escapeHTML(label)}</div>`;
+        html += upNext.map(art => createRecommendationCardHTML(art, context)).join('');
+    }
+    if (more.length > 0) {
+        html += `<div class="yt-rec-section-label">Recommended For You</div>`;
+        html += more.map(art => createRecommendationCardHTML(art, context)).join('');
+    }
+
+    listEl.innerHTML = html || '<div class="tmkoc-comments-empty">More episodes coming soon!</div>';
+}
+
+function bindWatchViewControls() {
+    const watchView = document.getElementById('watch-view');
+    if (!watchView || watchView.dataset.watchBound) return;
+    watchView.dataset.watchBound = 'true';
+
+    document.getElementById('watch-back-btn')?.addEventListener('click', () => {
+        window.closeCleanPlayer();
+    });
+
+    document.getElementById('ep-like-btn')?.addEventListener('click', () => handleEpisodeReactionClick(1));
+    document.getElementById('ep-dislike-btn')?.addEventListener('click', () => handleEpisodeReactionClick(-1));
+    document.getElementById('ep-share-btn')?.addEventListener('click', handleEpisodeShareClick);
+    document.getElementById('ep-whatsapp-btn')?.addEventListener('click', handleWhatsAppShareClick);
+
+    document.getElementById('comment-insert-ts-btn')?.addEventListener('click', insertCurrentTimestampIntoComment);
+    const composerAvatarBtn = document.getElementById('comment-composer-avatar-btn');
+    const avatarTrayEl = document.getElementById('comment-avatar-tray');
+    composerAvatarBtn?.addEventListener('click', () => {
+        if (!avatarTrayEl) return;
+        const willOpen = avatarTrayEl.style.display === 'none';
+        if (willOpen) {
+            avatarTrayEl.innerHTML = renderAvatarPickerHTML(getSelectedAvatarId(), true);
+            avatarTrayEl.style.display = 'grid';
+        } else {
+            avatarTrayEl.style.display = 'none';
+        }
+    });
+    avatarTrayEl?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.avatar-picker-option');
+        if (!btn || !btn.dataset.avatarChoice) return;
+        selectAndPersistAvatar(btn.dataset.avatarChoice);
+    });
+
+    const commentForm = document.getElementById('ep-comment-form');
+    const commentInput = document.getElementById('ep-comment-input');
+    const charCountEl = document.getElementById('ep-comment-char-count');
+
+    commentForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleCommentFormSubmit();
+    });
+    commentInput?.addEventListener('input', () => {
+        clearCommentError();
+        if (charCountEl) {
+            charCountEl.textContent = `${commentInput.value.length} / 500`;
+        }
+    });
+    commentInput?.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            handleCommentFormSubmit();
+        }
+    });
+
+    document.getElementById('comments-sort-top')?.addEventListener('click', () => {
+        if (commentsState.sort === 'top') return;
+        commentsState.sort = 'top';
+        if (currentModalArticle) loadEpisodeComments(currentModalArticle.id, true);
+    });
+    document.getElementById('comments-sort-newest')?.addEventListener('click', () => {
+        if (commentsState.sort === 'newest') return;
+        commentsState.sort = 'newest';
+        if (currentModalArticle) loadEpisodeComments(currentModalArticle.id, true);
+    });
+    document.getElementById('ep-comments-load-more')?.addEventListener('click', () => {
+        if (currentModalArticle && !commentsState.loading) {
+            loadEpisodeComments(currentModalArticle.id, false);
+        }
+    });
+
+    document.getElementById('ep-comments-list')?.addEventListener('click', (e) => {
+        const tsBtn = e.target.closest('.tmkoc-comment-ts');
+        if (tsBtn) {
+            seekPlayerToSeconds(Number(tsBtn.dataset.seekSec));
+            return;
+        }
+        const likeBtn = e.target.closest('.tmkoc-comment-like-btn');
+        if (likeBtn) {
+            handleCommentLikeClick(likeBtn.dataset.commentId);
+            return;
+        }
+        const deleteBtn = e.target.closest('.tmkoc-comment-delete-btn');
+        if (deleteBtn) {
+            handleCommentDeleteClick(deleteBtn.dataset.commentId);
+        }
+    });
+
+    document.getElementById('watch-recommendations-list')?.addEventListener('click', (e) => {
+        const recCard = e.target.closest('.yt-rec-card');
+        if (recCard && recCard.dataset.recEpId) {
+            window.playEpisode(recCard.dataset.recEpId);
+        }
+    });
+}
+
 function openCleanPlayer(article, options = {}) {
     playbackSessionId += 1;
     const activeSessionId = playbackSessionId;
+
+    const wasWatchOpen = isWatchViewOpen();
+    if (!wasWatchOpen) {
+        savedFeedScrollY = window.scrollY || 0;
+    }
 
     currentModalArticle = article;
     currentModalEpNum = article.epNumber;
@@ -2567,181 +2818,24 @@ function openCleanPlayer(article, options = {}) {
     logActivity('watch', `Episode ${article.epNumber}`, initialTimestamps[article.id] || 0);
 
     ensureBackgroundAudioKeepAlive();
+    bindWatchViewControls();
 
-    let backdrop = document.getElementById('tmkoc-clean-backdrop');
-    if (!backdrop) {
-        const autoplayState = localStorage.getItem('autoplayNext') !== 'false' ? 'checked' : '';
-        backdrop = document.createElement('div');
-        backdrop.id = 'tmkoc-clean-backdrop';
-        backdrop.className = 'tmkoc-modal-backdrop';
-        backdrop.innerHTML = `
-            <div class="tmkoc-modal-dialog">
-                <div class="tmkoc-modal-header">
-                    <div class="tmkoc-modal-title-wrap">
-                        <span id="clean-badge" class="tmkoc-modal-badge">EP 1</span>
-                        <h3 id="clean-title" class="tmkoc-modal-title">Episode Title</h3>
-                    </div>
-                    <button class="tmkoc-modal-close" onclick="closeCleanPlayer()" title="Close Player" aria-label="Close Player">✕</button>
-                </div>
-                <div id="clean-modal-warning" class="tmkoc-geo-warning"></div>
-                <div class="tmkoc-video-viewport">
-                    <div id="clean-iframe-container"></div>
-                </div>
-                <div id="clean-action-bar" class="tmkoc-action-bar">
-                    <div class="tmkoc-reaction-group" role="group" aria-label="Episode reactions">
-                        <button type="button" id="ep-like-btn" class="tmkoc-action-pill tmkoc-like-btn" aria-pressed="false" title="Like this episode">
-                            <svg class="tmkoc-action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-                            <span id="ep-like-count">0</span>
-                        </button>
-                        <span class="tmkoc-reaction-divider" aria-hidden="true"></span>
-                        <button type="button" id="ep-dislike-btn" class="tmkoc-action-pill tmkoc-dislike-btn" aria-pressed="false" title="Dislike this episode">
-                            <svg class="tmkoc-action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
-                            <span id="ep-dislike-count">0</span>
-                        </button>
-                    </div>
-                    <div class="tmkoc-share-group">
-                        <label class="tmkoc-timestamp-toggle" title="Include current timestamp in shared link">
-                            <input type="checkbox" id="share-at-timestamp">
-                            <span id="share-timestamp-label">At 0:00</span>
-                        </label>
-                        <button type="button" id="ep-whatsapp-btn" class="tmkoc-action-pill tmkoc-whatsapp-btn" title="Share on WhatsApp" aria-label="Share on WhatsApp">
-                            <svg class="tmkoc-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                        </button>
-                        <button type="button" id="ep-share-btn" class="tmkoc-action-pill tmkoc-share-btn" title="Share episode link">
-                            <svg class="tmkoc-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                            <span id="ep-share-label">Share</span>
-                        </button>
-                    </div>
-                </div>
-                <div id="clean-description" class="tmkoc-modal-desc" style="padding: 16px 20px; color: var(--text-secondary, #a1a1aa); font-size: 14px; line-height: 1.5; border-bottom: 1px solid var(--border-color, #27272a); max-height: 100px; overflow-y: auto;"></div>
-                <div class="tmkoc-modal-footer" style="justify-content: space-between; align-items: center; display: flex;">
-                    <button class="tmkoc-nav-btn" onclick="navCleanEp(-1)">◀ Previous Ep</button>
-                    <div style="display: flex; align-items: center;">
-                        <label style="color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none;">
-                            <input type="checkbox" id="autoplay-toggle" ${autoplayState} onchange="toggleAutoplay(this.checked)" style="accent-color: var(--text-primary); width: 16px; height: 16px; cursor: pointer;">
-                            Autoplay Next
-                        </label>
-                    </div>
-                    <button class="tmkoc-nav-btn" onclick="navCleanEp(1)">Next Ep ▶</button>
-                </div>
-                <section id="clean-comments-section" class="tmkoc-comments-section" aria-label="Episode comments">
-                    <div class="tmkoc-comments-header">
-                        <div class="tmkoc-comments-heading-wrap">
-                            <h4 class="tmkoc-comments-title">Gokuldham Comments</h4>
-                            <span id="ep-comments-count" class="tmkoc-comments-badge">0</span>
-                        </div>
-                        <div class="tmkoc-comments-sort" role="group" aria-label="Sort comments">
-                            <button type="button" id="comments-sort-top" class="tmkoc-sort-chip is-active" data-sort="top">Top</button>
-                            <button type="button" id="comments-sort-newest" class="tmkoc-sort-chip" data-sort="newest">Newest</button>
-                        </div>
-                    </div>
-                    <form id="ep-comment-form" class="tmkoc-comment-form" onsubmit="return false;">
-                        <div class="tmkoc-comment-composer-meta">
-                            <button type="button" id="comment-composer-avatar-btn" class="tmkoc-composer-avatar-btn" title="Choose Gokuldham character avatar" aria-label="Choose Gokuldham character avatar"></button>
-                            <span class="tmkoc-comment-as">Commenting as <strong id="comment-composer-handle">Gokuldham Resident</strong></span>
-                            <button type="button" id="comment-insert-ts-btn" class="tmkoc-insert-ts-btn" title="Insert current video timestamp into comment">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                <span id="comment-insert-ts-label">0:00</span>
-                            </button>
-                        </div>
-                        <div id="comment-avatar-tray" class="tmkoc-inline-avatar-tray" style="display: none;" role="radiogroup" aria-label="Quick select Gokuldham character"></div>
-                        <textarea id="ep-comment-input" class="tmkoc-comment-textarea" rows="2" maxlength="500" placeholder="Share a funny scene or comment... Tip: type 04:15 to link a moment!"></textarea>
-                        <div id="ep-comment-error" class="tmkoc-comment-error" style="display: none;"></div>
-                        <div class="tmkoc-comment-actions">
-                            <span id="ep-comment-char-count" class="tmkoc-comment-chars">0 / 500</span>
-                            <button type="submit" id="ep-comment-submit" class="tmkoc-comment-submit-btn">Post Comment</button>
-                        </div>
-                    </form>
-                    <div id="ep-comments-list" class="tmkoc-comments-list"></div>
-                    <div id="ep-comments-more-wrap" class="tmkoc-comments-more-wrap" style="display: none;">
-                        <button type="button" id="ep-comments-load-more" class="tmkoc-comments-more-btn">Load more comments</button>
-                    </div>
-                </section>
-            </div>
-        `;
-        // Deliberately do not close on backdrop click: prevent accidental dismissal while watching
-        document.body.appendChild(backdrop);
+    const episodesView = document.getElementById('episodes-view');
+    const dashboardView = document.getElementById('fan-dashboard-view');
+    const watchView = document.getElementById('watch-view');
+    if (episodesView) episodesView.style.display = 'none';
+    if (dashboardView) dashboardView.style.display = 'none';
+    if (watchView) watchView.style.display = 'block';
+    document.body.style.overflow = 'auto';
 
-        document.getElementById('ep-like-btn')?.addEventListener('click', () => handleEpisodeReactionClick(1));
-        document.getElementById('ep-dislike-btn')?.addEventListener('click', () => handleEpisodeReactionClick(-1));
-        document.getElementById('ep-share-btn')?.addEventListener('click', handleEpisodeShareClick);
-        document.getElementById('ep-whatsapp-btn')?.addEventListener('click', handleWhatsAppShareClick);
-
-        document.getElementById('comment-insert-ts-btn')?.addEventListener('click', insertCurrentTimestampIntoComment);
-        const composerAvatarBtn = document.getElementById('comment-composer-avatar-btn');
-        const avatarTrayEl = document.getElementById('comment-avatar-tray');
-        composerAvatarBtn?.addEventListener('click', () => {
-            if (!avatarTrayEl) return;
-            const willOpen = avatarTrayEl.style.display === 'none';
-            if (willOpen) {
-                avatarTrayEl.innerHTML = renderAvatarPickerHTML(getSelectedAvatarId(), true);
-                avatarTrayEl.style.display = 'grid';
-            } else {
-                avatarTrayEl.style.display = 'none';
-            }
-        });
-        avatarTrayEl?.addEventListener('click', (e) => {
-            const btn = e.target.closest('.avatar-picker-option');
-            if (!btn || !btn.dataset.avatarChoice) return;
-            selectAndPersistAvatar(btn.dataset.avatarChoice);
-        });
-        const commentForm = document.getElementById('ep-comment-form');
-        const commentInput = document.getElementById('ep-comment-input');
-        const charCountEl = document.getElementById('ep-comment-char-count');
-
-        commentForm?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleCommentFormSubmit();
-        });
-        commentInput?.addEventListener('input', () => {
-            clearCommentError();
-            if (charCountEl) {
-                charCountEl.textContent = `${commentInput.value.length} / 500`;
-            }
-        });
-        commentInput?.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                handleCommentFormSubmit();
-            }
-        });
-
-        document.getElementById('comments-sort-top')?.addEventListener('click', () => {
-            if (commentsState.sort === 'top') return;
-            commentsState.sort = 'top';
-            if (currentModalArticle) loadEpisodeComments(currentModalArticle.id, true);
-        });
-        document.getElementById('comments-sort-newest')?.addEventListener('click', () => {
-            if (commentsState.sort === 'newest') return;
-            commentsState.sort = 'newest';
-            if (currentModalArticle) loadEpisodeComments(currentModalArticle.id, true);
-        });
-        document.getElementById('ep-comments-load-more')?.addEventListener('click', () => {
-            if (currentModalArticle && !commentsState.loading) {
-                loadEpisodeComments(currentModalArticle.id, false);
-            }
-        });
-
-        document.getElementById('ep-comments-list')?.addEventListener('click', (e) => {
-            const tsBtn = e.target.closest('.tmkoc-comment-ts');
-            if (tsBtn) {
-                seekPlayerToSeconds(Number(tsBtn.dataset.seekSec));
-                return;
-            }
-            const likeBtn = e.target.closest('.tmkoc-comment-like-btn');
-            if (likeBtn) {
-                handleCommentLikeClick(likeBtn.dataset.commentId);
-                return;
-            }
-            const deleteBtn = e.target.closest('.tmkoc-comment-delete-btn');
-            if (deleteBtn) {
-                handleCommentDeleteClick(deleteBtn.dataset.commentId);
-            }
-        });
-    }
-
+    document.title = `EP ${article.epNumber}: ${article.title} - Daily Dose of TMKOC`;
     document.getElementById('clean-title').textContent = article.title;
     document.getElementById('clean-badge').textContent = `EP ${article.epNumber}`;
+
+    const channelSubEl = document.getElementById('watch-channel-sub');
+    if (channelSubEl) {
+        channelSubEl.textContent = `${article.source || 'SONY SAB'} • ${article.airDate || 'Gokuldham Archive'}`;
+    }
 
     const shareTsToggle = document.getElementById('share-at-timestamp');
     if (shareTsToggle) shareTsToggle.checked = false;
@@ -2757,6 +2851,11 @@ function openCleanPlayer(article, options = {}) {
     clearCommentError();
     updateComposerIdentity();
     updateCommentSubmitButtonState();
+
+    const descMetaEl = document.getElementById('watch-description-meta');
+    if (descMetaEl) {
+        descMetaEl.textContent = `Episode ${article.epNumber}  •  ${article.category}  •  ${article.durationText || '21:45'}${article.airDate ? `  •  Aired ${article.airDate}` : ''}`;
+    }
 
     const descEl = document.getElementById('clean-description');
     if (descEl) {
@@ -2793,6 +2892,7 @@ function openCleanPlayer(article, options = {}) {
     const chosenCandidate = getBestStartCandidate(candidates);
 
     currentActiveEpId = article.id;
+    pendingManualSeek = { sec: 0, until: 0 };
     currentResumeSeconds = resumeSeconds;
     currentCandidates = candidates;
     currentActiveCandidate = chosenCandidate;
@@ -2801,11 +2901,15 @@ function openCleanPlayer(article, options = {}) {
     pendingAttachIframeSessionId = null;
     isMainPlayerLoading = Boolean(chosenCandidate);
 
-    syncUrlWithEpisode(article.epNumber);
+    const shouldPushHistory = !wasWatchOpen && !options.fromPopState && !window.location.search.includes('ep=');
+    syncUrlWithEpisode(article.epNumber, shouldPushHistory);
     updateShareTimestampLabel();
     updateCommentInsertTimestampLabel();
     loadEpisodeReactions(article.id);
     loadEpisodeComments(article.id, true);
+    renderWatchRecommendations(article);
+
+    window.scrollTo({ top: 0, behavior: 'auto' });
 
     if (mainLoadingTimeout) clearTimeout(mainLoadingTimeout);
     mainLoadingTimeout = setTimeout(() => {
@@ -2828,9 +2932,12 @@ function openCleanPlayer(article, options = {}) {
 
     setModalWarningBanner(chosenCandidate ? getWarningBannerForTier(chosenCandidate.tier) : '');
 
-    // Ensure modal is visible BEFORE instructing YouTube player so playback isn't throttled
-    backdrop.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    // Ensure watch view is visible BEFORE instructing YouTube player so playback isn't throttled
+    const watchViewEl = document.getElementById('watch-view');
+    if (watchViewEl && watchViewEl.style.display === 'none') {
+        watchViewEl.style.display = 'block';
+    }
+    document.body.style.overflow = 'auto';
 
     const viewport = document.querySelector('.tmkoc-video-viewport');
 
@@ -2922,7 +3029,12 @@ function openCleanPlayer(article, options = {}) {
 
 window.openCleanPlayer = openCleanPlayer;
 
-window.closeCleanPlayer = function() {
+window.closeCleanPlayer = function(closeOptions = {}) {
+    const wasOpen = isWatchViewOpen();
+    if (!wasOpen && !currentModalArticle) {
+        return;
+    }
+
     playbackSessionId += 1;
     isMainPlayerLoading = false;
     pendingMainPlayerLoad = null;
@@ -2940,8 +3052,16 @@ window.closeCleanPlayer = function() {
         adjPrecheckTimer = null;
     }
 
-    const backdrop = document.getElementById('tmkoc-clean-backdrop');
-    if (backdrop) backdrop.style.display = 'none';
+    const watchView = document.getElementById('watch-view');
+    if (watchView) watchView.style.display = 'none';
+
+    if (!closeOptions.skipScrollRestore) {
+        const episodesView = document.getElementById('episodes-view');
+        const dashboardView = document.getElementById('fan-dashboard-view');
+        if (episodesView) episodesView.style.display = 'block';
+        if (dashboardView) dashboardView.style.display = 'none';
+        window.scrollTo({ top: savedFeedScrollY || 0, behavior: 'auto' });
+    }
 
     const iframeEl = getCleanIframeElement();
     if (ytPlayer && iframeEl && iframeEl.tagName === 'IFRAME' && isMainPlayerReady && !lastPlayerHadEndTime) {
@@ -2963,9 +3083,10 @@ window.closeCleanPlayer = function() {
         if (iframe) iframe.src = '';
     }
 
+    document.title = DEFAULT_PAGE_TITLE;
     document.body.style.overflow = 'auto';
     stopBackgroundAudioKeepAlive();
-    syncUrlWithEpisode(null);
+    syncUrlWithEpisode(null, false);
     commentRequestSeq += 1;
     pendingDeleteCommentId = null;
     if (pendingDeleteTimer) {
@@ -2975,6 +3096,7 @@ window.closeCleanPlayer = function() {
     currentModalArticle = null;
     currentModalEpNum = null;
     currentActiveEpId = null;
+    pendingManualSeek = { sec: 0, until: 0 };
     currentCandidates = [];
     currentActiveCandidate = null;
     currentPlayingVideoId = '';
@@ -2989,19 +3111,26 @@ window.closeCleanPlayer = function() {
     drainProbeQueues();
 };
 
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        const backdrop = document.getElementById('tmkoc-clean-backdrop');
-        if (backdrop && backdrop.style.display !== 'none') {
-            window.closeCleanPlayer();
+window.addEventListener('popstate', () => {
+    const params = new URLSearchParams(window.location.search);
+    const ep = params.get('ep');
+    if (ep) {
+        const t = parseInt(params.get('t') || '0', 10) || 0;
+        const clean = String(ep).trim();
+        const numMatch = clean.match(/^(?:ep_)?(\d+)$/i);
+        const numericEp = numMatch ? parseInt(numMatch[1], 10) : parseInt(clean, 10);
+        const article = (numericEp && masterEpNumberMap[numericEp]) || allArticlesMap[clean] || (numericEp && allArticlesMap[`ep_${numericEp}`]);
+        if (article) {
+            openCleanPlayer(article, { startSecondsOverride: t, fromPopState: true });
         }
+    } else if (isWatchViewOpen()) {
+        window.closeCleanPlayer();
     }
 });
 
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-        const backdrop = document.getElementById('tmkoc-clean-backdrop');
-        if (backdrop && backdrop.style.display !== 'none' && ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+        if (isWatchViewOpen() && ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
             const state = ytPlayer.getPlayerState();
             if (state === window.YT.PlayerState.PAUSED || state === window.YT.PlayerState.CUED) {
                 try { ytPlayer.playVideo(); } catch (e) {}
@@ -3757,10 +3886,9 @@ export function initNamePromptModal() {
         }
     });
 
-    // Display after 600ms on page load
+    // Display after 600ms on page load (unless user is already watching an episode)
     setTimeout(() => {
-        const playerBackdrop = document.querySelector('.tmkoc-modal-backdrop');
-        if (playerBackdrop && playerBackdrop.style.display === 'flex') {
+        if (isWatchViewOpen()) {
             return;
         }
         openModal();

@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal, playEpisodeByParam } from './ui.js?v=35';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, registerMasterStorylines, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal, playEpisodeByParam } from './ui.js?v=36';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -89,6 +89,7 @@ async function init() {
         stateVersion++;
         
         registerMasterArticles(allArticles);
+        registerMasterStorylines(allStorylines);
         renderPage();
         ipCachePromise.catch(() => {});
 
@@ -268,6 +269,7 @@ window.addEventListener('selectStorylineArc', (e) => {
 // Fan Stats Modal Event Listener
 if (fanStatsBtn) {
     fanStatsBtn.addEventListener('click', () => {
+        if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
         updateFanDashboard();
         
         const episodesView = document.getElementById('episodes-view');
@@ -286,6 +288,7 @@ const logoEl = document.querySelector('.logo');
 if (logoEl) {
     logoEl.addEventListener('click', (e) => {
         e.preventDefault();
+        if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
         
         // Reset State
         searchQuery = '';
@@ -329,6 +332,7 @@ if (logoEl) {
 
 // Search Bar Handlers (Always Visible)
 function ensureEpisodesViewActive() {
+    if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
     const episodesView = document.getElementById('episodes-view');
     const dashboardView = document.getElementById('fan-dashboard-view');
     if (dashboardView && dashboardView.style.display !== 'none') {
@@ -340,6 +344,8 @@ function ensureEpisodesViewActive() {
         const allChip = document.querySelector('.chip[data-category="all"]') || document.querySelector('.chip');
         if (allChip) allChip.classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (episodesView && episodesView.style.display === 'none') {
+        episodesView.style.display = 'block';
     }
 }
 
@@ -435,6 +441,7 @@ const filterChips = document.querySelectorAll('.filters .chip');
 filterChips.forEach(chip => {
     chip.addEventListener('click', (e) => {
         if (chip.id === 'fan-stats-btn') return;
+        if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
         
         const episodesView = document.getElementById('episodes-view');
         const dashboardView = document.getElementById('fan-dashboard-view');
@@ -476,8 +483,11 @@ function throttle(func, limit) {
     };
 }
 
-// Infinite Scroll Listener
+// Infinite Scroll Listener (only when episodes feed view is visible)
 window.addEventListener('scroll', throttle(() => {
+    const episodesView = document.getElementById('episodes-view');
+    if (!episodesView || episodesView.style.display === 'none') return;
+
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
         const filteredArticles = getFilteredAndRankedArticles();
 
