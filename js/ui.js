@@ -131,8 +131,8 @@ if (!(window.YT && window.YT.Player) && !document.querySelector('script[src*="yo
     }
 }
 
-// --- Gentle Single-Worker Probe Pool & Geo-block Cache ---
-const PROBE_POOL_SIZE = 1;
+// --- Gentle Probe Pool & Geo-block Cache ---
+const PROBE_POOL_SIZE = 2;
 const MAX_LOW_PRIORITY_WORKERS = 1;
 const probeWorkers = [];
 const highPriorityQueue = [];
@@ -144,6 +144,7 @@ const verifiedVideos = new Set();
 
 let isMainPlayerLoading = false;
 let isMainPlayerReady = false;
+let mutedForWarmReuse = false;
 let lastPlayerHadEndTime = false;
 let pendingMainPlayerLoad = null;
 let pendingAttachIframeSessionId = null;
@@ -151,8 +152,9 @@ let mainLoadingTimeout = null;
 let jsapiWatchdogTimer = null;
 let adjPrecheckTimer = null;
 let probeDrainTimer = null;
-let initialProbeUnlockTime = Date.now() + 2500;
+let initialProbeUnlockTime = Date.now() + 1500;
 let playbackSessionId = 0;
+let ytPlayerInstanceToken = 0;
 let currentResumeSeconds = 0;
 let currentCandidates = [];
 let currentActiveCandidate = null;
@@ -368,7 +370,7 @@ function finishWorkerJob(worker, expectedToken, isUnavailable, persist) {
     }
 
     if (probeDrainTimer) clearTimeout(probeDrainTimer);
-    const delay = highPriorityQueue.length > 0 ? 30 : 250;
+    const delay = highPriorityQueue.length > 0 ? 20 : 120;
     probeDrainTimer = setTimeout(() => {
         probeDrainTimer = null;
         drainProbeQueues();
@@ -425,7 +427,7 @@ function runProbeOnWorker(worker, videoId, priority = 'low') {
                         if (worker.busy && worker.currentVideoId) {
                             const activeToken = worker.jobToken;
                             if (worker.timer) clearTimeout(worker.timer);
-                            worker.timer = setTimeout(() => finishWorkerJob(worker, activeToken, false, false), 1500);
+                            worker.timer = setTimeout(() => finishWorkerJob(worker, activeToken, false, false), 1100);
                         }
                     },
                     'onStateChange': function(event) {
@@ -457,7 +459,7 @@ function runProbeOnWorker(worker, videoId, priority = 'low') {
     worker.timer = setTimeout(() => {
         try { worker.player.stopVideo(); } catch (e) {}
         finishWorkerJob(worker, token, false, false);
-    }, 1800);
+    }, 1200);
 
     try {
         worker.player.mute();
@@ -612,22 +614,31 @@ async function resolveArticleLinks(article, priority = 'low', skipVideoId = null
     }
 }
 
-function scheduleAdjacentPrecheck(epNumber, expectedSessionId) {
+function scheduleAdjacentPrecheck(article, expectedSessionId) {
     if (adjPrecheckTimer) {
         clearTimeout(adjPrecheckTimer);
         adjPrecheckTimer = null;
     }
-    const base = parseInt(epNumber, 10);
-    if (isNaN(base)) return;
+    if (!article) return;
+    const base = parseInt(article.epNumber, 10);
     adjPrecheckTimer = setTimeout(() => {
         adjPrecheckTimer = null;
         if (playbackSessionId !== expectedSessionId || !currentModalArticle || isMainPlayerLoading) return;
-        const nextArt = masterEpNumberMap[base + 1] || allArticlesMap[`ep_${base + 1}`] || allArticlesMap[base + 1];
-        if (nextArt && !verifiedVideos.has(nextArt.id)) {
-            verifiedVideos.add(nextArt.id);
-            resolveArticleLinks(nextArt, 'high', null).catch(() => {});
+        // Pre-verify any alternate backups/shorts of the current episode once playback is running
+        const candidates = getEpisodeCandidates(article);
+        if (candidates.length > 1) {
+            resolveArticleLinks(article, 'high', currentPlayingVideoId).catch(() => {});
         }
-    }, 1500);
+        if (!isNaN(base)) {
+            [base + 1, base - 1].forEach(num => {
+                const adjArt = masterEpNumberMap[num] || allArticlesMap[`ep_${num}`] || allArticlesMap[num];
+                if (adjArt && !verifiedVideos.has(adjArt.id)) {
+                    verifiedVideos.add(adjArt.id);
+                    resolveArticleLinks(adjArt, 'high', null).catch(() => {});
+                }
+            });
+        }
+    }, 150);
 }
 
 function handleYouTubeApiAvailable() {
@@ -636,10 +647,11 @@ function handleYouTubeApiAvailable() {
         const directIframe = document.getElementById('clean-iframe');
         if (directIframe) {
             pendingAttachIframeSessionId = null;
+            const playerToken = ++ytPlayerInstanceToken;
             try {
                 ytPlayer = new window.YT.Player('clean-iframe', {
                     host: 'https://www.youtube-nocookie.com',
-                    events: createMainPlayerEvents(playbackSessionId)
+                    events: createMainPlayerEvents(playerToken)
                 });
             } catch (e) {}
         }
@@ -1199,7 +1211,7 @@ export function renderArticles(articles, containerId, append = false) {
                 clearTimeout(hoverPrecheckTimer);
                 hoverPrecheckTimer = null;
             }
-            initialProbeUnlockTime = Math.max(initialProbeUnlockTime, Date.now() + 2500);
+            initialProbeUnlockTime = Math.max(initialProbeUnlockTime, Date.now() + 1500);
             stopAllProbeWorkers();
         });
         container.addEventListener('mouseover', (e) => {
@@ -1217,7 +1229,7 @@ export function renderArticles(articles, containerId, append = false) {
                     verifiedVideos.add(article.id);
                     resolveArticleLinks(article, 'high', null).catch(() => {});
                 }
-            }, 450);
+            }, 220);
         });
         container.addEventListener('mouseleave', () => {
             lastHoveredCardId = null;
@@ -1480,6 +1492,18 @@ function buildLoadOptions(candidate, resumeSecs, article) {
     return opts;
 }
 
+function destroyMainPlayer() {
+    ytPlayerInstanceToken += 1;
+    mutedForWarmReuse = false;
+    pendingMainPlayerLoad = null;
+    if (ytPlayer) {
+        try { ytPlayer.destroy(); } catch (e) {}
+        ytPlayer = null;
+    }
+    isMainPlayerReady = false;
+    lastPlayerHadEndTime = false;
+}
+
 function getCleanIframeElement() {
     const viewport = document.querySelector('.tmkoc-video-viewport');
     if (!viewport) return null;
@@ -1505,10 +1529,10 @@ function setModalWarningBanner(htmlMsg) {
     }
 }
 
-function createMainPlayerEvents(activeSessionId) {
+function createMainPlayerEvents(playerToken) {
     return {
         'onReady': function() {
-            if (playbackSessionId !== activeSessionId) return;
+            if (ytPlayerInstanceToken !== playerToken) return;
             if (jsapiWatchdogTimer) {
                 clearTimeout(jsapiWatchdogTimer);
                 jsapiWatchdogTimer = null;
@@ -1521,6 +1545,10 @@ function createMainPlayerEvents(activeSessionId) {
             if (pendingMainPlayerLoad) {
                 const queued = pendingMainPlayerLoad;
                 pendingMainPlayerLoad = null;
+                if (mutedForWarmReuse) {
+                    mutedForWarmReuse = false;
+                    try { ytPlayer.unMute(); } catch (e) {}
+                }
                 try {
                     ytPlayer.loadVideoById(queued);
                 } catch (e) {
@@ -1540,13 +1568,13 @@ function createMainPlayerEvents(activeSessionId) {
                         updateCardElementStatus(currentModalArticle);
                     }
                     verifiedVideos.add(currentModalArticle.id);
-                    scheduleAdjacentPrecheck(currentModalArticle.epNumber, activeSessionId);
+                    scheduleAdjacentPrecheck(currentModalArticle, playbackSessionId);
                 }
             } catch (e) {}
             updateMediaSession(currentModalArticle);
         },
         'onError': function(event) {
-            if (playbackSessionId !== activeSessionId) return;
+            if (ytPlayerInstanceToken !== playerToken) return;
             if (jsapiWatchdogTimer) {
                 clearTimeout(jsapiWatchdogTimer);
                 jsapiWatchdogTimer = null;
@@ -1582,11 +1610,6 @@ function createMainPlayerEvents(activeSessionId) {
                     currentPlayingVideoId = nextCandidate.videoId;
                     setModalWarningBanner(getWarningBannerForTier(nextCandidate.tier));
 
-                    const remainingAfterNext = currentCandidates.filter(c => !sessionTriedVideoIds.has(c.videoId) && !isVideoKnownUnavailable(c.videoId));
-                    if (remainingAfterNext.length > 0) {
-                        resolveArticleLinks(currentArt, 'high', nextCandidate.videoId).catch(() => {});
-                    }
-
                     const nextOpts = buildLoadOptions(nextCandidate, currentResumeSeconds, currentArt);
                     if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
                         try {
@@ -1603,7 +1626,7 @@ function createMainPlayerEvents(activeSessionId) {
             renderAllSourcesFailedFallback(currentArt);
         },
         'onStateChange': function(event) {
-            if (playbackSessionId !== activeSessionId) return;
+            if (ytPlayerInstanceToken !== playerToken) return;
             if (event.data !== -1 && jsapiWatchdogTimer) {
                 clearTimeout(jsapiWatchdogTimer);
                 jsapiWatchdogTimer = null;
@@ -1627,7 +1650,7 @@ function createMainPlayerEvents(activeSessionId) {
                     updateCardElementStatus(currentArt);
                 }
                 verifiedVideos.add(currentArt.id);
-                scheduleAdjacentPrecheck(currentArt.epNumber, activeSessionId);
+                scheduleAdjacentPrecheck(currentArt, playbackSessionId);
                 drainProbeQueues();
 
                 currentActiveEpId = currentArt.id;
@@ -1683,11 +1706,7 @@ function renderDirectIframeFallback(viewport, chosenCandidate, resumeSeconds, ar
         clearTimeout(jsapiWatchdogTimer);
         jsapiWatchdogTimer = null;
     }
-    if (ytPlayer) {
-        try { ytPlayer.destroy(); } catch (e) {}
-        ytPlayer = null;
-        isMainPlayerReady = false;
-    }
+    destroyMainPlayer();
 
     if (chosenCandidate) {
         const opts = buildLoadOptions(chosenCandidate, resumeSeconds, article);
@@ -1726,11 +1745,7 @@ function renderAllSourcesFailedFallback(article) {
         <a href="${watchUrl}" target="_blank" style="padding: 6px 12px; background: #ef4444; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">Watch on YouTube</a>
     </div>`);
 
-    if (ytPlayer) {
-        try { ytPlayer.destroy(); } catch (e) {}
-        ytPlayer = null;
-        isMainPlayerReady = false;
-    }
+    destroyMainPlayer();
 
     const viewport = document.querySelector('.tmkoc-video-viewport');
     if (viewport) {
@@ -1887,6 +1902,10 @@ function openCleanPlayer(article) {
         if (hasLiveIframe && chosenCandidate) {
             const loadOpts = buildLoadOptions(chosenCandidate, resumeSeconds, article);
             if (isMainPlayerReady && typeof ytPlayer.loadVideoById === 'function') {
+                if (mutedForWarmReuse) {
+                    mutedForWarmReuse = false;
+                    try { ytPlayer.unMute(); } catch (e) {}
+                }
                 try {
                     ytPlayer.loadVideoById(loadOpts);
                 } catch (err) {
@@ -1903,12 +1922,7 @@ function openCleanPlayer(article) {
             return;
         }
 
-        if (ytPlayer) {
-            try { ytPlayer.destroy(); } catch (e) {}
-            ytPlayer = null;
-        }
-        isMainPlayerReady = false;
-        pendingMainPlayerLoad = null;
+        destroyMainPlayer();
 
         viewport.innerHTML = `<div id="clean-iframe-container" style="position:relative; z-index:1; width:100%; height:100%;"></div>`;
 
@@ -1940,11 +1954,12 @@ function openCleanPlayer(article) {
                 }
             }, 2500);
 
+            const playerToken = ytPlayerInstanceToken;
             ytPlayer = new window.YT.Player('clean-iframe-container', {
                 host: 'https://www.youtube-nocookie.com',
                 videoId: initialOpts.videoId,
                 playerVars: pVars,
-                events: createMainPlayerEvents(activeSessionId)
+                events: createMainPlayerEvents(playerToken)
             });
             updateMediaSession(article);
         } else {
@@ -1982,15 +1997,26 @@ window.closeCleanPlayer = function() {
     const backdrop = document.getElementById('tmkoc-clean-backdrop');
     if (backdrop) backdrop.style.display = 'none';
 
-    if (ytPlayer) {
-        try { ytPlayer.destroy(); } catch (e) {}
-        ytPlayer = null;
+    const iframeEl = getCleanIframeElement();
+    if (ytPlayer && iframeEl && iframeEl.tagName === 'IFRAME' && isMainPlayerReady && !lastPlayerHadEndTime) {
+        // Keep the player iframe warm (muted & stopped) for instantaneous switching on next click
+        try {
+            if (typeof ytPlayer.isMuted === 'function' && !ytPlayer.isMuted()) {
+                mutedForWarmReuse = true;
+                ytPlayer.mute();
+            } else if (typeof ytPlayer.isMuted !== 'function') {
+                mutedForWarmReuse = true;
+                ytPlayer.mute();
+            }
+        } catch (e) {}
+        try { ytPlayer.pauseVideo(); } catch (e) {}
+        try { ytPlayer.stopVideo(); } catch (e) {}
+    } else {
+        destroyMainPlayer();
+        const iframe = document.getElementById('clean-iframe');
+        if (iframe) iframe.src = '';
     }
-    isMainPlayerReady = false;
-    lastPlayerHadEndTime = false;
 
-    const iframe = document.getElementById('clean-iframe');
-    if (iframe) iframe.src = '';
     document.body.style.overflow = 'auto';
     stopBackgroundAudioKeepAlive();
     currentModalArticle = null;
@@ -2006,7 +2032,7 @@ window.closeCleanPlayer = function() {
     }
     stopActiveWatchTracker();
     updateFanDashboard();
-    initialProbeUnlockTime = Math.max(initialProbeUnlockTime, Date.now() + 2000);
+    initialProbeUnlockTime = Math.max(initialProbeUnlockTime, Date.now() + 800);
     drainProbeQueues();
 };
 
