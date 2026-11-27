@@ -2279,12 +2279,18 @@ a:focus-visible {
 .yt-share-targets {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  justify-content: space-between;
+  gap: 12px;
   overflow-x: auto;
   scrollbar-width: none;
   scroll-behavior: smooth;
-  padding: 4px 28px 2px 2px;
+  padding: 4px 2px 2px;
   width: 100%;
+}
+
+.yt-share-targets.is-scrollable {
+  justify-content: flex-start;
+  padding: 4px 12px 2px;
 }
 
 .yt-share-targets::-webkit-scrollbar {
@@ -2331,7 +2337,6 @@ a:focus-visible {
 .yt-share-circle--fb { background: #1877f2; }
 .yt-share-circle--tg { background: #229ed9; }
 .yt-share-circle--rd { background: #ff4500; }
-.yt-share-circle--li { background: #0a66c2; }
 .yt-share-circle--em { background: #64748b; }
 
 .yt-share-target-label {
@@ -2344,8 +2349,7 @@ a:focus-visible {
 
 .yt-share-scroll-btn {
   position: absolute;
-  right: 0;
-  top: 10px;
+  top: 12px;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -2358,8 +2362,17 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  z-index: 2;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   transition: background-color 0.15s ease, transform 0.14s ease;
+}
+
+.yt-share-scroll-btn--prev {
+  left: -4px;
+}
+
+.yt-share-scroll-btn--next {
+  right: -4px;
 }
 
 .yt-share-scroll-btn:hover {
@@ -2391,6 +2404,7 @@ a:focus-visible {
   padding: 8px 18px;
   border-radius: 9999px;
   border: none;
+  outline: none;
   background: #065fd4;
   color: #ffffff;
   font-size: 13px;
@@ -2398,6 +2412,10 @@ a:focus-visible {
   cursor: pointer;
   flex-shrink: 0;
   transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.yt-share-copy-btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(6, 95, 212, 0.35);
 }
 
 .yt-share-copy-btn:hover {

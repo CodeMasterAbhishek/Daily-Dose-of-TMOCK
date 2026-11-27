@@ -20,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=39';
+} from './supabase.js?v=40';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -28,11 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=39';
+} from './avatars.js?v=40';
 import {
     generateFanCardCanvas,
     downloadFanCardPNG
-} from './fan-card.js?v=39';
+} from './fan-card.js?v=40';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -2001,11 +2001,15 @@ function updateSharePopoverUrl() {
 
 function updateShareScrollButtonState() {
     const track = document.getElementById('share-targets-track');
+    const prevBtn = document.getElementById('share-targets-prev');
     const nextBtn = document.getElementById('share-targets-next');
-    if (!track || !nextBtn) return;
+    if (!track) return;
     const hasOverflow = track.scrollWidth > track.clientWidth + 4;
+    track.classList.toggle('is-scrollable', hasOverflow);
+    const atStart = track.scrollLeft <= 4;
     const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
-    nextBtn.style.display = hasOverflow && !atEnd ? 'inline-flex' : 'none';
+    if (prevBtn) prevBtn.style.display = hasOverflow && !atStart ? 'inline-flex' : 'none';
+    if (nextBtn) nextBtn.style.display = hasOverflow && !atEnd ? 'inline-flex' : 'none';
 }
 
 function closeSharePopover() {
@@ -2082,7 +2086,6 @@ function buildSocialShareDestination(platform, shareUrl, article) {
         facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
         telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
         reddit: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(title)}`,
-        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
         email: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${text}\n\n${shareUrl}`)}`
     };
     return routes[platform] || '';
@@ -2800,9 +2803,19 @@ function bindWatchViewControls() {
         }
     });
     document.getElementById('share-targets-track')?.addEventListener('scroll', updateShareScrollButtonState, { passive: true });
+    document.getElementById('share-targets-prev')?.addEventListener('click', () => {
+        const track = document.getElementById('share-targets-track');
+        if (track) track.scrollBy({ left: -220, behavior: 'smooth' });
+    });
     document.getElementById('share-targets-next')?.addEventListener('click', () => {
         const track = document.getElementById('share-targets-track');
         if (track) track.scrollBy({ left: 220, behavior: 'smooth' });
+    });
+    window.addEventListener('resize', () => {
+        const backdrop = document.getElementById('ep-share-backdrop');
+        if (backdrop && backdrop.style.display !== 'none') {
+            updateShareScrollButtonState();
+        }
     });
     document.getElementById('share-pop-close')?.addEventListener('click', () => {
         closeSharePopover();

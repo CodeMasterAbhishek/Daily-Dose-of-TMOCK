@@ -30,7 +30,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css?v=1.0.3">
     <link rel="stylesheet" href="css/layout.css?v=1.0.3">
-    <link rel="stylesheet" href="css/style.css?v=1.0.16">
+    <link rel="stylesheet" href="css/style.css?v=1.0.17">
     <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.2">
 </head>
 <body>
@@ -511,6 +511,7 @@
             </div>
 
             <div class="yt-share-targets-wrap">
+                <button type="button" id="share-targets-prev" class="yt-share-scroll-btn yt-share-scroll-btn--prev" aria-label="Scroll share options left" title="Previous platforms" style="display: none;">‹</button>
                 <div id="share-targets-track" class="yt-share-targets">
                     <button type="button" id="ep-whatsapp-btn" class="yt-share-target" data-share-platform="whatsapp" title="Share on WhatsApp">
                         <span class="yt-share-circle yt-share-circle--wa" aria-hidden="true">
@@ -542,12 +543,6 @@
                         </span>
                         <span class="yt-share-target-label">Reddit</span>
                     </button>
-                    <button type="button" class="yt-share-target" data-share-platform="linkedin" title="Share on LinkedIn">
-                        <span class="yt-share-circle yt-share-circle--li" aria-hidden="true">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-                        </span>
-                        <span class="yt-share-target-label">LinkedIn</span>
-                    </button>
                     <button type="button" class="yt-share-target" data-share-platform="email" title="Share via Email">
                         <span class="yt-share-circle yt-share-circle--em" aria-hidden="true">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -555,7 +550,7 @@
                         <span class="yt-share-target-label">Email</span>
                     </button>
                 </div>
-                <button type="button" id="share-targets-next" class="yt-share-scroll-btn" aria-label="Scroll share options right" title="More platforms">›</button>
+                <button type="button" id="share-targets-next" class="yt-share-scroll-btn yt-share-scroll-btn--next" aria-label="Scroll share options right" title="More platforms" style="display: none;">›</button>
             </div>
 
             <div class="yt-share-url-row">
@@ -579,6 +574,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=39"></script>
+    <script type="module" src="js/app.js?v=40"></script>
 </body>
 </html>
