@@ -1,5 +1,5 @@
 import { fetchNewsData, fetchStorylines } from './api.js';
-import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, registerMasterStorylines, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal, playEpisodeByParam } from './ui.js?v=40';
+import { renderArticles, renderStorylinesGrid, renderHeroContainer, registerMasterArticles, registerMasterStorylines, updateFanDashboard, initializeIpCache, refreshAllRenderedCards, getCompletedWatchedList, syncCurrentUserStats, initNamePromptModal, playEpisodeByParam } from './ui.js?v=41';
 
 // Setup current year in footer
 const yearEl = document.getElementById('year');
@@ -67,6 +67,7 @@ const paginationSection = document.getElementById('pagination');
 const searchForm = document.getElementById('search-form');
 const searchInput = document.getElementById('search-input');
 const fanStatsBtn = document.getElementById('fan-stats-btn');
+const profileBtn = document.getElementById('profile-btn');
 const fanModalBackdrop = document.getElementById('fan-modal-backdrop');
 
 // Main Initialization
@@ -266,20 +267,31 @@ window.addEventListener('selectStorylineArc', (e) => {
     renderPage(false);
 });
 
-// Fan Stats Modal Event Listener
+function switchTopView(targetId, activeNavBtn = null) {
+    if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
+    ['episodes-view', 'fan-dashboard-view', 'profile-view'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = id === targetId ? 'block' : 'none';
+    });
+    if (targetId !== 'episodes-view') {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        if (activeNavBtn) activeNavBtn.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+}
+
+// Leaderboard & Dedicated Profile Navigation
 if (fanStatsBtn) {
     fanStatsBtn.addEventListener('click', () => {
-        if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
+        switchTopView('fan-dashboard-view', fanStatsBtn);
         updateFanDashboard();
-        
-        const episodesView = document.getElementById('episodes-view');
-        const dashboardView = document.getElementById('fan-dashboard-view');
-        if (episodesView) episodesView.style.display = 'none';
-        if (dashboardView) dashboardView.style.display = 'block';
-        
-        const filterChips = document.querySelectorAll('.chip');
-        filterChips.forEach(c => c.classList.remove('active'));
-        fanStatsBtn.classList.add('active');
+    });
+}
+
+if (profileBtn) {
+    profileBtn.addEventListener('click', () => {
+        switchTopView('profile-view', profileBtn);
+        updateFanDashboard();
     });
 }
 
@@ -288,15 +300,15 @@ const logoEl = document.querySelector('.logo');
 if (logoEl) {
     logoEl.addEventListener('click', (e) => {
         e.preventDefault();
-        if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
-        
+        switchTopView('episodes-view');
+
         // Reset State
         searchQuery = '';
         if (searchInput) searchInput.value = '';
-        
+
         currentCategory = 'all';
         sessionStorage.setItem('currentCategory', 'all');
-        
+
         currentSort = 'newest';
         const sortSelectedText = document.getElementById('sort-selected-text');
         if (sortSelectedText) sortSelectedText.textContent = 'Newest First';
@@ -313,18 +325,11 @@ if (logoEl) {
         filterChips.forEach(c => c.classList.remove('active'));
         const allChip = document.querySelector('.chip[data-category="all"]');
         if (allChip) allChip.classList.add('active');
-        if (fanStatsBtn) fanStatsBtn.classList.remove('active');
 
         activeStorylineArc = null;
         currentPage = 1;
         stateVersion++;
-        
-        // Show main view, hide dashboard
-        const episodesView = document.getElementById('episodes-view');
-        const dashboardView = document.getElementById('fan-dashboard-view');
-        if (episodesView) episodesView.style.display = 'block';
-        if (dashboardView) dashboardView.style.display = 'none';
-        
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
         renderPage();
     });
@@ -335,10 +340,11 @@ function ensureEpisodesViewActive() {
     if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
     const episodesView = document.getElementById('episodes-view');
     const dashboardView = document.getElementById('fan-dashboard-view');
-    if (dashboardView && dashboardView.style.display !== 'none') {
-        dashboardView.style.display = 'none';
-        if (episodesView) episodesView.style.display = 'block';
-        if (fanStatsBtn) fanStatsBtn.classList.remove('active');
+    const profileView = document.getElementById('profile-view');
+    const leavingSubView = (dashboardView && dashboardView.style.display !== 'none') ||
+        (profileView && profileView.style.display !== 'none');
+    if (leavingSubView) {
+        switchTopView('episodes-view');
         const filterChips = document.querySelectorAll('.chip');
         filterChips.forEach(c => c.classList.remove('active'));
         const allChip = document.querySelector('.chip[data-category="all"]') || document.querySelector('.chip');
@@ -441,15 +447,11 @@ const filterChips = document.querySelectorAll('.filters .chip');
 filterChips.forEach(chip => {
     chip.addEventListener('click', (e) => {
         if (chip.id === 'fan-stats-btn') return;
-        if (window.closeCleanPlayer) window.closeCleanPlayer({ skipScrollRestore: true });
-        
-        const episodesView = document.getElementById('episodes-view');
-        const dashboardView = document.getElementById('fan-dashboard-view');
-        if (episodesView) episodesView.style.display = 'block';
-        if (dashboardView) dashboardView.style.display = 'none';
+        switchTopView('episodes-view');
 
         filterChips.forEach(c => c.classList.remove('active'));
         if (fanStatsBtn) fanStatsBtn.classList.remove('active');
+        if (profileBtn) profileBtn.classList.remove('active');
         chip.classList.add('active');
 
         activeStorylineArc = null;

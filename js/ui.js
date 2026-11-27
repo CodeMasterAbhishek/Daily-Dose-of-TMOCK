@@ -20,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=40';
+} from './supabase.js?v=41';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -28,11 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=40';
+} from './avatars.js?v=41';
 import {
     generateFanCardCanvas,
     downloadFanCardPNG
-} from './fan-card.js?v=40';
+} from './fan-card.js?v=41';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -2174,6 +2174,11 @@ function refreshAvatarPickersUI() {
     }
     if (sidebarLabel) sidebarLabel.textContent = labelName;
 
+    const heroAvatarSlot = document.getElementById('profile-hero-avatar');
+    if (heroAvatarSlot) {
+        heroAvatarSlot.innerHTML = renderAvatarBadgeHTML(activeId, getCurrentCommentHandle(), 'lg', 'profile-hero__avatar');
+    }
+
     updateComposerIdentity();
 
     if (commentsState.comments.length > 0) {
@@ -2932,16 +2937,18 @@ function openCleanPlayer(article, options = {}) {
 
     const episodesView = document.getElementById('episodes-view');
     const dashboardView = document.getElementById('fan-dashboard-view');
+    const profileView = document.getElementById('profile-view');
     const watchView = document.getElementById('watch-view');
     const headerBackBtn = document.getElementById('watch-back-btn');
     if (episodesView) episodesView.style.display = 'none';
     if (dashboardView) dashboardView.style.display = 'none';
+    if (profileView) profileView.style.display = 'none';
     if (watchView) watchView.style.display = 'block';
     if (headerBackBtn) headerBackBtn.style.display = 'inline-flex';
     document.body.style.overflow = 'auto';
 
-    // Deactivate header feed filter chips while watching a video
-    document.querySelectorAll('.filters .chip').forEach(c => c.classList.remove('active'));
+    // Deactivate header nav & feed filter chips while watching a video
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
 
     document.title = `EP ${article.epNumber}: ${article.title} - Daily Dose of TMKOC`;
     document.getElementById('clean-title').textContent = article.title;
@@ -3192,8 +3199,10 @@ window.closeCleanPlayer = function(closeOptions = {}) {
     if (!closeOptions.skipScrollRestore) {
         const episodesView = document.getElementById('episodes-view');
         const dashboardView = document.getElementById('fan-dashboard-view');
+        const profileView = document.getElementById('profile-view');
         if (episodesView) episodesView.style.display = 'block';
         if (dashboardView) dashboardView.style.display = 'none';
+        if (profileView) profileView.style.display = 'none';
         const savedCategory = sessionStorage.getItem('currentCategory') || 'all';
         document.querySelectorAll('.filters .chip').forEach(c => {
             c.classList.toggle('active', c.getAttribute('data-category') === savedCategory);
@@ -3377,6 +3386,24 @@ export async function updateFanDashboard() {
 
     // Decimal hours for sidebar + leaderboard
     const decimalHours = totalWatchSecs / 3600;
+
+    // Profile Hero Identity Banner
+    const heroAvatarSlot = document.getElementById('profile-hero-avatar');
+    const heroNameEl = document.getElementById('profile-hero-name');
+    const heroLevelEl = document.getElementById('profile-hero-level');
+    const heroSummaryEl = document.getElementById('profile-hero-summary');
+    if (heroAvatarSlot) {
+        heroAvatarSlot.innerHTML = renderAvatarBadgeHTML(getSelectedAvatarId(), savedHandle, 'lg', 'profile-hero__avatar');
+    }
+    if (heroNameEl) heroNameEl.textContent = savedHandle;
+    if (heroLevelEl) heroLevelEl.textContent = level.title;
+    if (heroSummaryEl) {
+        const epLabel = watchedCount === 1 ? 'Full Episode' : 'Full Episodes';
+        const clipLabel = shortsCount === 1 ? 'Clip' : 'Clips';
+        const streakLabel = currentStreak === 1 ? 'day' : 'days';
+        const epText = shortsCount > 0 ? `${watchedCount} ${epLabel} • ${shortsCount} ${clipLabel}` : `${watchedCount} ${epLabel}`;
+        heroSummaryEl.textContent = `${epText} • ${formatWatchTime(decimalHours)} • ${currentStreak} ${streakLabel} streak`;
+    }
 
     // Sidebar: Quick Stats
     const qsEpisodes = document.getElementById('qs-episodes');
@@ -3575,12 +3602,14 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
                 rowsHtml += '<div class="lb-rows">';
                 restFans.forEach((item, index) => {
                     if (item.isUser) userFoundInList = true;
-                    // Initially hide ALL rows, we will dynamically reveal them based on sidebar height
-                    rowsHtml += createLeaderboardRowHTML(item, true);
+                    // Show ranks #4-#15 immediately on the standalone Leaderboard page
+                    rowsHtml += createLeaderboardRowHTML(item, index >= 12);
                 });
                 rowsHtml += '</div>';
 
-                rowsHtml += `<button id="lb-load-more" style="width: 100%; margin-top: auto; border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Load More (Show Top 50)</button>`;
+                if (restFans.length > 12) {
+                    rowsHtml += `<button id="lb-load-more" style="width: 100%; margin-top: 12px; border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Load More (Show Top 50)</button>`;
+                }
             }
 
             // If user has watch progress but didn't make top 50, show user card at bottom
@@ -3607,42 +3636,9 @@ async function renderLeaderboardList(userHandle, userCount, userHours, userLevel
             }
 
             leaderboardEl.innerHTML = rowsHtml;
-            
+
             const loadMoreBtn = document.getElementById('lb-load-more');
             if (loadMoreBtn) {
-                const hiddenRows = Array.from(document.querySelectorAll('.lb-row-hidden'));
-                const sidebar = document.querySelector('.dash-sidebar');
-                const lbSection = document.querySelector('.leaderboard-section');
-                
-                if (sidebar && lbSection) {
-                    let i = 0;
-                    // Show at least 3 rows to guarantee some content under podium
-                    while (i < 3 && i < hiddenRows.length) {
-                        hiddenRows[i].style.display = 'flex';
-                        hiddenRows[i].classList.remove('lb-row-hidden');
-                        i++;
-                    }
-                    
-                    // Because CSS stretches the left panel to match the right panel,
-                    // we can unhide rows as long as there is empty space inside lbSection.
-                    // A row is approx 58px. We check if unhiding one would exceed the sidebar height.
-                    const targetHeight = sidebar.offsetHeight;
-                    while (i < hiddenRows.length) {
-                        hiddenRows[i].style.display = 'flex';
-                        // If adding this row made the left section push the grid taller than the sidebar's natural height, revert it
-                        if (lbSection.offsetHeight > targetHeight + 5) {
-                            hiddenRows[i].style.display = 'none';
-                            break;
-                        }
-                        hiddenRows[i].classList.remove('lb-row-hidden');
-                        i++;
-                    }
-                    
-                    if (i >= hiddenRows.length) {
-                        loadMoreBtn.style.display = 'none';
-                    }
-                }
-
                 loadMoreBtn.addEventListener('click', () => {
                     document.querySelectorAll('.lb-row-hidden').forEach(el => {
                         el.style.display = 'flex';
