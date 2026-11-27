@@ -2,7 +2,7 @@
  * Client-side HTML5 Canvas generator for 9:16 (1080x1920) TMKOC Superfan Status Cards.
  * Pure local rendering with zero external CORS dependencies or video/image uploads.
  */
-import { getAvatarInfo, getMonogramColor } from './avatars.js?v=47';
+import { getAvatarInfo, getMonogramColor } from './avatars.js?v=48';
 
 function loadImageSafe(src) {
     return new Promise((resolve) => {
