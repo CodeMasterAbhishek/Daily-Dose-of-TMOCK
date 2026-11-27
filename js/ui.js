@@ -20,7 +20,7 @@ import {
     toggleCommentLike,
     deleteEpisodeComment,
     saveUserAvatarToCloud
-} from './supabase.js?v=36';
+} from './supabase.js?v=37';
 import {
     getSelectedAvatarId,
     setSelectedAvatarId,
@@ -28,11 +28,11 @@ import {
     normalizeAvatarId,
     renderAvatarBadgeHTML,
     renderAvatarPickerHTML
-} from './avatars.js?v=36';
+} from './avatars.js?v=37';
 import {
     generateFanCardCanvas,
     downloadFanCardPNG
-} from './fan-card.js?v=36';
+} from './fan-card.js?v=37';
 
 function escapeHTML(str) {
     if (str == null) return '';
@@ -1871,8 +1871,10 @@ function getCurrentPlayerSeconds() {
 
 function updateShareTimestampLabel() {
     const labelEl = document.getElementById('share-timestamp-label');
-    if (!labelEl) return;
-    labelEl.textContent = `At ${formatTimestampShort(getCurrentPlayerSeconds())}`;
+    if (labelEl) {
+        labelEl.textContent = `Start at ${formatTimestampShort(getCurrentPlayerSeconds())}`;
+    }
+    updateSharePopoverUrl();
 }
 
 function renderReactionBar(summary) {
@@ -1989,10 +1991,34 @@ async function copyTextToClipboard(text) {
 
 let shareCopiedTimeout = null;
 
+function updateSharePopoverUrl() {
+    if (!currentModalArticle) return;
+    const previewInput = document.getElementById('share-url-preview-input');
+    if (!previewInput) return;
+    const includeTs = Boolean(document.getElementById('share-at-timestamp')?.checked);
+    previewInput.value = buildEpisodeShareUrl(currentModalArticle, includeTs);
+}
+
+function closeSharePopover() {
+    const pop = document.getElementById('ep-share-popover');
+    const shareBtn = document.getElementById('ep-share-btn');
+    if (pop) pop.style.display = 'none';
+    if (shareBtn) shareBtn.setAttribute('aria-expanded', 'false');
+}
+
+function openSharePopover() {
+    const pop = document.getElementById('ep-share-popover');
+    const shareBtn = document.getElementById('ep-share-btn');
+    if (!pop) return;
+    updateShareTimestampLabel();
+    updateSharePopoverUrl();
+    pop.style.display = 'block';
+    if (shareBtn) shareBtn.setAttribute('aria-expanded', 'true');
+}
+
 async function handleEpisodeShareClick() {
     if (!currentModalArticle) return;
     const includeTs = Boolean(document.getElementById('share-at-timestamp')?.checked);
-    const secs = includeTs ? getCurrentPlayerSeconds() : 0;
     const shareUrl = buildEpisodeShareUrl(currentModalArticle, includeTs);
     const epNum = currentModalArticle.epNumber;
 
@@ -2010,17 +2036,31 @@ async function handleEpisodeShareClick() {
         }
     }
 
+    const pop = document.getElementById('ep-share-popover');
+    if (pop && pop.style.display !== 'none') {
+        closeSharePopover();
+    } else {
+        openSharePopover();
+    }
+}
+
+async function handleShareCopyButtonClick() {
+    if (!currentModalArticle) return;
+    const includeTs = Boolean(document.getElementById('share-at-timestamp')?.checked);
+    const secs = includeTs ? getCurrentPlayerSeconds() : 0;
+    const shareUrl = buildEpisodeShareUrl(currentModalArticle, includeTs);
+    const epNum = currentModalArticle.epNumber;
+
     const copied = await copyTextToClipboard(shareUrl);
     if (copied) {
-        const shareBtn = document.getElementById('ep-share-btn');
-        const shareLabel = document.getElementById('ep-share-label');
-        if (shareBtn && shareLabel) {
-            shareBtn.classList.add('is-copied');
-            shareLabel.textContent = 'Copied!';
+        const copyBtn = document.getElementById('share-copy-btn');
+        if (copyBtn) {
+            copyBtn.classList.add('is-copied');
+            copyBtn.textContent = 'Copied!';
             if (shareCopiedTimeout) clearTimeout(shareCopiedTimeout);
             shareCopiedTimeout = setTimeout(() => {
-                shareBtn.classList.remove('is-copied');
-                shareLabel.textContent = 'Share';
+                copyBtn.classList.remove('is-copied');
+                copyBtn.textContent = 'Copy';
             }, 1800);
         }
         const msg = secs > 0
@@ -2028,7 +2068,7 @@ async function handleEpisodeShareClick() {
             : `Copied link for Episode ${epNum}!`;
         showCustomToast(msg, 'success');
     } else {
-        showCustomToast('Could not copy link automatically. Copy from address bar.', 'error');
+        showCustomToast('Could not copy link automatically. Copy from link box.', 'error');
     }
 }
 
@@ -2038,6 +2078,7 @@ function handleWhatsAppShareClick() {
     const shareUrl = buildEpisodeShareUrl(currentModalArticle, includeTs);
     const text = `Watch TMKOC Episode ${currentModalArticle.epNumber}: ${currentModalArticle.title} ${shareUrl}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    closeSharePopover();
 }
 
 function syncUrlWithEpisode(epNumberOrNull, usePushState = false) {
@@ -2501,8 +2542,7 @@ async function handleCommentFormSubmit() {
         return;
     }
 
-    inputEl.value = '';
-    if (charCountEl) charCountEl.textContent = '0 / 500';
+    collapseCommentComposer(true);
     if (res.comment) {
         commentsState.comments = [res.comment, ...commentsState.comments];
         commentsState.totalCount += 1;
@@ -2663,9 +2703,8 @@ function createRecommendationCardHTML(art, context) {
                 ${progPct > 0 ? `<div class="yt-rec-prog-bar"><div class="yt-rec-prog-fill" style="width: ${progPct}%;"></div></div>` : ''}
             </div>
             <div class="yt-rec-info">
-                <span class="yt-rec-ep-badge">EP ${art.epNumber} • ${escapeHTML(art.category)}</span>
                 <h4 class="yt-rec-card-title">${escapeHTML(art.title)}</h4>
-                <span class="yt-rec-card-meta">${escapeHTML(art.airDate || '')}</span>
+                <span class="yt-rec-card-meta">EP ${art.epNumber} • ${escapeHTML(art.airDate || art.category || '')}</span>
             </div>
         </button>
     `;
@@ -2759,6 +2798,49 @@ function bindWatchViewControls() {
             handleCommentFormSubmit();
         }
     });
+    commentInput?.addEventListener('focus', () => {
+        expandCommentComposer();
+    });
+    document.getElementById('ep-comment-cancel')?.addEventListener('click', () => {
+        collapseCommentComposer(true);
+    });
+
+    document.getElementById('share-pop-close')?.addEventListener('click', () => {
+        closeSharePopover();
+    });
+    document.getElementById('share-copy-btn')?.addEventListener('click', () => {
+        handleShareCopyButtonClick();
+    });
+    document.getElementById('share-at-timestamp')?.addEventListener('change', () => {
+        updateSharePopoverUrl();
+    });
+    document.getElementById('share-url-preview-input')?.addEventListener('click', (e) => {
+        e.target.select();
+    });
+    document.getElementById('watch-desc-toggle')?.addEventListener('click', () => {
+        const descEl = document.getElementById('clean-description');
+        const toggleBtn = document.getElementById('watch-desc-toggle');
+        if (!descEl || !toggleBtn) return;
+        const shouldCollapse = !descEl.classList.contains('is-collapsed');
+        descEl.classList.toggle('is-collapsed', shouldCollapse);
+        toggleBtn.textContent = shouldCollapse ? '...more' : 'Show less';
+        toggleBtn.setAttribute('aria-expanded', shouldCollapse ? 'false' : 'true');
+    });
+    document.addEventListener('click', (e) => {
+        const pop = document.getElementById('ep-share-popover');
+        if (!pop || pop.style.display === 'none') return;
+        if (!e.target.closest('.yt-share-anchor')) {
+            closeSharePopover();
+        }
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const pop = document.getElementById('ep-share-popover');
+            if (pop && pop.style.display !== 'none') {
+                closeSharePopover();
+            }
+        }
+    });
 
     document.getElementById('comments-sort-top')?.addEventListener('click', () => {
         if (commentsState.sort === 'top') return;
@@ -2801,6 +2883,29 @@ function bindWatchViewControls() {
     });
 }
 
+function expandCommentComposer() {
+    const inputEl = document.getElementById('ep-comment-input');
+    const toolbarEl = document.getElementById('ep-comment-toolbar');
+    if (inputEl && Number(inputEl.rows) < 2) inputEl.rows = 2;
+    if (toolbarEl) toolbarEl.style.display = 'flex';
+}
+
+function collapseCommentComposer(clearText = false) {
+    const inputEl = document.getElementById('ep-comment-input');
+    const toolbarEl = document.getElementById('ep-comment-toolbar');
+    const charCountEl = document.getElementById('ep-comment-char-count');
+    const trayEl = document.getElementById('comment-avatar-tray');
+    if (clearText && inputEl) {
+        inputEl.value = '';
+        if (charCountEl) charCountEl.textContent = '0 / 500';
+        clearCommentError();
+    }
+    if (inputEl) inputEl.rows = 1;
+    if (toolbarEl) toolbarEl.style.display = 'none';
+    if (trayEl) trayEl.style.display = 'none';
+    if (clearText) updateCommentSubmitButtonState();
+}
+
 function openCleanPlayer(article, options = {}) {
     playbackSessionId += 1;
     const activeSessionId = playbackSessionId;
@@ -2828,6 +2933,9 @@ function openCleanPlayer(article, options = {}) {
     if (watchView) watchView.style.display = 'block';
     document.body.style.overflow = 'auto';
 
+    // Deactivate header feed filter chips while watching a video
+    document.querySelectorAll('.filters .chip').forEach(c => c.classList.remove('active'));
+
     document.title = `EP ${article.epNumber}: ${article.title} - Daily Dose of TMKOC`;
     document.getElementById('clean-title').textContent = article.title;
     document.getElementById('clean-badge').textContent = `EP ${article.epNumber}`;
@@ -2839,15 +2947,14 @@ function openCleanPlayer(article, options = {}) {
 
     const shareTsToggle = document.getElementById('share-at-timestamp');
     if (shareTsToggle) shareTsToggle.checked = false;
-    const shareBtnEl = document.getElementById('ep-share-btn');
-    const shareLabelEl = document.getElementById('ep-share-label');
-    if (shareBtnEl) shareBtnEl.classList.remove('is-copied');
-    if (shareLabelEl) shareLabelEl.textContent = 'Share';
+    const copyBtnEl = document.getElementById('share-copy-btn');
+    if (copyBtnEl) {
+        copyBtnEl.classList.remove('is-copied');
+        copyBtnEl.textContent = 'Copy';
+    }
+    closeSharePopover();
 
-    const commentInputEl = document.getElementById('ep-comment-input');
-    const charCountResetEl = document.getElementById('ep-comment-char-count');
-    if (commentInputEl) commentInputEl.value = '';
-    if (charCountResetEl) charCountResetEl.textContent = '0 / 500';
+    collapseCommentComposer(true);
     clearCommentError();
     updateComposerIdentity();
     updateCommentSubmitButtonState();
@@ -2858,9 +2965,26 @@ function openCleanPlayer(article, options = {}) {
     }
 
     const descEl = document.getElementById('clean-description');
+    const descToggleBtn = document.getElementById('watch-desc-toggle');
     if (descEl) {
         descEl.textContent = article.description || '';
-        descEl.style.display = article.description ? 'block' : 'none';
+        descEl.style.display = article.description ? '' : 'none';
+        descEl.classList.add('is-collapsed');
+    }
+    if (descToggleBtn) {
+        descToggleBtn.textContent = '...more';
+        descToggleBtn.setAttribute('aria-expanded', 'false');
+        if (!article.description || !article.description.trim()) {
+            descToggleBtn.style.display = 'none';
+        } else {
+            const updateDescToggleVisibility = () => {
+                if (!descEl || !currentModalArticle || currentModalArticle.id !== article.id) return;
+                const overflows = descEl.scrollHeight > descEl.clientHeight + 2;
+                descToggleBtn.style.display = overflows ? 'inline-block' : 'none';
+            };
+            updateDescToggleVisibility();
+            requestAnimationFrame(updateDescToggleVisibility);
+        }
     }
 
     const autoplayToggle = document.getElementById('autoplay-toggle');
@@ -3052,6 +3176,7 @@ window.closeCleanPlayer = function(closeOptions = {}) {
         adjPrecheckTimer = null;
     }
 
+    closeSharePopover();
     const watchView = document.getElementById('watch-view');
     if (watchView) watchView.style.display = 'none';
 
@@ -3060,6 +3185,10 @@ window.closeCleanPlayer = function(closeOptions = {}) {
         const dashboardView = document.getElementById('fan-dashboard-view');
         if (episodesView) episodesView.style.display = 'block';
         if (dashboardView) dashboardView.style.display = 'none';
+        const savedCategory = sessionStorage.getItem('currentCategory') || 'all';
+        document.querySelectorAll('.filters .chip').forEach(c => {
+            c.classList.toggle('active', c.getAttribute('data-category') === savedCategory);
+        });
         window.scrollTo({ top: savedFeedScrollY || 0, behavior: 'auto' });
     }
 

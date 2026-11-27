@@ -30,7 +30,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="css/variables.css?v=1.0.3">
     <link rel="stylesheet" href="css/layout.css?v=1.0.3">
-    <link rel="stylesheet" href="css/style.css?v=1.0.12">
+    <link rel="stylesheet" href="css/style.css?v=1.0.13">
     <link rel="stylesheet" href="css/fan-dashboard.css?v=1.0.2">
 </head>
 <body>
@@ -135,11 +135,11 @@
     </main>
 
     <!-- Full-Page YouTube-Style Watch View (Hidden by default) -->
-    <section id="watch-view" class="yt-watch-page container" style="display: none;" aria-label="Episode Player">
+    <section id="watch-view" class="yt-watch-page" style="display: none;" aria-label="Episode Player">
         <div class="yt-watch-topbar">
             <button type="button" id="watch-back-btn" class="yt-back-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                Back to Episodes
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <span>Back to Episodes</span>
             </button>
             <span id="watch-storyline-crumb" class="yt-storyline-crumb" style="display: none;"></span>
         </div>
@@ -159,35 +159,55 @@
                         <div class="yt-channel-info">
                             <div class="yt-channel-badge" id="clean-badge">EP 1</div>
                             <div class="yt-channel-text">
-                                <div class="yt-channel-name">Taarak Mehta Ka Ooltah Chashmah</div>
+                                <div class="yt-channel-name">Daily Dose of TMKOC</div>
                                 <div id="watch-channel-sub" class="yt-channel-sub">Sony SAB • Gokuldham Archive</div>
                             </div>
                         </div>
 
                         <div id="clean-action-bar" class="tmkoc-action-bar yt-action-bar">
-                            <div class="tmkoc-reaction-group" role="group" aria-label="Episode reactions">
-                                <button type="button" id="ep-like-btn" class="tmkoc-action-pill tmkoc-like-btn" aria-pressed="false" title="Like this episode">
-                                    <svg class="tmkoc-action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                            <div class="yt-pill-group" role="group" aria-label="Episode reactions">
+                                <button type="button" id="ep-like-btn" class="yt-action-pill tmkoc-like-btn" aria-pressed="false" title="I like this">
+                                    <svg class="tmkoc-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
                                     <span id="ep-like-count">0</span>
                                 </button>
-                                <span class="tmkoc-reaction-divider" aria-hidden="true"></span>
-                                <button type="button" id="ep-dislike-btn" class="tmkoc-action-pill tmkoc-dislike-btn" aria-pressed="false" title="Dislike this episode">
-                                    <svg class="tmkoc-action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+                                <span class="yt-pill-divider" aria-hidden="true"></span>
+                                <button type="button" id="ep-dislike-btn" class="yt-action-pill tmkoc-dislike-btn" aria-pressed="false" title="I dislike this">
+                                    <svg class="tmkoc-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
                                     <span id="ep-dislike-count">0</span>
                                 </button>
                             </div>
-                            <div class="tmkoc-share-group">
-                                <label class="tmkoc-timestamp-toggle" title="Include current timestamp in shared link">
-                                    <input type="checkbox" id="share-at-timestamp">
-                                    <span id="share-timestamp-label">At 0:00</span>
-                                </label>
-                                <button type="button" id="ep-whatsapp-btn" class="tmkoc-action-pill tmkoc-whatsapp-btn" title="Share on WhatsApp" aria-label="Share on WhatsApp">
-                                    <svg class="tmkoc-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                                </button>
-                                <button type="button" id="ep-share-btn" class="tmkoc-action-pill tmkoc-share-btn" title="Share episode link">
-                                    <svg class="tmkoc-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+
+                            <div class="yt-share-anchor">
+                                <button type="button" id="ep-share-btn" class="yt-pill-btn tmkoc-share-btn" aria-expanded="false" aria-haspopup="true" title="Share">
+                                    <svg class="tmkoc-action-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
                                     <span id="ep-share-label">Share</span>
                                 </button>
+
+                                <div id="ep-share-popover" class="yt-share-popover" style="display: none;" role="dialog" aria-label="Share episode">
+                                    <div class="yt-share-pop-head">
+                                        <span>Share Episode</span>
+                                        <button type="button" id="share-pop-close" class="yt-share-pop-close" aria-label="Close">✕</button>
+                                    </div>
+                                    <div class="yt-share-url-row">
+                                        <input type="text" id="share-url-preview-input" class="yt-share-url-input" readonly aria-label="Episode link">
+                                        <button type="button" id="share-copy-btn" class="yt-share-copy-btn">Copy</button>
+                                    </div>
+                                    <div class="yt-share-pop-foot">
+                                        <label class="yt-share-ts-check">
+                                            <input type="checkbox" id="share-at-timestamp">
+                                            <span id="share-timestamp-label">Start at 0:00</span>
+                                        </label>
+                                        <button type="button" id="ep-whatsapp-btn" class="yt-wa-pill-btn" title="Share on WhatsApp">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.03 2C6.5 2 2 6.48 2 12c0 1.77.46 3.5 1.35 5.02L2 22l5.12-1.33A10.02 10.02 0 0 0 12.03 22C17.55 22 22 17.52 22 12S17.55 2 12.03 2zm5.84 14.12c-.25.7-1.45 1.35-2.01 1.43-.52.08-1.18.12-1.91-.12-.44-.14-1-.33-1.72-.64-3.03-1.3-5-4.37-5.15-4.57-.15-.2-1.23-1.63-1.23-3.11 0-1.48.78-2.21 1.05-2.51.28-.3.6-.38.8-.38.2 0 .4 0 .58.01.19.01.44-.07.68.52.25.6.85 2.08.92 2.23.08.15.13.33.03.53-.1.2-.15.33-.3.5-.15.18-.32.4-.45.54-.15.15-.31.32-.13.62.18.3.78 1.29 1.68 2.09 1.15 1.03 2.13 1.35 2.43 1.5.3.15.48.13.66-.08.18-.2.75-.88.95-1.18.2-.3.4-.25.68-.15.28.1 1.75.83 2.05.98.3.15.5.22.58.35.07.12.07.72-.18 1.42z"></path></svg>
+                                            WhatsApp
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="yt-ep-nav-pills">
+                                <button type="button" class="yt-icon-pill-btn" onclick="navCleanEp(-1)" title="Previous Episode" aria-label="Previous Episode">◀</button>
+                                <button type="button" class="yt-icon-pill-btn" onclick="navCleanEp(1)" title="Next Episode" aria-label="Next Episode">▶</button>
                             </div>
                         </div>
                     </div>
@@ -195,40 +215,47 @@
 
                 <div class="yt-description-card" id="watch-description-card">
                     <div id="watch-description-meta" class="yt-description-meta"></div>
-                    <div id="clean-description" class="yt-description-text"></div>
+                    <div id="clean-description" class="yt-description-text is-collapsed"></div>
+                    <button type="button" id="watch-desc-toggle" class="yt-desc-toggle" style="display: none;">...more</button>
                 </div>
 
                 <section id="clean-comments-section" class="tmkoc-comments-section yt-comments-section" aria-label="Episode comments">
                     <div class="tmkoc-comments-header">
                         <div class="tmkoc-comments-heading-wrap">
-                            <h4 class="tmkoc-comments-title">Comments</h4>
-                            <span id="ep-comments-count" class="tmkoc-comments-badge">0</span>
+                            <h4 class="tmkoc-comments-title"><span id="ep-comments-count">0</span> Comments</h4>
                         </div>
                         <div class="tmkoc-comments-sort" role="group" aria-label="Sort comments">
                             <button type="button" id="comments-sort-top" class="tmkoc-sort-chip is-active" data-sort="top">Top</button>
-                            <button type="button" id="comments-sort-newest" class="tmkoc-sort-chip" data-sort="newest">Newest</button>
+                            <button type="button" id="comments-sort-newest" class="tmkoc-sort-chip" data-sort="newest">Newest first</button>
                         </div>
                     </div>
-                    <form id="ep-comment-form" class="tmkoc-comment-form" onsubmit="return false;">
-                        <div class="tmkoc-comment-composer-meta">
-                            <button type="button" id="comment-composer-avatar-btn" class="tmkoc-composer-avatar-btn" title="Choose Gokuldham character avatar" aria-label="Choose Gokuldham character avatar"></button>
-                            <span class="tmkoc-comment-as">Commenting as <strong id="comment-composer-handle">Gokuldham Resident</strong></span>
-                            <button type="button" id="comment-insert-ts-btn" class="tmkoc-insert-ts-btn" title="Insert current video timestamp into comment">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                <span id="comment-insert-ts-label">0:00</span>
-                            </button>
-                        </div>
-                        <div id="comment-avatar-tray" class="tmkoc-inline-avatar-tray" style="display: none;" role="radiogroup" aria-label="Quick select Gokuldham character"></div>
-                        <textarea id="ep-comment-input" class="tmkoc-comment-textarea" rows="2" maxlength="500" placeholder="Add a comment... Tip: type 04:15 to link a video moment!"></textarea>
-                        <div id="ep-comment-error" class="tmkoc-comment-error" style="display: none;"></div>
-                        <div class="tmkoc-comment-actions">
-                            <span id="ep-comment-char-count" class="tmkoc-comment-chars">0 / 500</span>
-                            <button type="submit" id="ep-comment-submit" class="tmkoc-comment-submit-btn">Comment</button>
+
+                    <form id="ep-comment-form" class="yt-comment-composer" onsubmit="return false;">
+                        <button type="button" id="comment-composer-avatar-btn" class="tmkoc-composer-avatar-btn" title="Choose Gokuldham character avatar" aria-label="Choose Gokuldham character avatar"></button>
+                        <div class="yt-comment-composer-main">
+                            <div class="yt-comment-composer-as">Commenting as <strong id="comment-composer-handle">Gokuldham Resident</strong></div>
+                            <div id="comment-avatar-tray" class="tmkoc-inline-avatar-tray" style="display: none;" role="radiogroup" aria-label="Quick select Gokuldham character"></div>
+                            <textarea id="ep-comment-input" class="yt-comment-underline-input" rows="1" maxlength="500" placeholder="Add a comment..."></textarea>
+                            <div id="ep-comment-error" class="tmkoc-comment-error" style="display: none;"></div>
+                            <div id="ep-comment-toolbar" class="yt-comment-toolbar" style="display: none;">
+                                <div class="yt-comment-toolbar-left">
+                                    <button type="button" id="comment-insert-ts-btn" class="tmkoc-insert-ts-btn" title="Insert current video timestamp">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                        <span id="comment-insert-ts-label">0:00</span>
+                                    </button>
+                                    <span id="ep-comment-char-count" class="tmkoc-comment-chars">0 / 500</span>
+                                </div>
+                                <div class="yt-comment-toolbar-right">
+                                    <button type="button" id="ep-comment-cancel" class="yt-comment-cancel-btn">Cancel</button>
+                                    <button type="submit" id="ep-comment-submit" class="yt-comment-post-btn">Comment</button>
+                                </div>
+                            </div>
                         </div>
                     </form>
-                    <div id="ep-comments-list" class="tmkoc-comments-list"></div>
+
+                    <div id="ep-comments-list" class="yt-comments-list"></div>
                     <div id="ep-comments-more-wrap" class="tmkoc-comments-more-wrap" style="display: none;">
-                        <button type="button" id="ep-comments-load-more" class="tmkoc-comments-more-btn">Load more comments</button>
+                        <button type="button" id="ep-comments-load-more" class="tmkoc-comments-more-btn">Show more comments</button>
                     </div>
                 </section>
             </div>
@@ -236,17 +263,14 @@
             <!-- Right Secondary Column: Up Next & Recommendations Sidebar -->
             <aside class="yt-watch-secondary" aria-label="Recommended episodes">
                 <div class="yt-rec-header">
-                    <div class="yt-rec-header-top">
-                        <h3 class="yt-rec-title">Up Next</h3>
-                        <label class="yt-autoplay-label">
-                            <span>Autoplay</span>
+                    <h3 class="yt-rec-title">Up Next</h3>
+                    <label class="yt-switch-wrap" title="Autoplay next episode">
+                        <span class="yt-switch-label">Autoplay</span>
+                        <span class="yt-switch">
                             <input type="checkbox" id="autoplay-toggle" onchange="toggleAutoplay(this.checked)">
-                        </label>
-                    </div>
-                    <div class="yt-rec-nav-row">
-                        <button type="button" class="yt-rec-nav-btn" onclick="navCleanEp(-1)">◀ Prev Ep</button>
-                        <button type="button" class="yt-rec-nav-btn" onclick="navCleanEp(1)">Next Ep ▶</button>
-                    </div>
+                            <span class="yt-switch-slider"></span>
+                        </span>
+                    </label>
                 </div>
                 <div id="watch-recommendations-list" class="yt-rec-list"></div>
             </aside>
@@ -506,6 +530,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/app.js?v=36"></script>
+    <script type="module" src="js/app.js?v=37"></script>
 </body>
 </html>
